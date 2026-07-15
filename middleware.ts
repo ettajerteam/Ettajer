@@ -1,6 +1,6 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import { USER_STATUS } from "@/lib/founder";
+import { USER_STATUS } from "@/lib/founder/constants";
 
 export default withAuth(
   function middleware(req) {
