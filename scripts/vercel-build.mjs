@@ -12,8 +12,7 @@ function run(command, args, env = process.env) {
   }
 }
 
-// Prisma schema requires DATABASE_URL at generate time on CI.
-const env = {
+const prismaGenerateEnv = {
   ...process.env,
   DATABASE_URL:
     process.env.DATABASE_URL?.trim() ||
@@ -21,7 +20,7 @@ const env = {
 };
 
 console.log("Generating Prisma client...");
-run("npx", ["prisma", "generate"], env);
+run("npx", ["prisma", "generate"], prismaGenerateEnv);
 
 console.log("Building Next.js app...");
-run("npx", ["next", "build"], env);
+run("npx", ["next", "build"], process.env);
