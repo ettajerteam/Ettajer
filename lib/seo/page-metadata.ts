@@ -93,6 +93,9 @@ export function buildRootMetadata(): Metadata {
       title: SITE_NAME,
       statusBarStyle: "default",
     },
+    other: {
+      "mobile-web-app-capable": "yes",
+    },
     title: {
       default: defaultTitle,
       template: `%s | ${SITE_NAME}`,
