@@ -2,7 +2,7 @@ import {
   getLaunchTargetDate,
   isPlatformLaunched,
   getMsUntilLaunch,
-} from "@/lib/founder/waiting-intelligence";
+} from "@/lib/founder/launch-date";
 
 export {
   getLaunchTargetDate,

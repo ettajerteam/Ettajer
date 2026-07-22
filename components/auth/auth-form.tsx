@@ -280,11 +280,8 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
           }
         }
       } else if (result?.ok) {
-        if (sessionStorage.getItem(PENDING_WELCOME_KEY)) {
-          sessionStorage.removeItem(PENDING_WELCOME_KEY);
-          window.location.href = "/welcome";
-          return;
-        }
+        // Prefer post-auth routing (dashboard home when store exists).
+        sessionStorage.removeItem(PENDING_WELCOME_KEY);
         try {
           const targetRes = await fetch("/api/auth/redirect-target");
           const targetData = (await targetRes.json()) as { redirect?: string };

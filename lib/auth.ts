@@ -498,6 +498,7 @@ export const authOptions: NextAuthOptions = {
           token.founderNumber = dbUser.founderNumber;
           token.role = role;
           if (dbUser.name) token.name = dbUser.name;
+          if (dbUser.email) token.email = dbUser.email;
         }
       }
       return token;
@@ -509,6 +510,7 @@ export const authOptions: NextAuthOptions = {
         session.user.founderNumber = token.founderNumber as number | null | undefined;
         session.user.role = token.role as string | undefined;
         if (token.name) session.user.name = token.name as string;
+        if (token.email) session.user.email = token.email as string;
       }
       return session;
     },

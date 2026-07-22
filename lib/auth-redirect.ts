@@ -4,9 +4,11 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { USER_STATUS } from "@/lib/founder";
 import { isPlatformAdmin } from "@/lib/admin/roles";
+import { isPlatformLaunched } from "@/lib/founder/launch-date";
 
 /**
  * After sign-in, route merchants based on account status and store setup.
+ * After platform launch, waiting founders go to their dashboard (or onboarding).
  */
 export async function getPostAuthRedirect(fallback = "/dashboard") {
   const session = await getServerSession(authOptions);
@@ -29,7 +31,12 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
 
   const isAdmin = isPlatformAdmin({ role: user?.role, email: user?.email });
 
-  if (!isAdmin && user?.status === USER_STATUS.WAITING && user.founderNumber) {
+  if (
+    !isAdmin &&
+    !isPlatformLaunched() &&
+    user?.status === USER_STATUS.WAITING &&
+    user.founderNumber
+  ) {
     return "/early-access";
   }
 

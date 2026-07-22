@@ -6,6 +6,17 @@ import {
   formatFounderNumberShort,
 } from "@/lib/founder/constants";
 import { getWaitingIntelligenceCopy } from "@/lib/founder/founder-flow-i18n";
+import {
+  getLaunchTargetDate,
+  getMsUntilLaunch,
+  isPlatformLaunched,
+} from "@/lib/founder/launch-date";
+
+export {
+  getLaunchTargetDate,
+  getMsUntilLaunch,
+  isPlatformLaunched,
+};
 
 export type {
   FounderTierId,
@@ -59,24 +70,6 @@ export interface WaitingIntelligence {
     status: "complete" | "active" | "upcoming";
     progress?: number;
   }[];
-}
-
-/** Platform public open — July 23, 2026 (Casablanca / UTC+1 midnight). Override via ETTAJER_LAUNCH_TARGET. */
-export function getLaunchTargetDate(): Date {
-  const raw = process.env.ETTAJER_LAUNCH_TARGET?.trim();
-  if (raw) {
-    const parsed = new Date(raw);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-  return new Date("2026-07-23T00:00:00.000+01:00");
-}
-
-export function isPlatformLaunched(now = new Date()): boolean {
-  return now.getTime() >= getLaunchTargetDate().getTime();
-}
-
-export function getMsUntilLaunch(now = new Date()): number {
-  return Math.max(0, getLaunchTargetDate().getTime() - now.getTime());
 }
 
 function getBaseLaunchProgress(): number {
