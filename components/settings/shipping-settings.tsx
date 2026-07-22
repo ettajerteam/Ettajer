@@ -4,7 +4,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { MOROCCO_CITIES } from "@/lib/morocco-cities";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import type { StoreWithSettings, ShippingZone } from "@/lib/store-settings";
@@ -126,25 +125,31 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Cities</Label>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Cities</Label>
+                <span className="text-[11px] text-neutral-400">
+                  {zone.cities.length} selected
+                </span>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {MOROCCO_CITIES.map((city) => {
                   const selected = zone.cities.includes(city);
                   return (
-                    <Badge
+                    <button
                       key={city}
-                      variant={selected ? "default" : "outline"}
-                      className={cn(
-                        "cursor-pointer rounded-full px-3 py-1 transition",
-                        selected
-                          ? "border-transparent bg-[#007AFF] hover:bg-[#0071EB]"
-                          : "hover:border-neutral-400"
-                      )}
+                      type="button"
+                      aria-pressed={selected}
                       onClick={() => toggleCity(zone.id, city)}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
+                        selected
+                          ? "border-[#007AFF] bg-[#007AFF] text-white hover:border-[#0071EB] hover:bg-[#0071EB]"
+                          : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50",
+                      )}
                     >
                       {city}
-                    </Badge>
+                    </button>
                   );
                 })}
               </div>
