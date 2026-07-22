@@ -21,6 +21,8 @@ import {
 import { sendActivationCodeEmail } from "@/lib/email/automations";
 import { resolveRequestEmailLocale } from "@/lib/email/email-locale";
 import { isResendConfigured } from "@/lib/resend";
+import { logPlatformError } from "@/lib/admin/platform-errors";
+import { Prisma } from "@prisma/client";
 import {
   AUTH_SECURITY,
   getClientIp,
@@ -53,14 +55,13 @@ async function persistSignupPreferences(
   marketingEmails: boolean,
   termsAcceptedAt: Date,
 ) {
-  await prisma.$executeRaw`
-    UPDATE "User"
-    SET
-      "marketingEmails" = ${marketingEmails},
-      "termsAcceptedAt" = ${termsAcceptedAt},
-      "updatedAt" = ${new Date()}
-    WHERE "id" = ${userId}
-  `;
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      marketingEmails,
+      termsAcceptedAt,
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -219,6 +220,41 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Signup error:", error);
+
+    await logPlatformError({
+      source: "api/auth/signup",
+      message: error instanceof Error ? error.message : "Signup error",
+      stack: error instanceof Error ? error.stack : undefined,
+      path: "/api/auth/signup",
+      metadata: {
+        code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined,
+      },
+    });
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "An account with this email already exists. Try signing in instead." },
+        { status: 409 },
+      );
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientInitializationError ||
+      (error instanceof Error &&
+        /connect|database|ECONNREFUSED|timeout/i.test(error.message))
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Our servers are temporarily unavailable. Please try again in a few minutes.",
+        },
+        { status: 503 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Unable to create account. Please try again." },
       { status: 500 },

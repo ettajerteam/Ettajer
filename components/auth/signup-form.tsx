@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -15,8 +17,11 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { AuthFlowSteps, SignupPasswordRequirements } from "@/components/auth/auth-flow";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { useAuthLocale, AuthArrowForward } from "@/components/auth/auth-locale-provider";
+import { setOAuthSignupCookies } from "@/lib/auth/oauth-signup";
 import { getFounderOnboardingFlow } from "@/lib/auth/auth-i18n";
+import { useAuthProviders } from "@/lib/auth/use-auth-providers";
 import {
   isSignupPasswordValid,
   isValidSignupEmail,
@@ -113,11 +118,18 @@ function ConsentCheckbox({
   );
 }
 
-export function SignupForm() {
+interface SignupFormProps {
+  providers: {
+    google: boolean;
+  };
+}
+
+export function SignupForm({ providers }: SignupFormProps) {
   const { copy: authCopy, locale } = useAuthLocale();
   const s = authCopy.signup;
   const err = authCopy.errors;
   const onboardingFlow = getFounderOnboardingFlow(authCopy);
+  const liveProviders = useAuthProviders({ google: providers.google });
 
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");
@@ -130,9 +142,22 @@ export function SignupForm() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<"founder_full" | null>(null);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("error") === "founder_full") {
+      setErrorCode("founder_full");
+      setError(
+        "All 100 founder spots have been claimed. Join the waitlist soon.",
+      );
+    }
+  }, [searchParams]);
+
+  const showGoogle = liveProviders.google;
 
   const emailFormatError =
     emailTouched && email.trim().length > 0 && !isValidSignupEmail(email)
@@ -143,6 +168,28 @@ export function SignupForm() {
     confirmPassword.length > 0 && password.length > 0 && password === confirmPassword;
   const passwordsMismatch =
     confirmPassword.length > 0 && password.length > 0 && password !== confirmPassword;
+
+  const handleGoogleSignUp = async () => {
+    if (!showGoogle) {
+      setError(err.googleNotConfigured);
+      return;
+    }
+    if (!acceptTerms) {
+      setError(err.acceptTerms);
+      return;
+    }
+
+    setError(null);
+    setErrorCode(null);
+    setGoogleLoading(true);
+    try {
+      setOAuthSignupCookies(true, marketingEmails);
+      await signIn("google", { callbackUrl: "/welcome" });
+    } catch {
+      setError(err.unableGoogle);
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,12 +352,69 @@ export function SignupForm() {
             </motion.div>
           ) : null}
 
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <ConsentCheckbox
+                id="acceptTermsGoogle"
+                checked={acceptTerms}
+                onChange={setAcceptTerms}
+                disabled={loading || googleLoading}
+              >
+                {s.termsPrefix}{" "}
+                <Link href="/terms" className="font-semibold text-neutral-900 underline-offset-2 hover:underline">
+                  {s.terms}
+                </Link>{" "}
+                {s.and}{" "}
+                <Link href="/privacy" className="font-semibold text-neutral-900 underline-offset-2 hover:underline">
+                  {s.privacy}
+                </Link>
+                <span className="text-red-600"> *</span>
+              </ConsentCheckbox>
+
+              <ConsentCheckbox
+                id="marketingEmailsGoogle"
+                checked={marketingEmails}
+                onChange={setMarketingEmails}
+                disabled={loading || googleLoading}
+              >
+                {s.marketing}
+              </ConsentCheckbox>
+            </div>
+
+            {showGoogle ? (
+              <div className="space-y-2">
+                <GoogleAuthButton
+                  label={s.continueGoogle}
+                  loadingLabel={s.connectingGoogle}
+                  loading={googleLoading}
+                  disabled={!acceptTerms || loading}
+                  onClick={() => void handleGoogleSignUp()}
+                />
+                <p className="text-center text-[12px] text-neutral-400">
+                  {acceptTerms
+                    ? s.googleHint
+                    : err.acceptTerms}
+                </p>
+              </div>
+            ) : null}
+
+            {showGoogle ? (
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-neutral-200/90" />
+                <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+                  {s.orEmail}
+                </span>
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-neutral-200/90" />
+              </div>
+            ) : null}
+          </div>
+
           <motion.form
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.08, ease: EASE }}
             onSubmit={handleSubmit}
-            className="space-y-4"
+            className="mt-4 space-y-4"
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -439,37 +543,9 @@ export function SignupForm() {
               ) : null}
             </div>
 
-            <div className="space-y-2.5 pt-1">
-              <ConsentCheckbox
-                id="acceptTerms"
-                checked={acceptTerms}
-                onChange={setAcceptTerms}
-                disabled={loading}
-              >
-                {s.termsPrefix}{" "}
-                <Link href="/terms" className="font-semibold text-neutral-900 underline-offset-2 hover:underline">
-                  {s.terms}
-                </Link>{" "}
-                {s.and}{" "}
-                <Link href="/privacy" className="font-semibold text-neutral-900 underline-offset-2 hover:underline">
-                  {s.privacy}
-                </Link>
-                <span className="text-red-600"> *</span>
-              </ConsentCheckbox>
-
-              <ConsentCheckbox
-                id="marketingEmails"
-                checked={marketingEmails}
-                onChange={setMarketingEmails}
-                disabled={loading}
-              >
-                {s.marketing}
-              </ConsentCheckbox>
-            </div>
-
             <button
               type="submit"
-              disabled={loading || !acceptTerms}
+              disabled={loading || googleLoading || !acceptTerms}
               className="group relative mt-1 flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-neutral-900 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),0_4px_14px_rgba(0,0,0,0.08)] transition-all duration-200 hover:bg-neutral-800 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (

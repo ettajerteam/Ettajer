@@ -93,6 +93,82 @@ export type EmailCopy = {
     highlightBody: string;
     footerNote: string;
   };
+  founderLaunchAnnounce: {
+    subject: string;
+    previewText: string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (founderLabel: string, launchDateLabel: string) => string;
+    cta: string;
+    steps: string[];
+    highlightTitle: string;
+    highlightBody: string;
+    footerNote: string;
+  };
+  founderBetaTesting: {
+    subject: string;
+    previewText: string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (founderLabel: string, launchDateLabel: string) => string;
+    cta: string;
+    steps: string[];
+    highlightTitle: string;
+    highlightBody: string;
+    footerNote: string;
+  };
+  founderAccessUnlocked: {
+    subject: string;
+    previewText: string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (founderLabel: string) => string;
+    cta: string;
+    steps: string[];
+    highlightTitle: string;
+    highlightBody: string;
+    footerNote: string;
+  };
+  verifyEmailReminder: {
+    subject: string;
+    previewText: string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (launchDateLabel: string) => string;
+    cta: string;
+    steps: string[];
+    footerNote: string;
+  };
+  merchantNewOrder: {
+    subject: (orderNumber: string) => string;
+    previewText: (orderNumber: string, customerName: string) => string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (orderNumber: string, customerName: string, totalFormatted: string) => string;
+    cta: string;
+    orderLabel: string;
+    customerLabel: string;
+    totalLabel: string;
+    footerNote: string;
+  };
+  storeLive: {
+    subject: (storeName: string) => string;
+    previewText: (storeName: string) => string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (storeName: string, storeUrl: string) => string;
+    cta: string;
+    steps: string[];
+    highlightTitle: string;
+    highlightBody: string;
+    footerNote: string;
+  };
   orderConfirmed: {
     subject: (orderNumber: string) => string;
     previewText: (orderNumber: string) => string;
@@ -108,6 +184,18 @@ export type EmailCopy = {
     shipping: string;
     shippingFree: string;
     total: string;
+    footerNote: (storeName: string) => string;
+  };
+  abandonedCart: {
+    subject: (storeName: string) => string;
+    previewText: string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (storeName: string) => string;
+    itemsHeader: string;
+    totalHeader: string;
+    cta: string;
     footerNote: (storeName: string) => string;
   };
   orderStatus: {
@@ -137,6 +225,27 @@ export type EmailCopy = {
     greeting: (name: string) => string;
     emailLabel: string;
     articleLabel: string;
+    footerNote: string;
+  };
+  nameChangeInvite: {
+    subject: string;
+    previewText: string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (currentName: string) => string;
+    cta: string;
+    expiryNote: string;
+    steps: string[];
+    footerNote: string;
+  };
+  nameChangeConfirmed: {
+    subject: string;
+    previewText: string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (previousName: string, newName: string) => string;
     footerNote: string;
   };
 };
@@ -257,6 +366,113 @@ const EN: EmailCopy = {
       "We'll notify you when your store dashboard becomes available. Save your attached founder card and certificate — they're yours forever.",
     footerNote: "Thank you for building Ettajer with us. The Ettajer Team",
   },
+  founderLaunchAnnounce: {
+    subject: "Ettajer opens Thursday 23 July 2026",
+    previewText: "Your founder dashboard unlocks on 23 July — countdown is live.",
+    title: "Platform opens 23 July",
+    badge: "Founder update",
+    greeting: (name) => `Hi ${name},`,
+    body: (founderLabel, launchDateLabel) =>
+      `You're ${founderLabel} on Ettajer.<br /><br />The merchant platform opens on <strong>${launchDateLabel}</strong>. Your countdown is already live on the early-access page — when it hits zero, claim your dashboard and start building your store.`,
+    cta: "View countdown",
+    steps: [
+      "Open early access and watch the countdown",
+      "On launch day, tap “Open my dashboard”",
+      "Complete onboarding and publish your first product",
+    ],
+    highlightTitle: "Founder seat secured",
+    highlightBody:
+      "You keep your founder number and early-access benefits. No action needed until launch day.",
+    footerNote: "You're receiving this because you hold an Ettajer founder seat.",
+  },
+  founderBetaTesting: {
+    subject: "Beta testing now — Ettajer platform development is done",
+    previewText: "We're testing the live web now. Your early-access page shows Beta testing now.",
+    title: "Beta testing now",
+    badge: "Founder update",
+    greeting: (name) => `Hi ${name},`,
+    body: (founderLabel, launchDateLabel) =>
+      `You're ${founderLabel} on Ettajer.<br /><br /><strong>Platform development is done.</strong> We're now <strong>beta testing the live web</strong> — polishing the store builder, checkout, and merchant experience before public launch on <strong>${launchDateLabel}</strong>.<br /><br />Open your early-access page to see the new status: <strong>Beta testing now</strong>.`,
+    cta: "Open early access",
+    steps: [
+      "Open your early-access page — status shows Beta testing now",
+      "Watch the countdown to public launch",
+      "On launch day, unlock your merchant dashboard",
+    ],
+    highlightTitle: "What this means",
+    highlightBody:
+      "No action needed from you today. Your founder seat stays locked. We'll email you again when your dashboard unlocks at public launch.",
+    footerNote: "You're receiving this because you hold an Ettajer founder seat.",
+  },
+  founderAccessUnlocked: {
+    subject: "Your Ettajer dashboard is open",
+    previewText: "Launch day is here — open your merchant dashboard and build your store.",
+    title: "Dashboard unlocked",
+    badge: "You're in",
+    greeting: (name) => `Hi ${name},`,
+    body: (founderLabel) =>
+      `Ettajer is live and your founder seat (${founderLabel}) is active.<br /><br />Your merchant dashboard is ready — set up your store, add products, and start taking COD orders.`,
+    cta: "Open my dashboard",
+    steps: [
+      "Complete store onboarding",
+      "Add your first product",
+      "Publish and share your store link",
+    ],
+    highlightTitle: "Founder benefits active",
+    highlightBody:
+      "Your founder number and early-access perks stay with you. Need help? Reply to this email or visit the help center.",
+    footerNote: "You're receiving this because you unlocked your Ettajer founder account.",
+  },
+  verifyEmailReminder: {
+    subject: "Verify your email to keep your founder seat",
+    previewText: "One step left before launch — confirm your email on Ettajer.",
+    title: "Verify your email",
+    badge: "Action required",
+    greeting: (name) => `Hi ${name},`,
+    body: (launchDateLabel) =>
+      `Your founder seat is reserved, but your email is not verified yet.<br /><br />Before we open on <strong>${launchDateLabel}</strong>, please confirm your email so you can claim your dashboard on launch day.`,
+    cta: "Verify my email",
+    steps: [
+      "Open the activation page",
+      "Enter the 6-digit code we sent you (or request a new one)",
+      "Return to early access — you're all set for launch",
+    ],
+    footerNote: "If you already verified, you can ignore this reminder.",
+  },
+  merchantNewOrder: {
+    subject: (orderNumber) => `New order ${orderNumber}`,
+    previewText: (orderNumber, customerName) =>
+      `New order ${orderNumber} from ${customerName}.`,
+    title: "New order received",
+    badge: "New sale",
+    greeting: (name) => `Hi ${name},`,
+    body: (orderNumber, customerName, totalFormatted) =>
+      `You have a new order <strong>${orderNumber}</strong> from <strong>${customerName}</strong> for <strong>${totalFormatted}</strong>. Review it in your dashboard and confirm COD details.`,
+    cta: "View order",
+    orderLabel: "Order",
+    customerLabel: "Customer",
+    totalLabel: "Total",
+    footerNote: "Manage notifications in your store settings.",
+  },
+  storeLive: {
+    subject: (storeName) => `${storeName} is live on Ettajer`,
+    previewText: (storeName) => `Your storefront ${storeName} is now published.`,
+    title: "Your store is live",
+    badge: "Published",
+    greeting: (name) => `Hi ${name},`,
+    body: (storeName, storeUrl) =>
+      `Congratulations — <strong>${storeName}</strong> is now live at <a href="${storeUrl}" style="color:#3b82f6;">${storeUrl}</a>. Share the link and start receiving COD orders.`,
+    cta: "View live store",
+    steps: [
+      "Share your store link on WhatsApp and social",
+      "Add more products to grow your catalog",
+      "Track orders from your dashboard",
+    ],
+    highlightTitle: "First sale tip",
+    highlightBody:
+      "Merchants who share their link with 10 contacts in the first week see faster first orders. COD checkout is already enabled.",
+    footerNote: "You're receiving this because you published a store on Ettajer.",
+  },
   orderConfirmed: {
     subject: (orderNumber) => `Order confirmed — ${orderNumber}`,
     previewText: (orderNumber) => `Your order ${orderNumber} is confirmed.`,
@@ -273,6 +489,20 @@ const EN: EmailCopy = {
     shippingFree: "Free",
     total: "Total",
     footerNote: (storeName) => `Thank you for shopping with ${storeName}.`,
+  },
+  abandonedCart: {
+    subject: (storeName) => `You left something behind at ${storeName}`,
+    previewText: "Complete your order — your cart is waiting.",
+    title: "Your cart is waiting",
+    badge: "Reminder",
+    greeting: (name) => `Hi ${name},`,
+    body: (storeName) =>
+      `You left items in your cart at <strong>${storeName}</strong>. Complete your order when you're ready — cash on delivery is available.`,
+    itemsHeader: "Items",
+    totalHeader: "Subtotal",
+    cta: "Complete your order",
+    footerNote: (storeName) =>
+      `You're receiving this because you started checkout at ${storeName}.`,
   },
   orderStatus: {
     subject: (orderNumber, statusLabel) =>
@@ -312,16 +542,16 @@ const EN: EmailCopy = {
     },
   },
   supportConfirmation: {
-    subject: "We received your message — Ettajer Support",
-    previewText: "We received your support message and will reply soon.",
-    title: "We got your message",
+    subject: "Your request is under review — Ettajer Support",
+    previewText: "We received your message and it is now under review.",
+    title: "Your request is under review",
     greeting: (name) => `Hi ${name},`,
     body: (topic) =>
-      `Thanks for reaching out about <strong>${topic}</strong>. Our team typically replies within 24 hours on business days.`,
-    highlightTitle: "While you wait",
+      `Thanks for contacting us about <strong>${topic}</strong>. Your message is <strong>under review</strong> by Ettajer Support. We typically reply within 24 hours on business days.`,
+    highlightTitle: "What happens next",
     highlightBody: (helpUrl) =>
-      `Browse the <a href="${helpUrl}" style="color:#3b82f6;">Help Center</a> for instant answers on COD checkout, orders, and store setup.`,
-    footerNote: "Reply to this email to add more details to your request.",
+      `Our team is studying your request. You’ll receive a follow-up by email. Meanwhile, browse the <a href="${helpUrl}" style="color:#3b82f6;">Help Center</a> for quick answers.`,
+    footerNote: "Reply to this email if you need to add more details.",
   },
   supportTicket: {
     previewText: (topic) => `New support request: ${topic}`,
@@ -331,6 +561,34 @@ const EN: EmailCopy = {
     articleLabel: "Article",
     footerNote:
       "Reply directly to this email — your response goes to the customer.",
+  },
+  nameChangeInvite: {
+    subject: "Update your official name — Ettajer Support",
+    previewText: "We reviewed your request. Confirm your official name securely.",
+    title: "Confirm your official name",
+    badge: "Support",
+    greeting: (name) => `Hi ${name},`,
+    body: (currentName) =>
+      `We studied your request to correct your account name. Your profile currently shows <strong>${currentName}</strong>. Use the secure button below to enter your official name — it will update your account and founder card.`,
+    cta: "Update my name",
+    expiryNote: "This secure link expires in 7 days and can be used once.",
+    steps: [
+      "Open the secure name update page",
+      "Enter your official name as on your ID",
+      "Save — your founder card will use the new name",
+    ],
+    footerNote:
+      "If you did not request this, reply to this email and we will cancel the link.",
+  },
+  nameChangeConfirmed: {
+    subject: "Your Ettajer name was updated",
+    previewText: "Your account name was updated successfully.",
+    title: "Name updated",
+    badge: "Confirmed",
+    greeting: (name) => `Hi ${name},`,
+    body: (previousName, newName) =>
+      `Your account name was changed from <strong>${previousName}</strong> to <strong>${newName}</strong>. Your founder card and profile now use this name.`,
+    footerNote: "If you did not make this change, contact Ettajer Support immediately.",
   },
 };
 
@@ -452,6 +710,113 @@ const FR: EmailCopy = {
       "Nous vous préviendrons quand votre tableau de bord boutique sera disponible. Conservez votre carte et certificat joints — ils sont à vous pour toujours.",
     footerNote: "Merci de construire Ettajer avec nous. L'équipe Ettajer",
   },
+  founderLaunchAnnounce: {
+    subject: "Ettajer ouvre jeudi 23 juillet 2026",
+    previewText: "Votre tableau de bord fondateur s'ouvre le 23 juillet — le compte à rebours est en ligne.",
+    title: "Ouverture le 23 juillet",
+    badge: "Info fondateur",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (founderLabel, launchDateLabel) =>
+      `Vous êtes ${founderLabel} sur Ettajer.<br /><br />La plateforme marchand ouvre le <strong>${launchDateLabel}</strong>. Le compte à rebours est déjà disponible sur la page accès anticipé — à zéro, ouvrez votre tableau de bord et créez votre boutique.`,
+    cta: "Voir le compte à rebours",
+    steps: [
+      "Ouvrez l'accès anticipé et suivez le compte à rebours",
+      "Le jour J, cliquez sur « Ouvrir mon tableau de bord »",
+      "Terminez l'onboarding et publiez votre premier produit",
+    ],
+    highlightTitle: "Place fondateur confirmée",
+    highlightBody:
+      "Votre numéro fondateur et vos avantages restent acquis. Rien à faire avant le jour d'ouverture.",
+    footerNote: "Vous recevez cet e-mail car vous avez une place fondateur Ettajer.",
+  },
+  founderBetaTesting: {
+    subject: "Tests bêta en cours — le développement Ettajer est terminé",
+    previewText: "Nous testons le web en live. Votre page accès anticipé affiche Tests bêta en cours.",
+    title: "Tests bêta en cours",
+    badge: "Info fondateur",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (founderLabel, launchDateLabel) =>
+      `Vous êtes ${founderLabel} sur Ettajer.<br /><br /><strong>Le développement de la plateforme est terminé.</strong> Nous <strong>testons le web en live</strong> — peaufinage du créateur de boutique, du checkout et de l'expérience marchande avant le lancement public le <strong>${launchDateLabel}</strong>.<br /><br />Ouvrez votre page accès anticipé : le statut affiche <strong>Tests bêta en cours</strong>.`,
+    cta: "Ouvrir l'accès anticipé",
+    steps: [
+      "Ouvrez l'accès anticipé — statut : Tests bêta en cours",
+      "Suivez le compte à rebours jusqu'au lancement public",
+      "Le jour J, débloquez votre tableau de bord marchand",
+    ],
+    highlightTitle: "Ce que cela signifie",
+    highlightBody:
+      "Aucune action de votre part aujourd'hui. Votre place fondateur reste sécurisée. Nous vous écrirons à nouveau quand votre tableau de bord s'ouvrira au lancement public.",
+    footerNote: "Vous recevez cet e-mail car vous avez une place fondateur Ettajer.",
+  },
+  founderAccessUnlocked: {
+    subject: "Votre tableau de bord Ettajer est ouvert",
+    previewText: "Le jour J est arrivé — ouvrez votre tableau de bord marchand.",
+    title: "Tableau de bord débloqué",
+    badge: "C'est parti",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (founderLabel) =>
+      `Ettajer est en ligne et votre place fondateur (${founderLabel}) est active.<br /><br />Votre tableau de bord est prêt — configurez votre boutique, ajoutez des produits et recevez des commandes COD.`,
+    cta: "Ouvrir mon tableau de bord",
+    steps: [
+      "Terminez l'onboarding boutique",
+      "Ajoutez votre premier produit",
+      "Publiez et partagez le lien de votre boutique",
+    ],
+    highlightTitle: "Avantages fondateur actifs",
+    highlightBody:
+      "Votre numéro fondateur et vos avantages restent acquis. Besoin d'aide ? Répondez à cet e-mail ou visitez le centre d'aide.",
+    footerNote: "Vous recevez cet e-mail car vous avez débloqué votre compte fondateur Ettajer.",
+  },
+  verifyEmailReminder: {
+    subject: "Vérifiez votre e-mail pour garder votre place fondateur",
+    previewText: "Une étape avant l'ouverture — confirmez votre e-mail sur Ettajer.",
+    title: "Vérifiez votre e-mail",
+    badge: "Action requise",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (launchDateLabel) =>
+      `Votre place fondateur est réservée, mais votre e-mail n'est pas encore vérifié.<br /><br />Avant l'ouverture le <strong>${launchDateLabel}</strong>, confirmez votre e-mail pour ouvrir votre tableau de bord le jour J.`,
+    cta: "Vérifier mon e-mail",
+    steps: [
+      "Ouvrez la page d'activation",
+      "Entrez le code à 6 chiffres (ou demandez-en un nouveau)",
+      "Retournez à l'accès anticipé — vous êtes prêt pour le lancement",
+    ],
+    footerNote: "Si vous avez déjà vérifié, ignorez ce rappel.",
+  },
+  merchantNewOrder: {
+    subject: (orderNumber) => `Nouvelle commande ${orderNumber}`,
+    previewText: (orderNumber, customerName) =>
+      `Nouvelle commande ${orderNumber} de ${customerName}.`,
+    title: "Nouvelle commande reçue",
+    badge: "Nouvelle vente",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (orderNumber, customerName, totalFormatted) =>
+      `Vous avez une nouvelle commande <strong>${orderNumber}</strong> de <strong>${customerName}</strong> pour <strong>${totalFormatted}</strong>. Consultez-la dans votre tableau de bord et confirmez les détails COD.`,
+    cta: "Voir la commande",
+    orderLabel: "Commande",
+    customerLabel: "Client",
+    totalLabel: "Total",
+    footerNote: "Gérez les notifications dans les paramètres de votre boutique.",
+  },
+  storeLive: {
+    subject: (storeName) => `${storeName} est en ligne sur Ettajer`,
+    previewText: (storeName) => `Votre boutique ${storeName} est publiée.`,
+    title: "Votre boutique est en ligne",
+    badge: "Publiée",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (storeName, storeUrl) =>
+      `Félicitations — <strong>${storeName}</strong> est en ligne sur <a href="${storeUrl}" style="color:#3b82f6;">${storeUrl}</a>. Partagez le lien et recevez des commandes COD.`,
+    cta: "Voir la boutique",
+    steps: [
+      "Partagez votre lien sur WhatsApp et les réseaux",
+      "Ajoutez plus de produits",
+      "Suivez les commandes depuis le tableau de bord",
+    ],
+    highlightTitle: "Conseil première vente",
+    highlightBody:
+      "Les marchands qui partagent leur lien avec 10 contacts la première semaine obtiennent leurs premières commandes plus vite. Le COD est déjà activé.",
+    footerNote: "Vous recevez cet e-mail car vous avez publié une boutique sur Ettajer.",
+  },
   orderConfirmed: {
     subject: (orderNumber) => `Commande confirmée — ${orderNumber}`,
     previewText: (orderNumber) => `Votre commande ${orderNumber} est confirmée.`,
@@ -468,6 +833,20 @@ const FR: EmailCopy = {
     shippingFree: "Gratuit",
     total: "Total",
     footerNote: (storeName) => `Merci d'avoir acheté chez ${storeName}.`,
+  },
+  abandonedCart: {
+    subject: (storeName) => `Vous avez oublié quelque chose chez ${storeName}`,
+    previewText: "Finalisez votre commande — votre panier vous attend.",
+    title: "Votre panier vous attend",
+    badge: "Rappel",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (storeName) =>
+      `Vous avez laissé des articles dans votre panier chez <strong>${storeName}</strong>. Finalisez votre commande quand vous voulez — le paiement à la livraison est disponible.`,
+    itemsHeader: "Articles",
+    totalHeader: "Sous-total",
+    cta: "Finaliser la commande",
+    footerNote: (storeName) =>
+      `Vous recevez cet e-mail car vous avez commencé une commande chez ${storeName}.`,
   },
   orderStatus: {
     subject: (orderNumber, statusLabel) =>
@@ -507,16 +886,16 @@ const FR: EmailCopy = {
     },
   },
   supportConfirmation: {
-    subject: "Nous avons reçu votre message — Support Ettajer",
-    previewText: "Nous avons reçu votre message et répondrons bientôt.",
-    title: "Message bien reçu",
+    subject: "Votre demande est en cours d’examen — Support Ettajer",
+    previewText: "Nous avons reçu votre message ; il est en cours d’examen.",
+    title: "Demande en cours d’examen",
     greeting: (name) => `Bonjour ${name},`,
     body: (topic) =>
-      `Merci de nous avoir contactés au sujet de <strong>${topic}</strong>. Notre équipe répond généralement sous 24 h les jours ouvrables.`,
-    highlightTitle: "En attendant",
+      `Merci de nous avoir contactés au sujet de <strong>${topic}</strong>. Votre message est <strong>en cours d’examen</strong> par le support Ettajer. Nous répondons généralement sous 24 h les jours ouvrables.`,
+    highlightTitle: "Prochaines étapes",
     highlightBody: (helpUrl) =>
-      `Consultez le <a href="${helpUrl}" style="color:#3b82f6;">Centre d'aide</a> pour des réponses instantanées sur le COD, les commandes et la configuration de boutique.`,
-    footerNote: "Répondez à cet e-mail pour ajouter des détails à votre demande.",
+      `Notre équipe étudie votre demande. Vous recevrez une suite par e-mail. En attendant, consultez le <a href="${helpUrl}" style="color:#3b82f6;">Centre d’aide</a>.`,
+    footerNote: "Répondez à cet e-mail pour ajouter des détails.",
   },
   supportTicket: {
     previewText: (topic) => `Nouvelle demande de support : ${topic}`,
@@ -526,6 +905,35 @@ const FR: EmailCopy = {
     articleLabel: "Article",
     footerNote:
       "Répondez directement à cet e-mail — votre réponse ira au client.",
+  },
+  nameChangeInvite: {
+    subject: "Mettez à jour votre nom officiel — Support Ettajer",
+    previewText: "Nous avons étudié votre demande. Confirmez votre nom officiel.",
+    title: "Confirmez votre nom officiel",
+    badge: "Support",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (currentName) =>
+      `Nous avons étudié votre demande de correction de nom. Votre profil affiche actuellement <strong>${currentName}</strong>. Utilisez le bouton sécurisé ci-dessous pour indiquer votre nom officiel — il mettra à jour votre compte et votre carte fondateur.`,
+    cta: "Mettre à jour mon nom",
+    expiryNote: "Ce lien sécurisé expire dans 7 jours et ne peut être utilisé qu’une fois.",
+    steps: [
+      "Ouvrez la page sécurisée de mise à jour",
+      "Saisissez votre nom officiel (comme sur votre pièce d’identité)",
+      "Enregistrez — votre carte fondateur utilisera le nouveau nom",
+    ],
+    footerNote:
+      "Si vous n’avez pas fait cette demande, répondez à cet e-mail et nous annulerons le lien.",
+  },
+  nameChangeConfirmed: {
+    subject: "Votre nom Ettajer a été mis à jour",
+    previewText: "Le nom de votre compte a été mis à jour avec succès.",
+    title: "Nom mis à jour",
+    badge: "Confirmé",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (previousName, newName) =>
+      `Le nom de votre compte est passé de <strong>${previousName}</strong> à <strong>${newName}</strong>. Votre carte fondateur et votre profil utilisent désormais ce nom.`,
+    footerNote:
+      "Si vous n’êtes pas à l’origine de ce changement, contactez immédiatement le support Ettajer.",
   },
 };
 
@@ -642,6 +1050,113 @@ const AR: EmailCopy = {
       "سنُبلغك عند توفر لوحة متجرك. احفظ بطاقة المؤسس والشهادة المرفقتين — هما لك للأبد.",
     footerNote: "شكراً لبناء Ettajer معنا. فريق Ettajer",
   },
+  founderLaunchAnnounce: {
+    subject: "افتتاح Ettajer يوم الخميس 23 يوليو 2026",
+    previewText: "لوحة المؤسس تُفتح في 23 يوليو — العدّ التنازلي مباشر.",
+    title: "الافتتاح في 23 يوليو",
+    badge: "تحديث المؤسس",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (founderLabel, launchDateLabel) =>
+      `أنت ${founderLabel} على Ettajer.<br /><br />تفتح المنصة يوم <strong>${launchDateLabel}</strong>. العدّ التنازلي يظهر الآن في صفحة الوصول المبكر — عند الصفر، افتح لوحة التحكم وابدأ متجرك.`,
+    cta: "عرض العدّ التنازلي",
+    steps: [
+      "افتح الوصول المبكر وتابع العدّ التنازلي",
+      "في يوم الإطلاق اضغط «افتح لوحتي»",
+      "أكمل الإعداد وانشر أول منتج",
+    ],
+    highlightTitle: "مقعد المؤسس محفوظ",
+    highlightBody:
+      "رقم المؤسس ومزاياك محفوظة. لا يلزم أي إجراء قبل يوم الافتتاح.",
+    footerNote: "تصلك هذه الرسالة لأنك تملك مقعد مؤسس على Ettajer.",
+  },
+  founderBetaTesting: {
+    subject: "اختبار تجريبي الآن — اكتمل تطوير منصة Ettajer",
+    previewText: "نختبر الموقع المباشر الآن. صفحتك تعرض: اختبار تجريبي الآن.",
+    title: "اختبار تجريبي الآن",
+    badge: "تحديث المؤسس",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (founderLabel, launchDateLabel) =>
+      `أنت ${founderLabel} على Ettajer.<br /><br /><strong>اكتمل تطوير المنصة.</strong> نحن الآن في مرحلة <strong>اختبار الويب المباشر</strong> — تحسين منشئ المتجر والدفع وتجربة التاجر قبل الإطلاق العام يوم <strong>${launchDateLabel}</strong>.<br /><br />افتح صفحة الوصول المبكر لترى الحالة الجديدة: <strong>اختبار تجريبي الآن</strong>.`,
+    cta: "افتح الوصول المبكر",
+    steps: [
+      "افتح صفحة الوصول المبكر — الحالة: اختبار تجريبي الآن",
+      "تابع العدّ التنازلي حتى الإطلاق العام",
+      "في يوم الإطلاق افتح لوحة تحكم التاجر",
+    ],
+    highlightTitle: "ماذا يعني هذا؟",
+    highlightBody:
+      "لا يلزم أي إجراء منك اليوم. مقعدك المؤسس محفوظ. سنراسلك مجدداً عند فتح لوحة التحكم في الإطلاق العام.",
+    footerNote: "تصلك هذه الرسالة لأنك تملك مقعد مؤسس على Ettajer.",
+  },
+  founderAccessUnlocked: {
+    subject: "لوحة تحكم Ettajer مفتوحة الآن",
+    previewText: "يوم الإطلاق هنا — افتح لوحة التاجر وابنِ متجرك.",
+    title: "تم فتح لوحة التحكم",
+    badge: "أنت جاهز",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (founderLabel) =>
+      `Ettajer متاح الآن ومقعدك كمؤسس (${founderLabel}) مفعّل.<br /><br />لوحة التاجر جاهزة — أعد متجرك، أضف منتجات، وابدأ باستقبال طلبات COD.`,
+    cta: "افتح لوحتي",
+    steps: [
+      "أكمل إعداد المتجر",
+      "أضف أول منتج",
+      "انشر وشارك رابط متجرك",
+    ],
+    highlightTitle: "مزايا المؤسس مفعّلة",
+    highlightBody:
+      "رقم المؤسس ومزايا الوصول المبكر تبقى لك. تحتاج مساعدة؟ رد على هذا البريد أو زر مركز المساعدة.",
+    footerNote: "تصلك هذه الرسالة لأنك فعّلت حساب المؤسس على Ettajer.",
+  },
+  verifyEmailReminder: {
+    subject: "تحقق من بريدك للاحتفاظ بمقعد المؤسس",
+    previewText: "خطوة واحدة قبل الإطلاق — أكّد بريدك على Ettajer.",
+    title: "تحقق من بريدك",
+    badge: "إجراء مطلوب",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (launchDateLabel) =>
+      `مقعدك محفوظ، لكن بريدك غير مُفعّل بعد.<br /><br />قبل الافتتاح في <strong>${launchDateLabel}</strong>، أكّد بريدك لتتمكن من فتح لوحتك يوم الإطلاق.`,
+    cta: "تحقق من بريدي",
+    steps: [
+      "افتح صفحة التفعيل",
+      "أدخل الرمز المكوّن من 6 أرقام (أو اطلب رمزاً جديداً)",
+      "عد إلى الوصول المبكر — أنت جاهز للإطلاق",
+    ],
+    footerNote: "إذا كنت قد تحققت مسبقاً، تجاهل هذا التذكير.",
+  },
+  merchantNewOrder: {
+    subject: (orderNumber) => `طلب جديد ${orderNumber}`,
+    previewText: (orderNumber, customerName) =>
+      `طلب جديد ${orderNumber} من ${customerName}.`,
+    title: "طلب جديد",
+    badge: "بيع جديد",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (orderNumber, customerName, totalFormatted) =>
+      `لديك طلب جديد <strong>${orderNumber}</strong> من <strong>${customerName}</strong> بقيمة <strong>${totalFormatted}</strong>. راجعه في لوحة التحكم وأكّد تفاصيل COD.`,
+    cta: "عرض الطلب",
+    orderLabel: "الطلب",
+    customerLabel: "العميل",
+    totalLabel: "المجموع",
+    footerNote: "أدر الإشعارات من إعدادات متجرك.",
+  },
+  storeLive: {
+    subject: (storeName) => `${storeName} متاح الآن على Ettajer`,
+    previewText: (storeName) => `متجرك ${storeName} منشور الآن.`,
+    title: "متجرك متاح",
+    badge: "منشور",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (storeName, storeUrl) =>
+      `تهانينا — <strong>${storeName}</strong> متاح الآن على <a href="${storeUrl}" style="color:#3b82f6;">${storeUrl}</a>. شارك الرابط وابدأ باستقبال طلبات COD.`,
+    cta: "عرض المتجر",
+    steps: [
+      "شارك الرابط على واتساب ووسائل التواصل",
+      "أضف المزيد من المنتجات",
+      "تابع الطلبات من لوحة التحكم",
+    ],
+    highlightTitle: "نصيحة أول بيع",
+    highlightBody:
+      "التجار الذين يشاركون الرابط مع 10 جهات اتصال في الأسبوع الأول يحصلون على أول طلب أسرع. COD مفعّل مسبقاً.",
+    footerNote: "تصلك هذه الرسالة لأنك نشرت متجراً على Ettajer.",
+  },
   orderConfirmed: {
     subject: (orderNumber) => `تم تأكيد الطلب — ${orderNumber}`,
     previewText: (orderNumber) => `تم تأكيد طلبك ${orderNumber}.`,
@@ -658,6 +1173,20 @@ const AR: EmailCopy = {
     shippingFree: "مجاني",
     total: "الإجمالي",
     footerNote: (storeName) => `شكراً لتسوقك من ${storeName}.`,
+  },
+  abandonedCart: {
+    subject: (storeName) => `نسيت شيئاً في سلتك لدى ${storeName}`,
+    previewText: "أكمل طلبك — سلتك بانتظارك.",
+    title: "سلتك بانتظارك",
+    badge: "تذكير",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (storeName) =>
+      `تركت منتجات في سلتك لدى <strong>${storeName}</strong>. أكمل طلبك متى شئت — الدفع عند الاستلام متاح.`,
+    itemsHeader: "المنتجات",
+    totalHeader: "المجموع الفرعي",
+    cta: "إكمال الطلب",
+    footerNote: (storeName) =>
+      `تصلك هذه الرسالة لأنك بدأت الطلب لدى ${storeName}.`,
   },
   orderStatus: {
     subject: (orderNumber, statusLabel) =>
@@ -696,15 +1225,15 @@ const AR: EmailCopy = {
     },
   },
   supportConfirmation: {
-    subject: "استلمنا رسالتك — دعم Ettajer",
-    previewText: "استلمنا رسالة الدعم وسنرد قريباً.",
-    title: "استلمنا رسالتك",
+    subject: "طلبك قيد المراجعة — دعم Ettajer",
+    previewText: "استلمنا رسالتك وهي الآن قيد المراجعة.",
+    title: "طلبك قيد المراجعة",
     greeting: (name) => `مرحباً ${name}،`,
     body: (topic) =>
-      `شكراً لتواصلك بخصوص <strong>${topic}</strong>. يرد فريقنا عادة خلال 24 ساعة في أيام العمل.`,
-    highlightTitle: "أثناء الانتظار",
+      `شكراً لتواصلك بخصوص <strong>${topic}</strong>. رسالتك الآن <strong>قيد المراجعة</strong> لدى دعم Ettajer. نرد عادة خلال 24 ساعة في أيام العمل.`,
+    highlightTitle: "ماذا بعد؟",
     highlightBody: (helpUrl) =>
-      `تصفح <a href="${helpUrl}" style="color:#3b82f6;">مركز المساعدة</a> لإجابات فورية عن COD والطلبات وإعداد المتجر.`,
+      `فريقنا يدرس طلبك وسنراسلُك بالتحديث. يمكنك أيضاً تصفح <a href="${helpUrl}" style="color:#3b82f6;">مركز المساعدة</a>.`,
     footerNote: "رد على هذا البريد لإضافة تفاصيل لطلبك.",
   },
   supportTicket: {
@@ -714,6 +1243,33 @@ const AR: EmailCopy = {
     emailLabel: "البريد",
     articleLabel: "المقال",
     footerNote: "رد مباشرة على هذا البريد — سيصل ردك إلى العميل.",
+  },
+  nameChangeInvite: {
+    subject: "حدّث اسمك الرسمي — دعم Ettajer",
+    previewText: "درسنا طلبك. أكّد اسمك الرسمي عبر رابط آمن.",
+    title: "تأكيد الاسم الرسمي",
+    badge: "الدعم",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (currentName) =>
+      `درسنا طلبك لتصحيح اسم حسابك. يظهر حالياً <strong>${currentName}</strong>. استخدمي الزر الآمن أدناه لإدخال اسمك الرسمي كما في وثائقك — سيُحدَّث الحساب وبطاقة المؤسِّس.`,
+    cta: "تحديث اسمي",
+    expiryNote: "هذا الرابط الآمن ينتهي خلال 7 أيام ويُستخدم مرة واحدة فقط.",
+    steps: [
+      "افتحي صفحة تحديث الاسم الآمنة",
+      "أدخلي اسمك الرسمي كما في الهوية",
+      "احفظي — ستستخدم بطاقة المؤسِّس الاسم الجديد",
+    ],
+    footerNote: "إذا لم تطلبي ذلك، ردي على هذا البريد وسنلغي الرابط.",
+  },
+  nameChangeConfirmed: {
+    subject: "تم تحديث اسمك على Ettajer",
+    previewText: "تم تحديث اسم حسابك بنجاح.",
+    title: "تم تحديث الاسم",
+    badge: "مؤكَّد",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (previousName, newName) =>
+      `تم تغيير اسم حسابك من <strong>${previousName}</strong> إلى <strong>${newName}</strong>. بطاقة المؤسِّس وملفك يستخدمان هذا الاسم الآن.`,
+    footerNote: "إذا لم تقومي بهذا التغيير، تواصلي مع دعم Ettajer فوراً.",
   },
 };
 

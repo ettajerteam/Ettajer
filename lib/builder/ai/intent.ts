@@ -120,22 +120,17 @@ function suggestTemplateId(
   keywords: string[],
   siteType: ParsedIntent["siteType"]
 ): WebsiteTemplateId | undefined {
-  if (keywords.some((k) => ["perfume", "fragrance", "beauty", "cosmetics", "skincare"].includes(k))) {
-    return "beauty";
-  }
-  if (keywords.some((k) => ["fashion", "apparel", "clothing"].includes(k))) {
-    return "fashion";
-  }
-  if (keywords.some((k) => ["furniture", "home decor", "interior"].includes(k))) {
-    return "furniture";
-  }
   if (keywords.includes("electronics") || keywords.includes("gadgets") || keywords.includes("tech")) {
-    return "electronics";
+    return "tech";
   }
-  if (siteType === "restaurant") return "restaurant";
-  if (siteType === "portfolio") return "portfolio";
-  if (siteType === "agency") return "agency";
-  if (siteType === "ecommerce") return "fashion";
+  if (
+    keywords.some((k) =>
+      ["fashion", "apparel", "clothing", "beauty", "cosmetics", "perfume", "fragrance"].includes(k)
+    )
+  ) {
+    return "aura";
+  }
+  if (siteType === "ecommerce") return "paper";
   return undefined;
 }
 
@@ -166,12 +161,22 @@ export function parsePromptIntent(prompt: string): ParsedIntent {
   const siteType = detectSiteType(keywords, text);
   const available = getImplementedBlocks().map((b) => b.id);
 
+  let suggestedBlocks = suggestBlocks(siteType, available);
+  if (/\b(faq|questions?|q\s*&\s*a)\b/i.test(text) && available.includes("faq")) {
+    suggestedBlocks = ["faq", ...suggestedBlocks.filter((id) => id !== "faq")];
+  } else if (
+    /\b(testimonial|review|quote|social proof)\b/i.test(text) &&
+    available.includes("testimonials")
+  ) {
+    suggestedBlocks = ["testimonials", ...suggestedBlocks.filter((id) => id !== "testimonials")];
+  }
+
   return {
     industry: detectIndustry(keywords, siteType),
     tone: detectTone(keywords),
     siteType,
     keywords,
-    suggestedBlocks: suggestBlocks(siteType, available),
+    suggestedBlocks,
     suggestedTemplateId: suggestTemplateId(keywords, siteType),
   };
 }

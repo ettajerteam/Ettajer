@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
 import { serializeProduct, productInclude } from "@/lib/products";
-import { parseTicketPrinters } from "@/lib/ticket-printers";
 import { getProductsListStats, getProductsSectionCounts } from "@/lib/products-stats";
 import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardHeader } from "@/components/shared/dashboard-header";
@@ -21,7 +20,6 @@ export default async function DashboardProductsPage() {
 
   const store = await prisma.store.findFirst({
     where: { userId: session.user.id },
-    include: { settings: true },
   });
   if (!store) redirect("/onboarding");
 
@@ -35,8 +33,6 @@ export default async function DashboardProductsPage() {
     getProductsListStats(store.id),
   ]);
 
-  const ticketPrinters = parseTicketPrinters(store.settings?.ticketPrinters);
-
   return (
     <DashboardLayout>
       <DashboardHeader title="Products" description="Manage your product catalog" />
@@ -45,7 +41,6 @@ export default async function DashboardProductsPage() {
           <ProductsClient
             initialProducts={products.map(serializeProduct)}
             currency={store.currency}
-            ticketPrinters={ticketPrinters}
             counts={counts}
             stats={stats}
           />

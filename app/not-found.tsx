@@ -1,18 +1,32 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f5f7] p-6">
-      <div className="max-w-md w-full rounded-2xl bg-white border shadow-sm p-8 text-center">
-        <p className="text-6xl font-bold text-[#007AFF] mb-2">404</p>
-        <h1 className="text-xl font-semibold mb-2">Page not found</h1>
-        <p className="text-sm text-muted-foreground mb-6">
-          The page you&apos;re looking for doesn&apos;t exist or was moved.
+    <div className="flex min-h-screen flex-col bg-[#0a0a0a] text-white">
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-6 py-20 text-center sm:py-28">
+        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+          404
         </p>
-        <Button asChild className="bg-[#007AFF] hover:bg-[#0071EB]">
-          <Link href="/">Back to home</Link>
-        </Button>
+        <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+          Page not found
+        </h1>
+        <p className="mx-auto mt-4 max-w-sm text-sm font-light leading-relaxed text-white/55">
+          This address doesn’t lead anywhere — it may have been moved or removed.
+        </p>
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/"
+            className="inline-flex h-11 items-center rounded-full bg-white px-6 text-[13px] font-semibold text-neutral-900 transition hover:bg-white/90"
+          >
+            Back to home
+          </Link>
+          <Link
+            href="/login"
+            className="inline-flex h-11 items-center rounded-full border border-white/25 px-6 text-[13px] font-medium text-white/80 transition hover:border-white/50"
+          >
+            Merchant login
+          </Link>
+        </div>
       </div>
     </div>
   );

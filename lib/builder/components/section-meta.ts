@@ -68,3 +68,47 @@ export function countComponentInstances(
   }
   return instanceIds.size;
 }
+
+/** Instances whose pinnedVersion lags the live definition version. */
+export function findStaleComponentInstances(
+  sections: StoreSection[],
+  components: Record<string, { version: number }>
+): Array<{ sectionId: string; componentId: string; pinnedVersion: number; liveVersion: number }> {
+  const stale: Array<{
+    sectionId: string;
+    componentId: string;
+    pinnedVersion: number;
+    liveVersion: number;
+  }> = [];
+  const seenInstances = new Set<string>();
+  for (const section of sections) {
+    const ref = getComponentRef(section);
+    if (!ref || ref.detached) continue;
+    if (seenInstances.has(ref.instanceId)) continue;
+    seenInstances.add(ref.instanceId);
+    const live = components[ref.componentId];
+    if (!live) continue;
+    const pinned = ref.pinnedVersion ?? 0;
+    if (pinned > 0 && pinned < live.version) {
+      stale.push({
+        sectionId: section.id,
+        componentId: ref.componentId,
+        pinnedVersion: pinned,
+        liveVersion: live.version,
+      });
+    }
+  }
+  return stale;
+}
+
+export function bumpPinnedVersions(
+  sections: StoreSection[],
+  componentId: string,
+  version: number
+): StoreSection[] {
+  return sections.map((section) => {
+    const ref = getComponentRef(section);
+    if (!ref || ref.componentId !== componentId || ref.detached) return section;
+    return withComponentRef(section, { ...ref, pinnedVersion: version });
+  });
+}

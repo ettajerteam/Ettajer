@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type { StyleGroupId, ElementStyleValues } from "@/lib/builder/style-system";
 import {
   clearStyleOverride,
@@ -57,6 +58,7 @@ export function SharedStylePanel({
   config,
   emphasizedGroups = [],
 }: SharedStylePanelProps) {
+  const idPrefix = useId().replace(/:/g, "");
   const values = getStyleForDevice(settings, device);
   const groups = config.groups.length > 0 ? config.groups : DEFAULT_GROUPS;
 
@@ -93,6 +95,7 @@ export function SharedStylePanel({
     onPatch,
     hasOverride,
     clearOverride,
+    idPrefix,
   };
 
   const isEmphasized = (id: StyleGroupId) => emphasizedGroups.includes(id);

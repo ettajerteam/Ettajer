@@ -374,7 +374,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     popular: true,
     keywords: ["domain", "dns", "ssl", "custom"],
     body: [
-      "Go to Settings → Domains → Add domain. Enter your domain name and follow the DNS instructions.",
+      "Go to Online Store → Domains. Enter your domain name and follow the DNS instructions.",
       "Ettajer provisions SSL automatically once DNS propagates — usually within a few hours.",
       "Custom domains are available on all paid plans.",
     ],
@@ -387,7 +387,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     popular: true,
     keywords: ["domain", "dns", "ssl", "not working"],
     body: [
-      "Confirm your A or CNAME records match exactly what Ettajer shows in Settings → Domains.",
+      "Confirm your A or CNAME records match exactly what Ettajer shows in Online Store → Domains.",
       "DNS changes can take up to 48 hours to propagate worldwide. Use a DNS checker to verify.",
       "If SSL is pending, wait for DNS to resolve first. Contact support with your domain if issues persist after 48 hours.",
     ],

@@ -6,6 +6,8 @@ import { getAuthSeo } from "@/lib/auth/auth-seo";
 import { getAuthProviders } from "@/lib/auth-providers";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
   return buildPageMetadata({

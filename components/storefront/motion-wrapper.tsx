@@ -1,17 +1,25 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, type HTMLMotionProps } from "framer-motion";
 
 interface FadeInSectionProps extends HTMLMotionProps<"div"> {
   delay?: number;
 }
 
+const editorialEase = [0.22, 1, 0.36, 1] as const;
+
+/** Animate only after mount to avoid SSR/client hydration mismatches. */
 export function FadeInSection({ children, delay = 0, className, ...props }: FadeInSectionProps) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay, ease: [0.25, 0.4, 0.25, 1] }}
+      initial={ready ? { opacity: 0, y: 18 } : false}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "0px 0px -8% 0px" }}
+      transition={{ duration: 0.75, delay, ease: editorialEase }}
       className={className}
       {...props}
     >
@@ -29,13 +37,17 @@ export function StaggerGrid({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
   return (
     <motion.div
-      initial="hidden"
-      animate="visible"
+      initial={ready ? "hidden" : false}
+      whileInView="visible"
+      viewport={{ once: true, margin: "0px 0px -6% 0px" }}
       variants={{
         hidden: {},
-        visible: { transition: { staggerChildren: 0.08 } },
+        visible: { transition: { staggerChildren: 0.1 } },
       }}
       className={className}
       style={style}
@@ -49,8 +61,12 @@ export function StaggerItem({ children, className }: { children: React.ReactNode
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 16 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+        hidden: { opacity: 0, y: 18 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.55, ease: editorialEase },
+        },
       }}
       className={className}
     >

@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { ANIMATION_OPTIONS, type InspectorProfile } from "@/lib/builder/inspector-config";
 import type { DeviceMode } from "@/lib/builder/types";
 import {
@@ -34,6 +35,8 @@ export function InspectorAdvancedPanel({
   onChange,
   onToggleVisible,
 }: InspectorAdvancedPanelProps) {
+  const idPrefix = useId().replace(/:/g, "");
+  const fid = (name: string) => `${idPrefix}-${name}`;
   const { advanced } = profile;
   const deviceStyles = getDeviceStyles(settings, device);
   const isVisibleOnDevice = deviceStyles.visible !== false;
@@ -47,7 +50,7 @@ export function InspectorAdvancedPanel({
       {advanced.visibility && onToggleVisible ? (
         <InspectorFieldGroup title="Visibility">
           <InspectorToggleField
-            id="section-visible"
+            id={fid("section-visible")}
             label="Show on storefront"
             description="Hidden sections remain in the editor but not on the live store"
             checked={section.visible}
@@ -62,10 +65,20 @@ export function InspectorAdvancedPanel({
           description={`Control visibility on ${DEVICE_LABELS[device].toLowerCase()}`}
         >
           <InspectorToggleField
-            id={`visible-${device}`}
+            id={fid(`visible-${device}`)}
             label={`Visible on ${DEVICE_LABELS[device].toLowerCase()}`}
             checked={isVisibleOnDevice}
-            onChange={(v) => patchDevice({ visible: v ? undefined : false })}
+            onChange={(v) => {
+              const next = updateDeviceStyle(settings, device, { visible: v });
+              // Clear legacy flags when migrating to per-device visibility.
+              if (device === "mobile" && settings.hideOnMobile === true) {
+                onChange({ ...next, hideOnMobile: undefined });
+              } else if (device === "desktop" && settings.hideOnDesktop === true) {
+                onChange({ ...next, hideOnDesktop: undefined });
+              } else {
+                onChange(next);
+              }
+            }}
           />
           {device === "mobile" && settings.hideOnMobile === true ? (
             <p className="text-[11px] text-neutral-400">
@@ -85,14 +98,14 @@ export function InspectorAdvancedPanel({
       {advanced.animation ? (
         <InspectorFieldGroup title="Animation">
           <InspectorSelectField
-            id="animation"
+            id={fid("animation")}
             label="Entrance animation"
             value={(settings.animation as string) ?? "none"}
             options={ANIMATION_OPTIONS}
             onChange={(v) => onChange({ animation: v === "none" ? undefined : v })}
           />
           <InspectorTextField
-            id="animation-delay"
+            id={fid("animation-delay")}
             label="Delay (ms)"
             value={settings.animationDelayMs != null ? String(settings.animationDelayMs) : ""}
             placeholder="0"
@@ -107,7 +120,7 @@ export function InspectorAdvancedPanel({
       {advanced.customClass ? (
         <InspectorFieldGroup title="Custom classes">
           <InspectorTextField
-            id="custom-class"
+            id={fid("custom-class")}
             label="CSS classes"
             value={(settings.customClass as string) ?? ""}
             placeholder="my-class another-class"

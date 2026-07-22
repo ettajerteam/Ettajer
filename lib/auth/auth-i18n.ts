@@ -79,6 +79,10 @@ export type AuthCopy = {
     flowVerify: string;
     flowWelcome: string;
     flowAria: string;
+    continueGoogle: string;
+    connectingGoogle: string;
+    googleHint: string;
+    orEmail: string;
     strengthLabel: string;
     strengthWeak: AuthStrengthLabel;
     strengthFair: AuthStrengthLabel;
@@ -230,6 +234,10 @@ const EN_COPY: AuthCopy = {
     flowVerify: "Verify",
     flowWelcome: "Welcome",
     flowAria: "Account setup progress",
+    continueGoogle: "Continue with Google",
+    connectingGoogle: "Connecting…",
+    googleHint: "Skip the form — use your Gmail account.",
+    orEmail: "or create an account with email",
     strengthLabel: "Password strength",
     strengthWeak: "Weak",
     strengthFair: "Fair",
@@ -394,6 +402,10 @@ const FR_COPY: AuthCopy = {
     flowVerify: "Vérifier",
     flowWelcome: "Bienvenue",
     flowAria: "Progression de la création du compte",
+    continueGoogle: "Continuer avec Google",
+    connectingGoogle: "Connexion…",
+    googleHint: "Passez le formulaire — utilisez votre compte Gmail.",
+    orEmail: "ou créez un compte par e-mail",
     strengthLabel: "Force du mot de passe",
     strengthDisplay: {
       Weak: "Faible",
@@ -554,6 +566,10 @@ const AR_COPY: AuthCopy = {
     flowVerify: "التحقق",
     flowWelcome: "مرحباً",
     flowAria: "تقدم إعداد الحساب",
+    continueGoogle: "المتابعة مع Google",
+    connectingGoogle: "جاري الاتصال…",
+    googleHint: "تخطَّ النموذج — استخدم حساب Gmail.",
+    orEmail: "أو التسجيل بالبريد الإلكتروني",
     strengthLabel: "قوة كلمة المرور",
     strengthDisplay: {
       Weak: "ضعيفة",

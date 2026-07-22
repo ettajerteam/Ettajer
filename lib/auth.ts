@@ -20,6 +20,10 @@ import { sendWelcomeEmail, sendFounderWelcomeEmail } from "@/lib/email/automatio
 import { getEmailLocaleFromCookieHeader } from "@/lib/email/email-locale";
 
 import { assignFounderNumber, isFounderSlotsFull } from "@/lib/founder";
+import { normalizeEmail } from "@/lib/password-reset";
+import { parseOAuthSignupCookies } from "@/lib/auth/oauth-signup";
+
+import { ensureBootstrapAdminRole } from "@/lib/admin/roles";
 
 import {
 
@@ -427,7 +431,25 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
 
-    async signIn() {
+    async signIn({ user, account }) {
+
+      if (account?.provider === "google" && user?.email) {
+
+        const existing = await prisma.user.findUnique({
+
+          where: { email: normalizeEmail(user.email) },
+
+          select: { id: true },
+
+        });
+
+        if (!existing && (await isFounderSlotsFull())) {
+
+          return "/signup?error=founder_full";
+
+        }
+
+      }
 
       return true;
 
@@ -466,105 +488,76 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (token.id) {
-
         const dbUser = await prisma.user.findUnique({
-
           where: { id: token.id as string },
-
-          select: { status: true, founderNumber: true, name: true },
-
+          select: { status: true, founderNumber: true, name: true, role: true, email: true },
         });
-
         if (dbUser) {
-
+          const role = await ensureBootstrapAdminRole(token.id as string, dbUser.email, dbUser.role);
           token.status = dbUser.status;
-
           token.founderNumber = dbUser.founderNumber;
-
+          token.role = role;
           if (dbUser.name) token.name = dbUser.name;
-
         }
-
       }
-
       return token;
-
     },
-
     async session({ session, token }) {
-
       if (session.user && token.id) {
-
         session.user.id = token.id as string;
-
         session.user.status = token.status as string | undefined;
-
         session.user.founderNumber = token.founderNumber as number | null | undefined;
-
+        session.user.role = token.role as string | undefined;
         if (token.name) session.user.name = token.name as string;
-
       }
-
       return session;
-
     },
-
     async redirect({ url, baseUrl }) {
-
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-
       if (new URL(url).origin === baseUrl) return url;
-
       return `${baseUrl}/dashboard`;
-
     },
-
   },
-
   events: {
-
     async createUser({ user }) {
+      if (!user.id) return;
 
-      if (!user.id || (await isFounderSlotsFull())) return;
-
-      const founderNumber = await assignFounderNumber(user.id);
       const headerList = await headers();
       const locale = getEmailLocaleFromCookieHeader(headerList.get("cookie"));
+      const oauthPrefs = parseOAuthSignupCookies(headerList.get("cookie"));
 
-      if (founderNumber && user.email && isResendConfigured()) {
-
-        await sendFounderWelcomeEmail(
-
-          user.email,
-
-          user.name ?? "Founder",
-
-          founderNumber,
-
-          locale,
-
-        ).catch((err) => console.error("Founder welcome email failed:", err));
-
+      if (oauthPrefs.termsAccepted || oauthPrefs.marketingEmails) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            termsAcceptedAt: oauthPrefs.termsAccepted ? new Date() : undefined,
+            marketingEmails: oauthPrefs.marketingEmails,
+          },
+        });
       }
 
+      if (await isFounderSlotsFull()) return;
+
+      const founderNumber = await assignFounderNumber(user.id);
+
+      if (founderNumber && user.email && isResendConfigured()) {
+        await sendFounderWelcomeEmail(
+          user.email,
+          user.name ?? "Founder",
+          founderNumber,
+          locale,
+        ).catch((err) => console.error("Founder welcome email failed:", err));
+      }
     },
-
     async signIn({ user, isNewUser }) {
-
       if (isNewUser && user.email) {
-
         console.log(`New user signed up: ${user.email}`);
 
         const dbUser = user.id
-
           ? await prisma.user.findUnique({
-
               where: { id: user.id },
-
               select: { founderNumber: true },
-
             })
-
           : null;
 
         if (dbUser?.founderNumber) return;
@@ -574,17 +567,10 @@ export const authOptions: NextAuthOptions = {
           const locale = getEmailLocaleFromCookieHeader(headerList.get("cookie"));
 
           await sendWelcomeEmail(user.email, user.name, locale).catch((err) =>
-
             console.error("Welcome email failed:", err),
-
           );
-
         }
-
       }
-
     },
-
   },
-
 };

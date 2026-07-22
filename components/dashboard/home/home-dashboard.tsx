@@ -20,13 +20,15 @@ import { HomeTopProducts } from "./home-top-products";
 import { HomeTrafficSources } from "./home-traffic-sources";
 import { HomeSalesByDevice } from "./home-sales-by-device";
 import { HomeActivityTimeline } from "./home-activity-timeline";
+import { StoreWebsiteAccess } from "@/components/shared/store-website-access";
 
 interface HomeDashboardProps {
   data: ExecutiveDashboardData;
   userName?: string;
+  storeSlug: string;
 }
 
-export function HomeDashboard({ data, userName }: HomeDashboardProps) {
+export function HomeDashboard({ data, userName, storeSlug }: HomeDashboardProps) {
   const router = useRouter();
   const [, startRefresh] = useTransition();
   const [lastSyncedAt, setLastSyncedAt] = useState(data.lastUpdated);
@@ -57,6 +59,12 @@ export function HomeDashboard({ data, userName }: HomeDashboardProps) {
         health={data.healthScore}
         storeName={data.storeName}
         lastUpdated={lastSyncedAt}
+      />
+
+      <StoreWebsiteAccess
+        storeSlug={storeSlug}
+        storeName={data.storeName}
+        variant="card"
       />
 
       <HomeAttentionBar items={attentionItems} />

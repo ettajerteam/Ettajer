@@ -41,8 +41,8 @@ export function InspectorFieldGroup({
   return (
     <div
       className={cn(
-        "space-y-3 rounded-lg border border-neutral-100 bg-neutral-50/50 p-3",
-        emphasized && "border-[#007AFF]/20 bg-[#007AFF]/[0.03]",
+        "space-y-2 rounded-lg border border-neutral-100 bg-white p-2.5",
+        emphasized && "border-[#007AFF]/20 bg-[#007AFF]/[0.02]",
         className
       )}
     >
@@ -313,20 +313,24 @@ export function InspectorMediaField({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label htmlFor={id} className="text-xs text-neutral-600">
-          {label}
-        </Label>
+        <Label className="text-xs text-neutral-600">{label}</Label>
         {description ? <p className="text-[11px] text-neutral-400">{description}</p> : null}
       </div>
 
       {value ? (
-        <div className="relative aspect-video overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
-          <Image src={value} alt={altValue ?? label} fill className="object-cover" sizes="280px" />
+        <div className="relative h-28 w-full overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+          {kind === "video" ? (
+            <video src={value} className="h-full w-full object-cover" muted playsInline />
+          ) : (
+            <Image src={value} alt={altValue ?? label} fill className="object-cover" sizes="280px" />
+          )}
         </div>
       ) : (
-        <div className="flex aspect-video flex-col items-center justify-center rounded-lg border border-dashed border-neutral-200 bg-neutral-50">
-          <ImageIcon className="h-6 w-6 text-neutral-300" />
-          <p className="mt-2 text-[11px] text-neutral-400">No image selected</p>
+        <div className="flex h-28 w-full flex-col items-center justify-center rounded-lg border border-dashed border-neutral-200 bg-neutral-50">
+          <ImageIcon className="h-5 w-5 text-neutral-300" />
+          <p className="mt-1.5 text-[11px] text-neutral-400">
+            {kind === "video" ? "No video selected" : "No image selected"}
+          </p>
         </div>
       )}
 
@@ -366,10 +370,13 @@ export function InspectorMediaField({
       {urlFallbackOpen && (
         <Input
           id={id}
+          name={id}
+          autoComplete="off"
           value={value}
           placeholder="https://..."
           onChange={(e) => onChange(e.target.value)}
           className="h-8 rounded-lg text-xs"
+          aria-label={`${label} URL`}
         />
       )}
 

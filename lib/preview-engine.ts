@@ -4,6 +4,9 @@ import type { PreviewPage, PreviewPaths } from "@/types/theme";
 import type { HomeLayout } from "@/lib/sections/types";
 import { encodeLayoutForPreview } from "@/lib/sections/parse";
 import { isValidThemeId } from "@/lib/themes";
+import { PREVIEW_PRODUCT_SLUG } from "@/lib/storefront-preview-product";
+import { PREVIEW_COLLECTION_SLUG } from "@/lib/storefront-preview-collection";
+import { resolveManagedStorePageUrl, isDedicatedStorefrontRouteSlug } from "@/lib/editor-pages-config";
 
 export type { PreviewPage, PreviewPaths };
 
@@ -20,14 +23,37 @@ export interface PreviewParams {
 function getPreviewPath(slug: string, page: PreviewPage, paths?: PreviewPaths): string {
   switch (page) {
     case "product":
-      return paths?.product ? `/store/${slug}/product/${paths.product}` : `/store/${slug}`;
+      return `/store/${slug}/product/${paths?.product ?? PREVIEW_PRODUCT_SLUG}`;
     case "category":
       return paths?.category ? `/store/${slug}/category/${paths.category}` : `/store/${slug}`;
     case "collection":
-      return paths?.collection ? `/store/${slug}/collection/${paths.collection}` : `/store/${slug}`;
+      return `/store/${slug}/collection/${paths?.collection ?? PREVIEW_COLLECTION_SLUG}`;
     default:
       return `/store/${slug}`;
   }
+}
+
+export interface PreviewQueryOptions {
+  settings?: StoreThemeSettings;
+  layout?: HomeLayout | null;
+  selectedSectionId?: string | null;
+  previewDevice?: "desktop" | "tablet" | "mobile";
+}
+
+export function buildPreviewQueryString(options: PreviewQueryOptions): string {
+  const params = new URLSearchParams({ preview: "true" });
+  const { settings, layout, selectedSectionId, previewDevice } = options;
+
+  if (settings?.theme) params.set("theme", settings.theme);
+  if (settings?.primaryColor) params.set("primary", settings.primaryColor);
+  if (settings?.secondaryColor) params.set("secondary", settings.secondaryColor);
+  if (settings?.font) params.set("font", settings.font);
+  if (settings?.logo) params.set("logo", settings.logo);
+  if (layout) params.set("layout", encodeLayoutForPreview(layout));
+  if (selectedSectionId) params.set("section", selectedSectionId);
+  if (previewDevice) params.set("device", previewDevice);
+
+  return params.toString();
 }
 
 export function buildPreviewUrl(
@@ -40,22 +66,21 @@ export function buildPreviewUrl(
   previewDevice?: "desktop" | "tablet" | "mobile",
   pageSlug?: string
 ): string {
-  const params = new URLSearchParams({ preview: "true" });
-
-  if (settings?.theme) params.set("theme", settings.theme);
-  if (settings?.primaryColor) params.set("primary", settings.primaryColor);
-  if (settings?.secondaryColor) params.set("secondary", settings.secondaryColor);
-  if (settings?.font) params.set("font", settings.font);
-  if (settings?.logo) params.set("logo", settings.logo);
-  if (layout) params.set("layout", encodeLayoutForPreview(layout));
-  if (selectedSectionId) params.set("section", selectedSectionId);
-  if (previewDevice) params.set("device", previewDevice);
+  const query = buildPreviewQueryString({
+    settings,
+    layout,
+    selectedSectionId,
+    previewDevice,
+  });
 
   if (pageSlug) {
-    return `/store/${slug}/pages/${pageSlug}?${params.toString()}`;
+    if (isDedicatedStorefrontRouteSlug(pageSlug)) {
+      return `${resolveManagedStorePageUrl(slug, pageSlug)}?${query}`;
+    }
+    return `/store/${slug}/pages/${pageSlug}?${query}`;
   }
 
-  return `${getPreviewPath(slug, page, paths)}?${params.toString()}`;
+  return `${getPreviewPath(slug, page, paths)}?${query}`;
 }
 
 export function applyPreviewOverrides(

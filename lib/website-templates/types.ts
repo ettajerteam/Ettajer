@@ -1,15 +1,9 @@
 import type { ThemeId } from "@/lib/themes";
 import type { HomeLayout } from "@/lib/sections/types";
 import type { NavItem } from "@/lib/navigation";
+import type { BusinessModel } from "@/lib/onboarding/business-models";
 
-export type WebsiteTemplateId =
-  | "fashion"
-  | "beauty"
-  | "electronics"
-  | "restaurant"
-  | "furniture"
-  | "agency"
-  | "portfolio";
+export type WebsiteTemplateId = "aura" | "tech" | "paper";
 
 export interface WebsiteTemplateBranding {
   logo?: string;
@@ -33,6 +27,8 @@ export interface WebsiteTemplateDefinition {
   /** CSS gradient or image URL */
   thumbnail: string;
   tagline?: string;
+  businessModels: BusinessModel[];
+  recommendedCategories: string[];
   theme: {
     theme: ThemeId;
     primaryColor: string;
@@ -44,6 +40,7 @@ export interface WebsiteTemplateDefinition {
   pages: WebsiteTemplatePageDefinition[];
   productLayout?: HomeLayout;
   collectionLayout?: HomeLayout;
+  blogPostLayout?: HomeLayout;
 }
 
 /** @alias WebsiteTemplateDefinition — kept for existing imports */

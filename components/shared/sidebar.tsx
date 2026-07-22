@@ -24,6 +24,7 @@ import {
   type NavLink,
   type NavSection,
 } from "@/lib/dashboard-nav";
+import { PlatformSwitch } from "@/components/admin/platform-switch";
 
 const panelSpring = { type: "spring" as const, damping: 30, stiffness: 340 };
 
@@ -264,6 +265,10 @@ export function Sidebar() {
           </button>
         </div>
       )}
+
+      <div className={cn("px-2 pb-3", isCollapsed && "px-1.5")}>
+        <PlatformSwitch mode="merchant" collapsed={isCollapsed} />
+      </div>
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2 space-y-1">
         {allNavSections.map(renderSection)}

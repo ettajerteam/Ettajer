@@ -66,6 +66,19 @@ export async function createBlogPost(
   });
 }
 
+export async function listPublishedBlogPosts(storeId: string) {
+  return prisma.blogPost.findMany({
+    where: { storeId, status: "published" },
+    orderBy: { publishedAt: "desc" },
+  });
+}
+
+export async function getPublishedBlogPost(storeId: string, slug: string) {
+  return prisma.blogPost.findFirst({
+    where: { storeId, slug, status: "published" },
+  });
+}
+
 export async function deleteBlogPost(id: string, storeId: string) {
   const post = await prisma.blogPost.findFirst({ where: { id, storeId } });
   if (!post) throw new Error("Post not found");

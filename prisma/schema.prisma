@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Account {
@@ -57,6 +58,7 @@ model User {
   lastLoginAt         DateTime?
   lastLoginIp         String?
   status              String         @default("active")
+  role                String         @default("merchant")
   founderNumber       Int?           @unique
   marketingEmails     Boolean        @default(false)
   termsAcceptedAt     DateTime?
@@ -92,6 +94,8 @@ model Store {
   logo           String?
   description    String?
   category       String?
+  businessModel  String?        // physical | digital | dropshipping
+  websiteTemplateId String?
   currency       String         @default("MAD")
   primaryColor   String         @default("#007AFF")
   secondaryColor String         @default("#FFFFFF")
@@ -118,6 +122,8 @@ model Store {
   mediaAssets    MediaAsset[]
   mediaFolders   MediaFolder[]
   builderComponents BuilderComponent[]
+  newsletterSubscribers NewsletterSubscriber[]
+  contactSubmissions ContactSubmission[]
 }
 
 model MediaFolder {
@@ -167,10 +173,22 @@ model Product {
   description  String?     @db.Text
   price        Float
   comparePrice Float?
+  /** Merchant cost — dashboard only, not shown on storefront */
+  costPrice    Float?
   inventory    Int         @default(0)
   sku          String?
+  barcode      String?
+  /** draft | active — drafts stay off the storefront */
+  status       String      @default("active")
+  /** physical | digital | service | dropshipping */
+  productType  String      @default("physical")
+  copyrightOwner  String?
+  copyrightNotice String?  @db.Text
   images       Json        @default("[]")
   variants     Json        @default("[]")
+  reviews      Json        @default("[]")
+  /** Spec rows shown on the product page: [{ id, label, value }] */
+  details      Json        @default("[]")
   tags             String[]
   ticketPrinterId  String?
   storeId          String
@@ -184,6 +202,7 @@ model Product {
 
   @@unique([storeId, slug])
   @@index([storeId])
+  @@index([storeId, status])
   @@index([categoryId])
 }
 
@@ -252,6 +271,7 @@ model StoreSettings {
   homeLayout      Json    @default("[]")
   productLayout   Json    @default("[]")
   collectionLayout Json   @default("[]")
+  blogPostLayout  Json    @default("[]")
 }
 
 model BuilderComponent {
@@ -388,6 +408,37 @@ model StorePage {
   @@index([storeId])
 }
 
+model NewsletterSubscriber {
+  id        String    @id @default(cuid())
+  email     String
+  source    String?   // e.g. newsletter | collection | footer
+  status    String    @default("active") // active | unsubscribed
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([storeId, email])
+  @@index([storeId])
+  @@index([status])
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String   @db.Text
+  status    String   @default("new") // new | read | archived
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([storeId, status])
+}
+
 model GiftCard {
   id             String    @id @default(cuid())
   code           String
@@ -402,4 +453,51 @@ model GiftCard {
 
   @@unique([storeId, code])
   @@index([storeId])
+}
+
+model SupportMessage {
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  topic      String
+  message    String   @db.Text
+  articleRef String?
+  /** inbound = from customer, outbound = from Ettajer support */
+  direction  String   @default("inbound")
+  status     String   @default("new")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+  @@index([direction, createdAt])
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actorEmail String
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+}
+
+model PlatformError {
+  id        String   @id @default(cuid())
+  source    String
+  message   String   @db.Text
+  stack     String?  @db.Text
+  path      String?
+  userId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source, createdAt])
 }

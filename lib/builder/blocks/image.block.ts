@@ -17,6 +17,9 @@ export const imageBlock: Omit<BlockDefinition, "component"> = {
   defaultContent: {
     imageUrl: "",
     alt: "",
+    caption: "",
+    layout: "contained",
+    objectFit: "cover",
   },
   defaultStyles: {
     desktop: {
@@ -25,7 +28,7 @@ export const imageBlock: Omit<BlockDefinition, "component"> = {
     },
   },
   settingsSchema: {
-    focuses: ["image", "section"],
+    focuses: ["image", "section", "link"],
     content: [
       {
         key: "imageUrl",
@@ -34,6 +37,35 @@ export const imageBlock: Omit<BlockDefinition, "component"> = {
         group: "images",
         focus: ["image", "section"],
         altKey: "alt",
+      },
+      {
+        key: "caption",
+        type: "text",
+        label: "Caption",
+        group: "text",
+        focus: ["image", "section"],
+        placeholder: "Optional caption",
+      },
+      {
+        key: "linkUrl",
+        type: "link",
+        label: "Link when clicked",
+        group: "links",
+        focus: ["link", "image"],
+        placeholder: "/products",
+      },
+      {
+        key: "layout",
+        type: "variant",
+        label: "Layout",
+        group: "layout",
+        focus: ["image", "section"],
+        tab: "layout",
+        options: [
+          { value: "contained", label: "Contained" },
+          { value: "editorial", label: "Editorial" },
+          { value: "cinematic", label: "Cinematic" },
+        ],
       },
     ],
     styles: IMAGE_STYLE_FIELDS,

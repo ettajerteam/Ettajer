@@ -2,6 +2,10 @@
 
 The builder lives under `lib/builder/` and coexists with the production V1 editor. Merchants continue editing and publishing via **V1 JSON** (`HomeLayout.version: 1`). V2 adds scalable types, registry-driven blocks, and improved canvas interactions **without** a rewrite.
 
+## V1 ship status
+
+See **[THEME_EDITOR_V1.md](./THEME_EDITOR_V1.md)** — V1 is the production editor. V2 and AI are parked follow-ups.
+
 ## Module map
 
 | Module | Path | Role |

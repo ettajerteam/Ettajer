@@ -91,8 +91,8 @@ export const COOKIES_SECTIONS: CookiesSection[] = [
         type: "Functional",
       },
       {
-        name: "cookie consent state",
-        purpose: "Remembers cookie notice dismissal or preference choices where shown",
+        name: "ettajer_cookie_consent",
+        purpose: "Stores your cookie preference (essential only or accept all)",
         duration: "Up to 12 months",
         type: "Functional",
       },

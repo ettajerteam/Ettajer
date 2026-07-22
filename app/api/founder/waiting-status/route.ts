@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-session";
 import { getFounderCount, getUserFounderProfile, USER_STATUS } from "@/lib/founder";
-import { getRecentFounderCount, buildWaitingIntelligence } from "@/lib/founder/waiting-intelligence";
+import { getRecentFounderCount, buildWaitingIntelligence, getLaunchTargetDate, isPlatformLaunched } from "@/lib/founder/waiting-intelligence";
 
 export async function GET() {
   const session = await auth();
@@ -36,5 +36,7 @@ export async function GET() {
     spotsLeft: intelligence.spotsLeft,
     momentumMessage: intelligence.momentumMessage,
     estimatedLaunch: intelligence.estimatedLaunch,
+    launchTargetIso: getLaunchTargetDate().toISOString(),
+    isLaunched: isPlatformLaunched(),
   });
 }

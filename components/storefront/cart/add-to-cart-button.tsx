@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, Check } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { trackAddToCart } from "@/lib/marketing-events";
+import { getStorefrontCopy } from "@/lib/storefront/storefront-i18n";
 import type { PublicProduct, PublicStore } from "@/types/storefront";
 
 interface AddToCartButtonProps {
@@ -12,20 +13,29 @@ interface AddToCartButtonProps {
   label?: string;
   className?: string;
   style?: React.CSSProperties;
+  /** Selected option map (e.g. { Size: "M", Color: "Black" }). */
+  variant?: Record<string, string> | null;
+  quantity?: number;
 }
 
 export function AddToCartButton({
   store,
   product,
-  label = "Add to cart",
+  label,
   className,
   style,
+  variant = null,
+  quantity = 1,
 }: AddToCartButtonProps) {
+  const t = getStorefrontCopy(store.language);
+  const resolvedLabel = label?.trim() || t.buy.addToCart;
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
   const setStore = useCartStore((s) => s.setStore);
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+
+  const qty = Math.max(1, Math.min(quantity, Math.max(product.inventory, 1)));
 
   async function handleAdd() {
     if (product.inventory <= 0) return;
@@ -40,8 +50,8 @@ export function AddToCartButton({
       image: product.images[0] ?? null,
       price: product.price,
       inventory: product.inventory,
-      variant: null,
-      quantity: 1,
+      variant: variant && Object.keys(variant).length > 0 ? variant : null,
+      quantity: qty,
     };
 
     addItem(cartItem);
@@ -69,7 +79,7 @@ export function AddToCartButton({
         title: product.title,
         price: product.price,
         currency: store.currency,
-        quantity: 1,
+        quantity: qty,
       });
       setAdded(true);
       openCart();
@@ -96,17 +106,17 @@ export function AddToCartButton({
       {loading ? (
         <span className="inline-flex items-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Adding…
+          {t.buy.adding}
         </span>
       ) : added ? (
         <span className="inline-flex items-center gap-2">
           <Check className="h-4 w-4" />
-          Added
+          {t.buy.added}
         </span>
       ) : outOfStock ? (
-        "Out of stock"
+        t.buy.outOfStock
       ) : (
-        label
+        resolvedLabel
       )}
     </button>
   );

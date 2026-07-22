@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { MOROCCO_CITIES } from "@/lib/morocco-cities";
-import { DashboardCardSection } from "@/components/dashboard/dashboard-card-section";
+import { SettingsPanel } from "@/components/settings/settings-panel";
 import type { StoreWithSettings, ShippingZone } from "@/lib/store-settings";
+import { cn } from "@/lib/utils";
 
 interface ShippingSettingsProps {
   store: StoreWithSettings;
@@ -57,25 +58,33 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
   };
 
   return (
-    <DashboardCardSection
-      title="Shipping"
-      description="Configure zones for Moroccan cities, rates, and free shipping thresholds."
-      footer={
-        <Button onClick={onSave} loading={saving} className="bg-[#007AFF] hover:bg-[#0071EB]">
-          Save shipping settings
+    <SettingsPanel
+      kicker="Shipping"
+      title="Delivery zones"
+      description="Set rates and free-shipping thresholds for Moroccan cities."
+      onSave={onSave}
+      saving={saving}
+      saveLabel="Save shipping"
+      action={
+        <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={addZone}>
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          Add zone
         </Button>
       }
     >
       <div className="space-y-4">
         {zones.map((zone) => (
-          <div key={zone.id} className="rounded-xl border bg-muted/20 p-4 space-y-4">
+          <div
+            key={zone.id}
+            className="space-y-4 rounded-2xl border border-neutral-200/80 bg-neutral-50/40 p-4 sm:p-5"
+          >
             <div className="flex items-center justify-between gap-2">
               <Input
                 value={zone.name}
                 onChange={(e) => updateZone(zone.id, { name: e.target.value })}
-                className="font-medium max-w-xs"
+                className="h-11 max-w-xs rounded-xl font-medium"
               />
-              {zones.length > 1 && (
+              {zones.length > 1 ? (
                 <Button
                   type="button"
                   variant="ghost"
@@ -85,10 +94,10 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-              )}
+              ) : null}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Free shipping above ({store.currency})</Label>
                 <Input
@@ -100,6 +109,7 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
                       freeShippingThreshold: Number(e.target.value) || 0,
                     })
                   }
+                  className="h-11 rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -111,6 +121,7 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
                   onChange={(e) =>
                     updateZone(zone.id, { rate: Number(e.target.value) || 0 })
                   }
+                  className="h-11 rounded-xl"
                 />
               </div>
             </div>
@@ -118,26 +129,29 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
             <div className="space-y-2">
               <Label>Cities</Label>
               <div className="flex flex-wrap gap-2">
-                {MOROCCO_CITIES.map((city) => (
-                  <Badge
-                    key={city}
-                    variant={zone.cities.includes(city) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleCity(zone.id, city)}
-                  >
-                    {city}
-                  </Badge>
-                ))}
+                {MOROCCO_CITIES.map((city) => {
+                  const selected = zone.cities.includes(city);
+                  return (
+                    <Badge
+                      key={city}
+                      variant={selected ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer rounded-full px-3 py-1 transition",
+                        selected
+                          ? "border-transparent bg-[#007AFF] hover:bg-[#0071EB]"
+                          : "hover:border-neutral-400"
+                      )}
+                      onClick={() => toggleCity(zone.id, city)}
+                    >
+                      {city}
+                    </Badge>
+                  );
+                })}
               </div>
             </div>
           </div>
         ))}
       </div>
-
-      <Button type="button" variant="outline" onClick={addZone}>
-        <Plus className="h-4 w-4 mr-1" />
-        Add shipping zone
-      </Button>
-    </DashboardCardSection>
+    </SettingsPanel>
   );
 }

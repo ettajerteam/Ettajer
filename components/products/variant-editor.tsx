@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, Palette, Ruler } from "lucide-react";
+import { Plus, Trash2, Palette, Ruler, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,35 +11,35 @@ interface VariantEditorProps {
   onChange: (variants: ProductVariant[]) => void;
 }
 
-const PRESETS = {
-  Color: {
-    icon: Palette,
-    placeholder: "e.g. Red, Blue, Black",
-    defaultOptions: [""],
-  },
-  Size: {
-    icon: Ruler,
-    placeholder: "e.g. S, M, L, XL",
-    defaultOptions: [""],
-  },
-} as const;
-
-type PresetName = keyof typeof PRESETS;
+const PRESETS = [
+  { name: "Color", icon: Palette, placeholder: "e.g. Red, Blue, Black" },
+  { name: "Size", icon: Ruler, placeholder: "e.g. S, M, L, XL" },
+  { name: "Material", icon: Tag, placeholder: "e.g. Cotton, Leather" },
+  { name: "Style", icon: Tag, placeholder: "e.g. Classic, Sport" },
+] as const;
 
 export function VariantEditor({ variants, onChange }: VariantEditorProps) {
-  const hasVariant = (name: PresetName) =>
-    variants.some((v) => v.name.toLowerCase() === name.toLowerCase());
+  const hasVariant = (name: string) =>
+    variants.some((v) => v.name.trim().toLowerCase() === name.toLowerCase());
 
-  const addVariant = (name: PresetName) => {
+  const addPreset = (name: string) => {
     if (hasVariant(name)) return;
+    onChange([...variants, { id: crypto.randomUUID(), name, options: [""] }]);
+  };
+
+  const addCustom = () => {
     onChange([
       ...variants,
-      { id: crypto.randomUUID(), name, options: [...PRESETS[name].defaultOptions] },
+      { id: crypto.randomUUID(), name: "", options: [""] },
     ]);
   };
 
   const removeVariant = (id: string) => {
     onChange(variants.filter((v) => v.id !== id));
+  };
+
+  const updateName = (id: string, name: string) => {
+    onChange(variants.map((v) => (v.id === id ? { ...v, name } : v)));
   };
 
   const addOption = (variantId: string) => {
@@ -73,55 +73,58 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={hasVariant("Color")}
-          onClick={() => addVariant("Color")}
-          className="text-[#007AFF] border-[#007AFF]/30"
-        >
-          <Palette className="h-3.5 w-3.5 mr-1" />
-          Add Color
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={hasVariant("Size")}
-          onClick={() => addVariant("Size")}
-          className="text-[#007AFF] border-[#007AFF]/30"
-        >
-          <Ruler className="h-3.5 w-3.5 mr-1" />
-          Add Size
+        {PRESETS.map((preset) => {
+          const Icon = preset.icon;
+          return (
+            <Button
+              key={preset.name}
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={hasVariant(preset.name)}
+              onClick={() => addPreset(preset.name)}
+              className="border-[#007AFF]/30 text-[#007AFF]"
+            >
+              <Icon className="mr-1 h-3.5 w-3.5" />
+              {preset.name}
+            </Button>
+          );
+        })}
+        <Button type="button" variant="outline" size="sm" onClick={addCustom}>
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          Custom option
         </Button>
       </div>
 
       {variants.length === 0 && (
-        <p className="text-sm text-muted-foreground rounded-xl border border-dashed p-4 text-center">
-          Add color and size options for products with variants.
+        <p className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+          Add color, size, material, or any custom option customers can pick.
         </p>
       )}
 
       {variants.map((variant) => {
-        const preset = PRESETS[variant.name as PresetName];
-        const Icon = preset?.icon;
+        const preset = PRESETS.find(
+          (p) => p.name.toLowerCase() === variant.name.trim().toLowerCase()
+        );
+        const Icon = preset?.icon ?? Tag;
 
         return (
-          <div
-            key={variant.id}
-            className="rounded-xl border bg-muted/20 p-4 space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {Icon && <Icon className="h-4 w-4 text-[#007AFF]" />}
-                <span className="font-medium text-sm">{variant.name}</span>
+          <div key={variant.id} className="space-y-3 rounded-xl border bg-muted/20 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <Icon className="h-4 w-4 shrink-0 text-[#007AFF]" />
+                <Input
+                  value={variant.name}
+                  onChange={(e) => updateName(variant.id, e.target.value)}
+                  placeholder="Option name (e.g. Capacity)"
+                  className="h-9 max-w-xs font-medium"
+                />
               </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
+                className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
                 onClick={() => removeVariant(variant.id)}
               >
                 <Trash2 className="h-4 w-4" />
@@ -129,11 +132,11 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Options</Label>
+              <Label className="text-xs text-muted-foreground">Values</Label>
               {variant.options.map((option, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <Input
-                    placeholder={preset?.placeholder ?? "Option value"}
+                    placeholder={preset?.placeholder ?? "e.g. Value"}
                     value={option}
                     onChange={(e) => updateOption(variant.id, index, e.target.value)}
                   />
@@ -156,8 +159,8 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
                 className="text-[#007AFF]"
                 onClick={() => addOption(variant.id)}
               >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add {variant.name.toLowerCase()} option
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Add value
               </Button>
             </div>
           </div>

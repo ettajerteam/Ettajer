@@ -79,6 +79,7 @@ export type FounderFlowCopy = {
     swipeToView: string;
     phaseDone: string;
     phaseInProgress: string;
+    phaseNow: string;
     progress: string;
     merchantDashboard: string;
     launchDay: string;
@@ -97,6 +98,16 @@ export type FounderFlowCopy = {
     unlocksDescription: string;
     platformReady: string;
     estimatedLaunch: string;
+    countdownTitle: string;
+    countdownSubtitle: string;
+    countdownLiveTitle: string;
+    countdownLiveSubtitle: string;
+    countdownClaim: string;
+    countdownClaiming: string;
+    countdownDays: string;
+    countdownHours: string;
+    countdownMinutes: string;
+    countdownSeconds: string;
     dayAsFounder: (days: number) => string;
     community: string;
     yourRank: string;
@@ -284,6 +295,7 @@ function buildLaunchPhasesImpl(
 ): WaitingIntelligenceCopy["buildLaunchPhases"] extends (p: number) => infer R
   ? R
   : never {
+  // Progress is floored at 90 in computeLaunchProgress — development is always done.
   const betaThreshold = 88;
 
   return [
@@ -295,21 +307,16 @@ function buildLaunchPhasesImpl(
     {
       label: labels.development.label,
       description: labels.development.description,
-      status: progress < betaThreshold ? ("active" as const) : ("complete" as const),
-      progress: progress < betaThreshold ? progress : undefined,
+      status: "complete" as const,
     },
     {
       label: labels.beta.label,
       description: labels.beta.description,
       status:
-        progress >= betaThreshold
-          ? progress >= 94
-            ? ("complete" as const)
-            : ("active" as const)
-          : ("upcoming" as const),
+        progress >= 94 ? ("complete" as const) : ("active" as const),
       progress:
         progress >= betaThreshold && progress < 94
-          ? Math.min(94, progress + 4)
+          ? Math.max(progress, 90)
           : undefined,
     },
     {
@@ -381,6 +388,7 @@ const EN_COPY: FounderFlowCopy = {
     swipeToView: "Swipe to view full card →",
     phaseDone: "Done",
     phaseInProgress: "In progress",
+    phaseNow: "Now",
     progress: "Progress",
     merchantDashboard: "Merchant Dashboard",
     launchDay: "Launch day",
@@ -395,11 +403,23 @@ const EN_COPY: FounderFlowCopy = {
       orders: "Orders",
       apps: "Apps",
     },
-    unlocksAtLaunch: "Unlocks at launch",
+    unlocksAtLaunch: "Unlocks at public launch",
     unlocksDescription:
-      "COD orders, products, analytics & more — ready when we go live.",
+      "Platform development is done — we're beta testing the live web now. Full dashboard unlocks at public launch.",
     platformReady: "Platform ready",
-    estimatedLaunch: "Estimated launch",
+    estimatedLaunch: "Public launch",
+    countdownTitle: "Platform opens July 23, 2026",
+    countdownSubtitle:
+      "Development is complete. We're beta testing the web now — when the countdown hits zero, unlock your merchant dashboard.",
+    countdownLiveTitle: "Ettajer is open",
+    countdownLiveSubtitle:
+      "Your founder seat is ready. Claim access and start building your store.",
+    countdownClaim: "Open my dashboard",
+    countdownClaiming: "Opening…",
+    countdownDays: "Days",
+    countdownHours: "Hours",
+    countdownMinutes: "Min",
+    countdownSeconds: "Sec",
     dayAsFounder: (days) => `Day ${days} as founder`,
     community: "Community",
     yourRank: "Your rank",
@@ -408,11 +428,11 @@ const EN_COPY: FounderFlowCopy = {
     foundersOf: (count, max) => `${count} of ${max}`,
     launchRoadmap: "Launch roadmap",
     launchRoadmapSubtitle: (phaseLabel, progress) =>
-      `${phaseLabel} · ${progress}% complete`,
+      `${phaseLabel} · platform development complete · ${progress}% ready`,
     launchTargetNotice: (estimatedLaunch, maskedEmail) =>
-      `Launch target: ${estimatedLaunch}. We'll email you at ${maskedEmail} — no action needed.`,
+      `Beta testing is live. Public launch: ${estimatedLaunch}. We'll email you at ${maskedEmail} — no action needed.`,
     whatsWaiting: "What's waiting for you",
-    whatsWaitingSubtitle: "Unlocks automatically when we hit launch",
+    whatsWaitingSubtitle: "Full access unlocks automatically at public launch",
     founderBenefits: "Your founder benefits",
     founderBenefitsSubtitle: (tierLabel) =>
       `As ${tierLabel}, you get exclusive perks`,
@@ -555,6 +575,7 @@ const FR_COPY: FounderFlowCopy = {
     swipeToView: "Glissez pour voir la carte complète →",
     phaseDone: "Terminé",
     phaseInProgress: "En cours",
+    phaseNow: "Maintenant",
     progress: "Progression",
     merchantDashboard: "Tableau de bord commerçant",
     launchDay: "Jour du lancement",
@@ -569,11 +590,23 @@ const FR_COPY: FounderFlowCopy = {
       orders: "Commandes",
       apps: "Applications",
     },
-    unlocksAtLaunch: "Débloqué au lancement",
+    unlocksAtLaunch: "Débloqué au lancement public",
     unlocksDescription:
-      "Commandes COD, produits, statistiques et plus — prêts dès la mise en ligne.",
+      "Le développement de la plateforme est terminé — nous testons le web en live. Le tableau de bord complet s'ouvre au lancement public.",
     platformReady: "Plateforme prête",
-    estimatedLaunch: "Lancement estimé",
+    estimatedLaunch: "Lancement public",
+    countdownTitle: "Ouverture le 23 juillet 2026",
+    countdownSubtitle:
+      "Le développement est terminé. Nous testons le web maintenant — quand le compte à rebours atteint zéro, ouvrez votre tableau de bord.",
+    countdownLiveTitle: "Ettajer est ouvert",
+    countdownLiveSubtitle:
+      "Votre place de fondateur est prête. Débloquez l'accès et créez votre boutique.",
+    countdownClaim: "Ouvrir mon tableau de bord",
+    countdownClaiming: "Ouverture…",
+    countdownDays: "Jours",
+    countdownHours: "Heures",
+    countdownMinutes: "Min",
+    countdownSeconds: "Sec",
     dayAsFounder: (days) => `Jour ${days} en tant que fondateur`,
     community: "Communauté",
     yourRank: "Votre rang",
@@ -582,11 +615,11 @@ const FR_COPY: FounderFlowCopy = {
     foundersOf: (count, max) => `${count} sur ${max}`,
     launchRoadmap: "Feuille de route du lancement",
     launchRoadmapSubtitle: (phaseLabel, progress) =>
-      `${phaseLabel} · ${progress} % terminé`,
+      `${phaseLabel} · développement terminé · ${progress} % prêt`,
     launchTargetNotice: (estimatedLaunch, maskedEmail) =>
-      `Objectif de lancement : ${estimatedLaunch}. Nous vous écrirons à ${maskedEmail} — aucune action requise.`,
+      `Les tests bêta sont en cours. Lancement public : ${estimatedLaunch}. Nous vous écrirons à ${maskedEmail} — aucune action requise.`,
     whatsWaiting: "Ce qui vous attend",
-    whatsWaitingSubtitle: "Débloqué automatiquement au lancement",
+    whatsWaitingSubtitle: "L'accès complet se débloque automatiquement au lancement public",
     founderBenefits: "Vos avantages fondateur",
     founderBenefitsSubtitle: (tierLabel) =>
       `En tant que ${tierLabel}, vous bénéficiez d'avantages exclusifs`,
@@ -728,6 +761,7 @@ const AR_COPY: FounderFlowCopy = {
     swipeToView: "اسحب لعرض البطاقة كاملة ←",
     phaseDone: "مكتمل",
     phaseInProgress: "قيد التنفيذ",
+    phaseNow: "الآن",
     progress: "التقدم",
     merchantDashboard: "لوحة تحكم التاجر",
     launchDay: "يوم الإطلاق",
@@ -742,11 +776,23 @@ const AR_COPY: FounderFlowCopy = {
       orders: "الطلبات",
       apps: "التطبيقات",
     },
-    unlocksAtLaunch: "يُفتح عند الإطلاق",
+    unlocksAtLaunch: "يُفتح عند الإطلاق العام",
     unlocksDescription:
-      "طلبات الدفع عند الاستلام، المنتجات، التحليلات والمزيد — جاهزة عند الإطلاق.",
+      "اكتمل تطوير المنصة — نختبر الموقع المباشر الآن. تُفتح لوحة التحكم بالكامل عند الإطلاق العام.",
     platformReady: "المنصة جاهزة",
-    estimatedLaunch: "الإطلاق المتوقع",
+    estimatedLaunch: "الإطلاق العام",
+    countdownTitle: "افتتاح المنصة في 23 يوليو 2026",
+    countdownSubtitle:
+      "اكتمل التطوير. نختبر الويب الآن — عند وصول العدّ التنازلي إلى الصفر، افتح لوحة تحكم متجرك.",
+    countdownLiveTitle: "إيتاجر مفتوحة الآن",
+    countdownLiveSubtitle:
+      "مقعدك كمؤسس جاهز. فعّل الوصول وابدأ بناء متجرك.",
+    countdownClaim: "افتح لوحة التحكم",
+    countdownClaiming: "جاري الفتح…",
+    countdownDays: "أيام",
+    countdownHours: "ساعات",
+    countdownMinutes: "دقائق",
+    countdownSeconds: "ثوانٍ",
     dayAsFounder: (days) => `اليوم ${days} كمؤسس`,
     community: "المجتمع",
     yourRank: "ترتيبك",
@@ -755,11 +801,11 @@ const AR_COPY: FounderFlowCopy = {
     foundersOf: (count, max) => `${count} من ${max}`,
     launchRoadmap: "خارطة طريق الإطلاق",
     launchRoadmapSubtitle: (phaseLabel, progress) =>
-      `${phaseLabel} · ${progress}% مكتمل`,
+      `${phaseLabel} · اكتمل التطوير · جاهز ${progress}%`,
     launchTargetNotice: (estimatedLaunch, maskedEmail) =>
-      `موعد الإطلاق المستهدف: ${estimatedLaunch}. سنراسلك على ${maskedEmail} — لا يلزم أي إجراء.`,
+      `الاختبار التجريبي جارٍ. الإطلاق العام: ${estimatedLaunch}. سنراسلك على ${maskedEmail} — لا يلزم أي إجراء.`,
     whatsWaiting: "ما ينتظرك",
-    whatsWaitingSubtitle: "يُفتح تلقائياً عند الإطلاق",
+    whatsWaitingSubtitle: "يُفتح الوصول الكامل تلقائياً عند الإطلاق العام",
     founderBenefits: "مزايا المؤسس",
     founderBenefitsSubtitle: (tierLabel) =>
       `بصفتك ${tierLabel}، تحصل على امتيازات حصرية`,
@@ -903,11 +949,11 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
           },
           development: {
             label: "Développement de la plateforme",
-            description: "Créateur de boutique, paiement COD, tableau de bord commerçant",
+            description: "Terminé — créateur de boutique, COD et tableau de bord livrés",
           },
           beta: {
-            label: "Tests bêta",
-            description: "Tests avec commerçants pionniers et finitions",
+            label: "Tests bêta en cours",
+            description: "Nous testons le web live avec les fondateurs maintenant",
           },
           launch: {
             label: "Lancement public",
@@ -971,7 +1017,7 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
           {
             id: "launch",
             title: `${launchProgress} % de la plateforme prête`,
-            body: `Lancement visé ${estimatedLaunch}. Vous recevrez un e-mail dès que votre tableau de bord sera débloqué.`,
+            body: `Le développement est terminé — tests bêta en cours. Lancement public ${estimatedLaunch}. Vous recevrez un e-mail dès que votre tableau de bord sera débloqué.`,
           },
           {
             id: "community",
@@ -1032,36 +1078,32 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
       }) => {
         if (isReturning) {
           if (daysAsFounder >= 7) {
-            return `Jour ${daysAsFounder} en tant que ${formatFounderNumberShort(founderNumber)}. Plateforme prête à ${launchProgress} % — votre tableau de bord se débloque au lancement.`;
+            return `Jour ${daysAsFounder} en tant que ${formatFounderNumberShort(founderNumber)}. Le développement est terminé — tests bêta en cours. Tableau de bord au lancement public.`;
           }
-          return `Votre place fondateur est sécurisée. Plateforme prête à ${launchProgress} % — patientez, nous vous écrirons au lancement.`;
+          return `Votre place fondateur est sécurisée. Nous testons le web maintenant (${launchProgress} %) — nous vous écrirons au lancement public.`;
         }
         if (founderNumber <= 10) {
-          return `${formatFounderNumber(founderNumber)} vous place dans le top 10. Votre parcours Ettajer commence ici — lancement ${estimatedLaunch}.`;
+          return `${formatFounderNumber(founderNumber)} vous place dans le top 10. Développement terminé — tests bêta en cours. Lancement public ${estimatedLaunch}.`;
         }
-        return `Vous êtes ${formatFounderNumber(founderNumber)} sur ${MAX_FOUNDERS}. Plateforme prête à ${launchProgress} % — nous vous préviendrons quand votre tableau de bord sera débloqué.`;
+        return `Vous êtes ${formatFounderNumber(founderNumber)} sur ${MAX_FOUNDERS}. Développement terminé ; tests bêta en cours — nous vous préviendrons à l'ouverture du tableau de bord.`;
       },
-      buildStatusPill: ({ isReturning, founderNumber }) => {
-        if (isReturning) return "Fondateur actif";
-        if (founderNumber <= 10) return "Fondateur pionnier";
-        return "Accès anticipé";
-      },
+      buildStatusPill: () => "Tests bêta en cours",
       buildNotification: ({ founderNumber, spotsLeft, estimatedLaunch }) => {
         if (founderNumber <= 10) {
           return {
             tone: "highlight" as const,
-            message: `Avantage pionnier : en tant que ${formatFounderNumberShort(founderNumber)}, vous êtes en tête de file au déblocage du tableau de bord.`,
+            message: `Avantage pionnier : en tant que ${formatFounderNumberShort(founderNumber)}, vous êtes en tête de file. Le développement est terminé — les tests bêta sont en cours.`,
           };
         }
         if (spotsLeft <= 15) {
           return {
             tone: "info" as const,
-            message: `Plus que ${spotsLeft} places fondateur — vous êtes déjà inscrit.`,
+            message: `Plus que ${spotsLeft} places fondateur — vous êtes déjà inscrit. Nous testons le web maintenant.`,
           };
         }
         return {
           tone: "success" as const,
-          message: `Aucune action requise. Nous vous écrirons au lancement (${estimatedLaunch}).`,
+          message: `Le développement de la plateforme est terminé. Tests bêta en cours — lancement public ${estimatedLaunch}.`,
         };
       },
       buildRankLabel: (founderNumber) => {
@@ -1069,8 +1111,7 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
         if (founderNumber <= 25) return "Top 25 fondateur précoce";
         return `Top ${Math.round((founderNumber / MAX_FOUNDERS) * 100)} %`;
       },
-      launchPhaseLabel: (launchProgress) =>
-        launchProgress >= 88 ? "Tests bêta" : "Développement de la plateforme",
+      launchPhaseLabel: (_launchProgress) => "Tests bêta en cours",
     };
   }
 
@@ -1136,11 +1177,11 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
           },
           development: {
             label: "تطوير المنصة",
-            description: "منشئ المتجر، الدفع عند الاستلام، لوحة تحكم التاجر",
+            description: "مكتمل — منشئ المتجر والدفع عند الاستلام ولوحة التحكم جاهزة",
           },
           beta: {
-            label: "اختبار تجريبي",
-            description: "اختبار مع التجار الأوائل واللمسات الأخيرة",
+            label: "اختبار تجريبي الآن",
+            description: "نختبر الموقع المباشر مع المؤسسين الآن",
           },
           launch: {
             label: "الإطلاق العام",
@@ -1203,7 +1244,7 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
           {
             id: "launch",
             title: `${launchProgress}% من المنصة جاهزة`,
-            body: `نستهدف الإطلاق ${estimatedLaunch}. ستصلك رسالة فور فتح لوحة التحكم.`,
+            body: `اكتمل التطوير — الاختبار التجريبي جارٍ الآن. الإطلاق العام ${estimatedLaunch}. ستصلك رسالة فور فتح لوحة التحكم.`,
           },
           {
             id: "community",
@@ -1263,36 +1304,32 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
       }) => {
         if (isReturning) {
           if (daysAsFounder >= 7) {
-            return `اليوم ${daysAsFounder} كـ ${formatFounderNumberShort(founderNumber)}. المنصة جاهزة بنسبة ${launchProgress}% — تُفتح لوحة التحكم عند الإطلاق.`;
+            return `اليوم ${daysAsFounder} كـ ${formatFounderNumberShort(founderNumber)}. اكتمل تطوير المنصة — الاختبار التجريبي جارٍ. تُفتح لوحة التحكم عند الإطلاق العام.`;
           }
-          return `مقعدك المؤسس مضمون. جاهزية المنصة ${launchProgress}% — انتظر، سنراسلك عند الإطلاق.`;
+          return `مقعدك المؤسس مضمون. نختبر الويب الآن (${launchProgress}%) — سنراسلك عند الإطلاق العام.`;
         }
         if (founderNumber <= 10) {
-          return `${formatFounderNumber(founderNumber)} يضعك في أول 10. رحلتك مع إيتاجر تبدأ هنا — الإطلاق ${estimatedLaunch}.`;
+          return `${formatFounderNumber(founderNumber)} يضعك في أول 10. اكتمل التطوير — اختبار تجريبي الآن. الإطلاق العام ${estimatedLaunch}.`;
         }
-        return `أنت ${formatFounderNumber(founderNumber)} من ${MAX_FOUNDERS}. المنصة جاهزة ${launchProgress}% — سنُبلغك عند فتح لوحة متجرك.`;
+        return `أنت ${formatFounderNumber(founderNumber)} من ${MAX_FOUNDERS}. اكتمل تطوير المنصة والاختبار التجريبي جارٍ — سنُبلغك عند فتح لوحة متجرك.`;
       },
-      buildStatusPill: ({ isReturning, founderNumber }) => {
-        if (isReturning) return "مؤسس نشط";
-        if (founderNumber <= 10) return "مؤسس رائد";
-        return "وصول مبكر";
-      },
+      buildStatusPill: () => "اختبار تجريبي الآن",
       buildNotification: ({ founderNumber, spotsLeft, estimatedLaunch }) => {
         if (founderNumber <= 10) {
           return {
             tone: "highlight" as const,
-            message: `ميزة الرائد: بصفتك ${formatFounderNumberShort(founderNumber)}، أنت الأول عند فتح لوحة التحكم.`,
+            message: `ميزة الرائد: بصفتك ${formatFounderNumberShort(founderNumber)}، أنت الأول عند فتح لوحة التحكم. اكتمل تطوير المنصة — الاختبار التجريبي جارٍ الآن.`,
           };
         }
         if (spotsLeft <= 15) {
           return {
             tone: "info" as const,
-            message: `تبقى ${spotsLeft} مقعداً مؤسساً — أنت مسجّل بالفعل.`,
+            message: `تبقى ${spotsLeft} مقعداً مؤسساً — أنت مسجّل بالفعل. نختبر الموقع الآن.`,
           };
         }
         return {
           tone: "success" as const,
-          message: `لا يلزم أي إجراء. سنراسلك عند الإطلاق (${estimatedLaunch}).`,
+          message: `اكتمل تطوير المنصة. نختبر الويب الآن — الإطلاق العام ${estimatedLaunch}.`,
         };
       },
       buildRankLabel: (founderNumber) => {
@@ -1300,8 +1337,7 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
         if (founderNumber <= 25) return "مؤسس مبكر من أول 25";
         return `أفضل ${Math.round((founderNumber / MAX_FOUNDERS) * 100)}%`;
       },
-      launchPhaseLabel: (launchProgress) =>
-        launchProgress >= 88 ? "اختبار تجريبي" : "تطوير المنصة",
+      launchPhaseLabel: (_launchProgress) => "اختبار تجريبي الآن",
     };
   }
 
@@ -1363,11 +1399,11 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
         },
         development: {
           label: "Platform development",
-          description: "Store builder, COD checkout, merchant dashboard",
+          description: "Complete — store builder, COD checkout, and dashboard shipped",
         },
         beta: {
-          label: "Beta testing",
-          description: "Early merchant testing & final polish",
+          label: "Beta testing now",
+          description: "We're testing the live web with founders right now",
         },
         launch: {
           label: "Public launch",
@@ -1431,7 +1467,7 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
         {
           id: "launch",
           title: `${launchProgress}% platform ready`,
-          body: `We're targeting launch ${estimatedLaunch}. You'll get an email the moment your dashboard unlocks.`,
+          body: `Platform development is done — we're beta testing the web now. Public launch ${estimatedLaunch}. You'll get an email the moment your dashboard unlocks.`,
         },
         {
           id: "community",
@@ -1491,36 +1527,32 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
     }) => {
       if (isReturning) {
         if (daysAsFounder >= 7) {
-          return `Day ${daysAsFounder} as ${formatFounderNumberShort(founderNumber)}. Platform is ${launchProgress}% ready — your dashboard unlocks at launch.`;
+          return `Day ${daysAsFounder} as ${formatFounderNumberShort(founderNumber)}. Platform development is done — beta testing is live. Dashboard unlocks at public launch.`;
         }
-        return `Your founder spot is secured. We're at ${launchProgress}% platform readiness — sit tight, we'll email you at launch.`;
+        return `Your founder spot is secured. We're beta testing the web now (${launchProgress}% ready) — we'll email you at public launch.`;
       }
       if (founderNumber <= 10) {
-        return `${formatFounderNumber(founderNumber)} puts you in the first 10. Your Ettajer journey starts here — launch is ${estimatedLaunch}.`;
+        return `${formatFounderNumber(founderNumber)} puts you in the first 10. Development is complete — beta testing now. Public launch ${estimatedLaunch}.`;
       }
-      return `You're ${formatFounderNumber(founderNumber)} of ${MAX_FOUNDERS}. Platform ${launchProgress}% ready — we'll notify you when your store dashboard unlocks.`;
+      return `You're ${formatFounderNumber(founderNumber)} of ${MAX_FOUNDERS}. Platform development is done; beta testing is live — we'll notify you when your store dashboard unlocks.`;
     },
-    buildStatusPill: ({ isReturning, founderNumber }) => {
-      if (isReturning) return "Founder active";
-      if (founderNumber <= 10) return "Pioneer founder";
-      return "Early access";
-    },
+    buildStatusPill: () => "Beta testing now",
     buildNotification: ({ founderNumber, spotsLeft, estimatedLaunch }) => {
       if (founderNumber <= 10) {
         return {
           tone: "highlight" as const,
-          message: `Pioneer perk: as ${formatFounderNumberShort(founderNumber)}, you're first in line when the dashboard goes live.`,
+          message: `Pioneer perk: as ${formatFounderNumberShort(founderNumber)}, you're first in line when the dashboard goes live. Platform development is done — beta testing is live now.`,
         };
       }
       if (spotsLeft <= 15) {
         return {
           tone: "info" as const,
-          message: `Only ${spotsLeft} founder spots remain — you're already in.`,
+          message: `Only ${spotsLeft} founder spots remain — you're already in. We're beta testing the web now.`,
         };
       }
       return {
         tone: "success" as const,
-        message: `No action needed. We'll email you at launch (${estimatedLaunch}).`,
+        message: `Platform development is done. We're beta testing the web now — public launch ${estimatedLaunch}.`,
       };
     },
     buildRankLabel: (founderNumber) => {
@@ -1528,8 +1560,7 @@ function buildWaitingIntelligenceCopy(locale: LandingLocale): WaitingIntelligenc
       if (founderNumber <= 25) return "Top 25 early founder";
       return `Top ${Math.round((founderNumber / MAX_FOUNDERS) * 100)}%`;
     },
-    launchPhaseLabel: (launchProgress) =>
-      launchProgress >= 88 ? "Beta testing" : "Platform development",
+    launchPhaseLabel: (_launchProgress) => "Beta testing now",
   };
 }
 

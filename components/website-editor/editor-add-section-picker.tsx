@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCentralBuilderStore } from "@/lib/builder/central-builder-store";
-import { ADDABLE_SECTION_TYPES, SECTION_REGISTRY } from "@/lib/sections/registry";
+import { ADDABLE_SECTION_TYPES, getSectionDefinition } from "@/lib/sections/registry";
 import type { SectionType } from "@/lib/sections/types";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +51,8 @@ export function EditorAddSectionPicker({
         </DialogHeader>
         <div className="grid gap-2">
           {ADDABLE_SECTION_TYPES.map((type) => {
-            const def = SECTION_REGISTRY[type];
+            const def = getSectionDefinition(type);
+            if (!def) return null;
             const Icon = ICONS[def.icon] ?? LayoutGrid;
             return (
               <button

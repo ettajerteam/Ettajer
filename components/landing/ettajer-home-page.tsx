@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -9,19 +9,16 @@ import {
   CheckCircle2,
   Zap,
   Mail,
-  Sparkles,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import {
   type PricingCurrency,
 } from "@/lib/landing/pricing";
-import { getFooterNavGroups } from "@/lib/landing/landing-i18n";
 import { useLandingLocale } from "@/components/landing/landing-locale-context";
-import { LandingLanguageSwitcher } from "@/components/shared/language-switcher";
 import { LandingArrowForward } from "@/components/landing/landing-direction-icon";
 import { FadeIn, Stagger, StaggerItem, AnimatedNumber, ScaleOnHover } from "@/components/landing/landing-motion";
 import { LiveActivityToast } from "@/components/landing/live-activity-toast";
 import { SocialProofBar } from "@/components/landing/social-proof-bar";
-import { HeroRotatingHeadline } from "@/components/landing/hero-rotating-headline";
 import { LandingFounderCardSection } from "@/components/landing/landing-founder-card-section";
 import { cn } from "@/lib/utils";
 import {
@@ -30,20 +27,18 @@ import {
   LandingMobileSectionHeader,
   LandingScrollToTop,
 } from "@/components/landing/landing-mobile-carousel";
+import { LandingFooter } from "@/components/landing/landing-footer";
 import {
   LandingMobileNavBar,
   LandingIosSegmentedControl,
   LandingMobilePrimaryButton,
-  LandingMobileSecondaryButton,
 } from "@/components/landing/landing-mobile-nav";
 import {
   LANDING_MOBILE_SECTION_SCROLL,
   LANDING_MOBILE_CONTAINER,
   LANDING_MOBILE_SECTION,
   LANDING_MOBILE_SECTION_MUTED,
-  LandingMobileFooter,
   LandingMobileGroup,
-  LandingMobilePill,
   LandingMobileStatStrip,
   LandingMobileSectionLabel,
   LandingMobileSectionLead,
@@ -57,7 +52,7 @@ const LANDING = {
   builderAccent: "/landing/builder-typing.jpg",
   cod: "/landing/cod-packages.jpg",
   marketing: "/landing/marketing.jpg",
-  shopping: "/landing/shopping.jpg",
+  hero: "/landing/hero.webp",
   storefrontShowcase: "/landing/storefront-showcase.jpg",
 } as const;
 
@@ -91,7 +86,7 @@ function SectionImage({
         decoding="async"
         className={cn(
           "h-full w-full object-cover transition-transform duration-700 ease-out hover:scale-[1.02]",
-          isMobileHero && "min-h-[22rem] object-center md:min-h-0",
+          isMobileHero && "object-center",
         )}
         referrerPolicy="no-referrer"
       />
@@ -100,20 +95,43 @@ function SectionImage({
 }
 
 export function EttajerHomePage() {
-  const { selectorValue, setLocale, copy, content, locale } = useLandingLocale();
-  const footerNav = getFooterNavGroups(locale);
+  const { selectorValue, setLocale, copy, content } = useLandingLocale();
   const [faqOpenIndex, setFaqOpenIndex] = useState<number | null>(0);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annually">(
     "annually",
   );
   const [currency, setCurrency] = useState<PricingCurrency>("MAD");
+  const heroRef = useRef<HTMLElement>(null);
+  const [overHero, setOverHero] = useState(true);
+
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setOverHero(entry.isIntersecting && entry.intersectionRatio > 0.12);
+      },
+      { threshold: [0, 0.12, 0.35, 0.6] },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F2F2F7] font-sans text-neutral-900 antialiased selection:bg-neutral-900 selection:text-white md:bg-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F2F2F7] text-neutral-900 antialiased selection:bg-neutral-900 selection:text-white md:bg-white">
       <LiveActivityToast />
       <LandingScrollToTop />
       {/* NAVIGATION */}
-      <nav className="sticky top-0 z-40 border-b border-black/[0.04] bg-[#F2F2F7]/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-[180%] md:border-neutral-200/80 md:bg-white/75">
+      <nav
+        className={cn(
+          "sticky top-0 z-40 pt-[env(safe-area-inset-top)] transition-[background-color,border-color,backdrop-filter] duration-300",
+          overHero
+            ? "border-b border-transparent bg-black/25 backdrop-blur-md backdrop-saturate-150"
+            : "border-b border-black/[0.04] bg-[#F2F2F7]/88 backdrop-blur-xl backdrop-saturate-[180%] md:border-neutral-200/80 md:bg-white/75",
+        )}
+      >
         <div className="mx-auto flex h-[3.25rem] min-w-0 max-w-6xl items-center justify-between gap-2 px-3 md:h-auto md:gap-6 md:px-6 md:py-3.5">
           <Link href="/" className="min-w-0 shrink active:opacity-70">
             <Image
@@ -121,7 +139,10 @@ export function EttajerHomePage() {
               alt="Ettajer"
               width={104}
               height={26}
-              className="h-[1.35rem] max-h-[1.35rem] w-auto max-w-[6.5rem] object-contain object-left md:h-6"
+              className={cn(
+                "h-[1.35rem] max-h-[1.35rem] w-auto max-w-[6.5rem] object-contain object-left transition duration-300 md:h-6",
+                overHero && "brightness-0 invert",
+              )}
               style={{ width: "auto" }}
               priority
             />
@@ -132,7 +153,12 @@ export function EttajerHomePage() {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-sm text-neutral-500 transition-colors duration-200 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:ring-offset-2 rounded-sm"
+                className={cn(
+                  "rounded-sm text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                  overHero
+                    ? "text-white/75 hover:text-white focus-visible:ring-white/40"
+                    : "text-neutral-500 hover:text-neutral-900 focus-visible:ring-blue-600/30",
+                )}
               >
                 {link.label}
               </a>
@@ -143,7 +169,12 @@ export function EttajerHomePage() {
             <select
               value={selectorValue}
               onChange={(e) => setLocale(e.target.value)}
-              className="cursor-pointer rounded-sm border-none bg-transparent py-1 text-sm text-neutral-500 transition-colors duration-200 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:ring-offset-2"
+              className={cn(
+                "cursor-pointer rounded-sm border-none bg-transparent py-1 text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                overHero
+                  ? "text-white/80 hover:text-white focus-visible:ring-white/40"
+                  : "text-neutral-500 hover:text-neutral-900 focus-visible:ring-blue-600/30",
+              )}
               aria-label={copy.nav.languageAria}
             >
               <option value="EN">EN</option>
@@ -153,14 +184,24 @@ export function EttajerHomePage() {
 
             <Link
               href="/login"
-              className="hidden text-sm text-neutral-500 transition-colors duration-200 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:ring-offset-2 rounded-sm sm:inline-block"
+              className={cn(
+                "hidden rounded-sm text-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:inline-block",
+                overHero
+                  ? "text-white/80 hover:text-white focus-visible:ring-white/40"
+                  : "text-neutral-500 hover:text-neutral-900 focus-visible:ring-blue-600/30",
+              )}
             >
               {copy.nav.signIn}
             </Link>
 
             <Link
               href="/signup"
-              className="rounded-full bg-neutral-900 px-4 py-2 text-sm text-white transition-all duration-200 hover:bg-neutral-800 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:px-5"
+              className={cn(
+                "rounded-full px-4 py-2 text-sm transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-5",
+                overHero
+                  ? "bg-white text-neutral-900 hover:bg-white/90 focus-visible:ring-white/50"
+                  : "bg-neutral-900 text-white hover:bg-neutral-800 focus-visible:ring-blue-600",
+              )}
             >
               {copy.nav.startFree}
             </Link>
@@ -173,68 +214,67 @@ export function EttajerHomePage() {
         </div>
       </nav>
 
-      {/* HERO */}
-      <header className="relative w-full max-w-full overflow-hidden border-b border-black/[0.04] bg-[#F2F2F7] md:border-neutral-200 md:bg-white">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[#007AFF]/8 to-transparent md:hidden"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 hidden h-[min(520px,70%)] bg-gradient-to-b from-blue-500/[0.14] via-blue-400/[0.06] to-transparent md:block"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute left-1/2 top-0 hidden h-[380px] w-[min(100%,720px)] -translate-x-1/2 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(59,130,246,0.12),transparent_70%)] md:block"
-          aria-hidden
-        />
+      {/* HERO — brand-first full-bleed */}
+      <header
+        ref={heroRef}
+        className="relative -mt-[3.25rem] flex min-h-[100svh] w-full max-w-full items-end overflow-hidden bg-neutral-950 text-white md:-mt-[3.75rem]"
+      >
+        <div className="absolute inset-0">
+          <motion.div
+            className="absolute inset-0"
+            initial={{ scale: 1.06 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 14, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            <Image
+              src={LANDING.hero}
+              alt=""
+              fill
+              priority
+              quality={90}
+              sizes="100vw"
+              className="object-cover object-[55%_center]"
+            />
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/35" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
+        </div>
 
-        <div className="relative mx-auto min-w-0 max-w-6xl px-3 pb-14 pt-12 text-center md:px-6 md:pb-16 md:pt-20">
-          <FadeIn className="mx-auto max-w-4xl">
-            <div className="flex justify-center md:justify-start">
-              <LandingMobilePill className="md:hidden">
-                <Sparkles className="h-3.5 w-3.5" />
-                {copy.hero.eyebrow}
-              </LandingMobilePill>
-            </div>
-            <p className="hidden text-sm text-neutral-500 md:block">
-              {copy.hero.eyebrow}
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-16 pt-28 sm:px-6 sm:pb-20 md:px-8 md:pb-24 md:pt-32">
+          <FadeIn className="max-w-xl">
+            <h1 className="text-[3.5rem] font-semibold leading-[0.9] tracking-[-0.045em] text-white sm:text-6xl md:text-7xl lg:text-[5.25rem]">
+              {copy.hero.brandName}
+            </h1>
+            <p className="mt-7 text-xl font-medium leading-snug tracking-tight text-white sm:text-2xl md:text-[1.65rem]">
+              {copy.hero.headline}
             </p>
-
-            <div className="mt-4 md:mt-3">
-              <HeroRotatingHeadline />
-            </div>
-
-            <div className="mt-7 flex flex-col gap-3 md:mt-8 md:flex-row md:items-center md:justify-center md:gap-3">
-              <LandingMobilePrimaryButton href="/signup" className="md:hidden">
-                {copy.hero.ctaPrimary}
-                <LandingArrowForward className="h-4 w-4" />
-              </LandingMobilePrimaryButton>
-              <LandingMobileSecondaryButton href="#cod-suite" className="md:hidden">
-                {copy.hero.ctaSecondary}
-              </LandingMobileSecondaryButton>
+            <p className="mt-3 max-w-md text-[16px] leading-relaxed text-white/70 sm:text-[17px]">
+              {copy.hero.support}
+            </p>
+            <div className="mt-9 flex flex-wrap items-center gap-3">
               <Link
                 href="/signup"
-                className="hidden items-center justify-center gap-2 rounded-full bg-neutral-900 px-7 py-3 text-sm text-white transition-all duration-200 hover:bg-neutral-800 active:scale-[0.98] md:inline-flex"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-neutral-900 transition hover:bg-white/90 active:scale-[0.98]"
               >
                 {copy.hero.ctaPrimary}
                 <LandingArrowForward className="h-4 w-4" />
               </Link>
               <Link
                 href="#cod-suite"
-                className="hidden items-center justify-center rounded-full border border-neutral-200 px-7 py-3 text-sm text-neutral-700 transition-all duration-200 hover:bg-neutral-50 md:inline-flex"
+                className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/5 px-7 py-3.5 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/10"
               >
                 {copy.hero.ctaSecondary}
               </Link>
             </div>
-
-            <p className="mt-4 text-[13px] text-[#8E8E93] md:mt-5 md:text-sm md:text-neutral-400">
-              {copy.hero.disclaimer}
-            </p>
           </FadeIn>
-
-          <SocialProofBar />
         </div>
       </header>
+
+      <div className="border-b border-neutral-200 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:px-8">
+          <SocialProofBar />
+        </div>
+      </div>
 
       <LandingFounderCardSection />
 
@@ -1398,66 +1438,7 @@ export function EttajerHomePage() {
         </div>
       </section>
 
-      <LandingMobileFooter />
-
-      {/* FOOTER — desktop */}
-      <footer id="about-desktop" className="hidden bg-white py-12 text-sm text-neutral-500 md:block">
-        <div className={LANDING_MOBILE_CONTAINER}>
-          <div className="grid gap-10 lg:grid-cols-12">
-            <div className="space-y-4 lg:col-span-4">
-              <Link href="/" className="inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 rounded-sm">
-                <Image
-                  src={NAV_LOGO}
-                  alt="Ettajer"
-                  width={88}
-                  height={22}
-                  className="h-5 max-h-5 w-auto max-w-[5.5rem] object-contain object-left"
-                  style={{ width: "auto" }}
-                />
-              </Link>
-              <p className="max-w-sm leading-relaxed">
-                {copy.footer.tagline}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-8 lg:grid-cols-3 xl:grid-cols-6">
-              {footerNav.map((group) => (
-                <div key={group.title} className="space-y-3">
-                  <h3 className="text-sm font-medium text-neutral-900">
-                    {group.title}
-                  </h3>
-                  <ul className="space-y-2">
-                    {group.links.map((link) => (
-                      <li key={link.label}>
-                        {link.href.startsWith("/") || link.href.startsWith("mailto:") ? (
-                          <Link
-                            href={link.href}
-                            className="transition-colors duration-200 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 rounded-sm"
-                          >
-                            {link.label}
-                          </Link>
-                        ) : (
-                          <a
-                            href={link.href}
-                            className="transition-colors duration-200 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 rounded-sm"
-                          >
-                            {link.label}
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-neutral-200 pt-6 text-xs text-neutral-400 sm:flex-row sm:items-center">
-            <p>{copy.footer.copyright(new Date().getFullYear())}</p>
-            <LandingLanguageSwitcher variant="footer" />
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

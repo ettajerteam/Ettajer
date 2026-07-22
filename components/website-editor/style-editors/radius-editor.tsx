@@ -2,10 +2,11 @@
 
 import { InspectorFieldGroup, InspectorTextField } from "../inspector/inspector-fields";
 import { OverrideIndicator } from "./override-indicator";
-import { readString, type StyleEditorProps } from "./style-editor-props";
+import { readString, type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
 export function RadiusEditor({
   device,
+  idPrefix,
   values,
   onPatch,
   emphasized,
@@ -24,7 +25,7 @@ export function RadiusEditor({
         />
       </div>
       <InspectorTextField
-        id={`border-radius-${device}`}
+        id={styleFieldId(idPrefix, "border-radius", device)}
         label="Radius"
         value={readString(values, "borderRadius")}
         placeholder="1rem"

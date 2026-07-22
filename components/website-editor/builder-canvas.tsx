@@ -10,7 +10,6 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from "react";
 import {
-  Globe,
   Hand,
   Maximize2,
   Minus,
@@ -21,9 +20,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BuilderCanvasOverlay } from "@/components/website-editor/builder-canvas-overlay";
+import { EditorPreviewSkeleton } from "@/components/website-editor/editor-skeleton";
 import { useCentralBuilderStore, MIN_ZOOM, MAX_ZOOM } from "@/lib/builder/central-builder-store";
 import { lerp, nearlyEqual, PAN_LERP, ZOOM_LERP } from "@/lib/builder/canvas-interactions";
 import type { DeviceMode } from "@/lib/builder/types";
+import { postToPreview } from "@/lib/builder/events";
 import { cn } from "@/lib/utils";
 
 interface BuilderCanvasProps {
@@ -44,22 +45,6 @@ const CANVAS_WIDTH: Record<DeviceMode, string> = {
 
 const MOMENTUM_FRICTION = 0.92;
 const MOMENTUM_MIN = 0.4;
-
-function PreviewSkeleton({ device }: { device: DeviceMode }) {
-  return (
-    <div className="flex h-full flex-col gap-3 p-4">
-      <div className="editor-shimmer h-8 w-2/5 rounded-lg" />
-      <div className="editor-shimmer h-32 flex-1 rounded-lg" />
-      <div className="grid grid-cols-3 gap-2">
-        <div className="editor-shimmer h-16 rounded-lg" />
-        <div className="editor-shimmer h-16 rounded-lg" />
-        <div className="editor-shimmer h-16 rounded-lg" />
-      </div>
-      {device === "desktop" && <div className="editor-shimmer h-20 rounded-lg" />}
-    </div>
-  );
-}
-
 export function BuilderCanvas({
   previewPath,
   device,
@@ -302,7 +287,7 @@ export function BuilderCanvas({
           loading ? "opacity-100" : "pointer-events-none opacity-0"
         )}
       >
-        <PreviewSkeleton device={device} />
+        <EditorPreviewSkeleton device={device} />
       </div>
       {children}
       <BuilderCanvasOverlay
@@ -314,107 +299,106 @@ export function BuilderCanvas({
   );
 
   return (
-    <div className={cn("flex flex-1 flex-col gap-3", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Globe className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
-          <p className="truncate font-mono text-[11px] text-neutral-500">{previewPath}</p>
+    <div className={cn("flex min-h-0 flex-1 flex-col gap-1.5 p-1.5 sm:p-2", className)}>
+      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-1 rounded-lg border border-neutral-200/80 bg-white/95 px-1.5 py-1 shadow-sm backdrop-blur-md">
+        <span className="hidden rounded-md bg-neutral-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 sm:inline">
+          {device === "mobile" ? "Mobile" : device === "tablet" ? "Tablet" : "Desktop"} preview
+        </span>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
+        <div className="inline-flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn("h-7 w-7 rounded-md", activeTool === "select" && "bg-neutral-100")}
+            onClick={() => setTool("select")}
+            title="Select"
+            aria-label="Select tool"
+          >
+            <MousePointer2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn("h-7 w-7 rounded-md", activeTool === "hand" && "bg-neutral-100")}
+            onClick={() => setTool("hand")}
+            title="Pan — hold Space + drag, or middle-click"
+            aria-label="Pan tool"
+          >
+            <Hand className="h-3.5 w-3.5" />
+          </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-1">
-          <div className="inline-flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn("h-7 w-7 rounded-md", activeTool === "select" && "bg-neutral-100")}
-              onClick={() => setTool("select")}
-              title="Select"
-              aria-label="Select tool"
-            >
-              <MousePointer2 className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn("h-7 w-7 rounded-md", activeTool === "hand" && "bg-neutral-100")}
-              onClick={() => setTool("hand")}
-              title="Pan — hold Space + drag, or middle-click"
-              aria-label="Pan tool"
-            >
-              <Hand className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          <div className="inline-flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-md text-neutral-500"
-              onClick={zoomOut}
-              disabled={canvas.zoom <= MIN_ZOOM}
-              aria-label="Zoom out"
-            >
-              <Minus className="h-3.5 w-3.5" />
-            </Button>
-            <button
-              type="button"
-              className="min-w-[3rem] px-1 text-center text-[11px] font-medium text-neutral-600"
-              onClick={zoomToFit}
-            >
-              {zoomLabel}
-            </button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-md text-neutral-500"
-              onClick={zoomIn}
-              disabled={canvas.zoom >= MAX_ZOOM}
-              aria-label="Zoom in"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+        <div className="inline-flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-md text-neutral-500"
+            onClick={zoomOut}
+            disabled={canvas.zoom <= MIN_ZOOM}
+            aria-label="Zoom out"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </Button>
+          <button
+            type="button"
+            className="min-w-[3rem] px-1 text-center text-[11px] font-medium text-neutral-600"
+            onClick={zoomToFit}
+          >
+            {zoomLabel}
+          </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-md text-neutral-500"
+            onClick={zoomIn}
+            disabled={canvas.zoom >= MAX_ZOOM}
+            aria-label="Zoom in"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-7 w-7 rounded-md border-neutral-200"
+          onClick={resetView}
+          aria-label="Reset view"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-7 w-7 rounded-md border-neutral-200"
+          onClick={onRefresh}
+          aria-label="Refresh preview"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+        </Button>
+        {onFullscreen && (
           <Button
             type="button"
             variant="outline"
             size="icon"
             className="h-7 w-7 rounded-md border-neutral-200"
-            onClick={resetView}
-            aria-label="Reset view"
+            onClick={onFullscreen}
+            aria-label="Fullscreen"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <Maximize2 className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-7 w-7 rounded-md border-neutral-200"
-            onClick={onRefresh}
-            aria-label="Refresh preview"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-          </Button>
-          {onFullscreen && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-7 w-7 rounded-md border-neutral-200"
-              onClick={onFullscreen}
-              aria-label="Fullscreen"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
+        )}
         </div>
       </div>
 
       <div
         ref={viewportRef}
         className={cn(
-          "builder-canvas-viewport relative flex-1 overflow-hidden rounded-xl border border-neutral-200/80",
+          "builder-canvas-viewport relative min-h-0 flex-1 overflow-hidden rounded-lg border border-neutral-200/80",
           isPanGesture && "cursor-grab",
           canvas.isPanning && "cursor-grabbing"
         )}
@@ -430,7 +414,7 @@ export function BuilderCanvas({
         <div ref={scrollContainerRef} className="builder-canvas-infinite absolute inset-0 overflow-auto">
           <div
             ref={worldRef}
-            className="builder-canvas-world relative flex min-h-[calc(100%+6rem)] min-w-[calc(100%+6rem)] items-start justify-center p-10 sm:p-12"
+            className="builder-canvas-world relative flex min-h-full min-w-full items-start justify-center p-4 sm:p-6"
             style={{
               transform: `translate(${canvas.panX}px, ${canvas.panY}px) scale(${canvas.zoom})`,
               transformOrigin: "center top",
@@ -440,7 +424,7 @@ export function BuilderCanvas({
             <div className={cn("relative shrink-0", CANVAS_WIDTH[device])}>
               {!isMobileFrame ? (
                 <div className="overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-[0_12px_40px_-16px_rgba(15,23,42,0.22)]">
-                  <div className="flex items-center gap-2 border-b border-neutral-100 bg-neutral-50/90 px-3 py-2">
+                  <div className="flex items-center gap-2 border-b border-neutral-100 bg-neutral-50/90 px-3 py-1.5">
                     <div className="flex shrink-0 gap-1.5">
                       <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
                       <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
@@ -456,29 +440,27 @@ export function BuilderCanvas({
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[2.5rem] border-[10px] border-neutral-800 bg-neutral-800 p-1 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.35)]">
-                  <div className="relative overflow-hidden rounded-[2rem] bg-white">
-                    <div className="absolute left-1/2 top-2 z-20 h-5 w-24 -translate-x-1/2 rounded-full bg-neutral-800" />
-                    <div className="relative aspect-[9/19] min-h-[560px]">
-                      <div
-                        className={cn(
-                          "absolute inset-0 z-10 pt-6 transition-opacity duration-300",
-                          loading ? "opacity-100" : "pointer-events-none opacity-0"
-                        )}
-                      >
-                        <PreviewSkeleton device="mobile" />
+                <div className="relative mx-auto w-full max-w-[390px]">
+                  <div className="overflow-hidden rounded-[2rem] border-[3px] border-neutral-900 bg-neutral-950 p-1 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.45)]">
+                    <div className="relative overflow-hidden rounded-[1.65rem] bg-white">
+                      <div className="absolute left-1/2 top-2 z-20 h-4 w-16 -translate-x-1/2 rounded-full bg-black" />
+                      <div className="relative aspect-[9/19] min-h-[480px]">
+                        <div
+                          className={cn(
+                            "absolute inset-0 z-10 pt-5 transition-opacity duration-300",
+                            loading ? "opacity-100" : "pointer-events-none opacity-0"
+                          )}
+                        >
+                          <EditorPreviewSkeleton device="mobile" />
+                        </div>
+                        <div className="h-full w-full pt-5">{previewContent}</div>
                       </div>
-                      <div className="h-full w-full pt-6">{previewContent}</div>
                     </div>
                   </div>
                 </div>
               )}
             </div>
           </div>
-        </div>
-
-        <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-neutral-200/80 bg-white/90 px-2 py-1 text-[10px] text-neutral-500 shadow-sm backdrop-blur-sm">
-          {isPanGesture ? "Panning" : "Select"} · Ctrl+scroll zoom · Shift/Alt+scroll pan · Space/middle-click pan
         </div>
       </div>
     </div>
@@ -516,15 +498,12 @@ export function BuilderCanvasIframe({
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
-    iframe.contentWindow.postMessage(
-      {
-        type: "ettajer:drag-block",
-        blockId: drag.blockId,
-        blockName: drag.blockName,
-        active: drag.active,
-      },
-      "*"
-    );
+    postToPreview(iframe.contentWindow, {
+      type: "ettajer:drag-block",
+      blockId: drag.blockId,
+      blockName: drag.blockName,
+      active: drag.active,
+    });
   }, [drag.active, drag.blockId, drag.blockName, iframeRef, refreshKey]);
 
   return (
@@ -533,7 +512,7 @@ export function BuilderCanvasIframe({
       key={`builder-frame-${refreshKey}`}
       src={debouncedUrl}
       title="Website preview"
-      className="block h-[min(72vh,900px)] min-h-[480px] w-full border-0 bg-white"
+      className="block h-[min(78vh,920px)] min-h-[420px] w-full border-0 bg-white"
       onLoad={onLoad}
     />
   );

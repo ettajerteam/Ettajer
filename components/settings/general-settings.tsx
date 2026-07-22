@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Upload, Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DashboardCardSection } from "@/components/dashboard/dashboard-card-section";
+import { SettingsPanel } from "@/components/settings/settings-panel";
 import type { StoreWithSettings } from "@/lib/store-settings";
 
 interface GeneralSettingsProps {
@@ -44,50 +44,52 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
   };
 
   return (
-    <DashboardCardSection
-      title="General"
-      description="Basic information about your store."
-      footer={
-        <Button onClick={onSave} loading={saving} className="bg-[#007AFF] hover:bg-[#0071EB]">
-          Save general settings
-        </Button>
-      }
+    <SettingsPanel
+      kicker="Store profile"
+      title="Basic information"
+      description="How your store appears to customers — name, logo, and how they can reach you."
+      onSave={onSave}
+      saving={saving}
+      saveLabel="Save profile"
     >
       <div className="space-y-2">
         <Label>Store logo</Label>
-        <div className="flex items-center gap-4">
-          <div className="relative h-16 w-16 rounded-xl border bg-muted overflow-hidden flex items-center justify-center">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
             {store.logo ? (
               <Image src={store.logo} alt="Logo" fill className="object-cover" unoptimized />
             ) : uploading ? (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
             ) : (
-              <Upload className="h-5 w-5 text-muted-foreground" />
+              <Upload className="h-5 w-5 text-neutral-400" />
             )}
           </div>
-          <label className="cursor-pointer">
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleLogoUpload}
-              disabled={uploading}
-            />
-            <span className="inline-flex items-center justify-center rounded-xl border border-input bg-background/50 px-4 py-2 text-sm font-medium hover:bg-accent transition-colors">
-              {uploading ? "Uploading…" : "Upload logo"}
-            </span>
-          </label>
-          {store.logo && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-destructive"
-              onClick={() => onChange({ logo: null })}
-            >
-              Remove
-            </Button>
-          )}
+          <div className="space-y-2">
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoUpload}
+                disabled={uploading}
+              />
+              <span className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium transition hover:bg-neutral-50">
+                {uploading ? "Uploading…" : "Upload logo"}
+              </span>
+            </label>
+            {store.logo ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-destructive"
+                onClick={() => onChange({ logo: null })}
+              >
+                Remove
+              </Button>
+            ) : null}
+            <p className="text-[12px] text-neutral-500">PNG or JPG, square works best.</p>
+          </div>
         </div>
       </div>
 
@@ -97,6 +99,7 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
           id="storeName"
           value={store.name}
           onChange={(e) => onChange({ name: e.target.value })}
+          className="h-11 rounded-xl"
         />
       </div>
 
@@ -108,10 +111,11 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
           value={store.description ?? ""}
           onChange={(e) => onChange({ description: e.target.value })}
           placeholder="Tell customers what makes your store special…"
+          className="rounded-xl"
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="contactEmail">Contact email</Label>
           <Input
@@ -120,6 +124,7 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
             value={store.contactEmail ?? ""}
             onChange={(e) => onChange({ contactEmail: e.target.value })}
             placeholder="hello@yourstore.com"
+            className="h-11 rounded-xl"
           />
         </div>
         <div className="space-y-2">
@@ -129,6 +134,7 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
             value={store.phone ?? ""}
             onChange={(e) => onChange({ phone: e.target.value })}
             placeholder="+212 6 00 00 00 00"
+            className="h-11 rounded-xl"
           />
         </div>
       </div>
@@ -141,9 +147,9 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
           value={store.address ?? ""}
           onChange={(e) => onChange({ address: e.target.value })}
           placeholder="Street, city, country"
+          className="rounded-xl"
         />
       </div>
-
-    </DashboardCardSection>
+    </SettingsPanel>
   );
 }

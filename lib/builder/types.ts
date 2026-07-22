@@ -128,6 +128,9 @@ export interface BlockRenderProps {
   product?: PublicProduct;
   collection?: PublicCollection;
   previewDevice?: DeviceMode;
+  /** Present when rendering inside the website editor preview. */
+  builderMode?: boolean;
+  sectionId?: string;
 }
 
 export type BlockComponent = ComponentType<BlockRenderProps>;

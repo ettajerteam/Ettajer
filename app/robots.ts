@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/llms.txt"],
+        allow: ["/", "/llms.txt", "/store/"],
         disallow: [
           "/dashboard/",
           "/api/",
@@ -15,7 +15,6 @@ export default function robots(): MetadataRoute.Robots {
           "/onboarding",
           "/welcome",
           "/early-access",
-          "/store/",
         ],
       },
     ],

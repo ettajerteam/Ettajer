@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Box,
   ChevronRight,
@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EditorOpenAddPanelTrigger } from "@/components/website-editor/editor-add-section-picker";
 import { EditorHelpTooltip } from "@/components/website-editor/editor-help-tooltip";
-import { EditorPanelSection } from "@/components/website-editor/editor-panel-section";
 import {
   buildPageLayerTree,
   parseLayerSelection,
@@ -41,6 +40,8 @@ import {
   type LayerNode,
   type LayerNodeKind,
 } from "@/lib/builder/layer-tree";
+import { flattenVisibleLayerNodes } from "@/lib/builder/layer-tree-nav";
+import { searchLayoutSections } from "@/lib/builder/layout-search";
 import { useCentralBuilderStore } from "@/lib/builder/central-builder-store";
 import { SECTION_REGISTRY } from "@/lib/sections/registry";
 import type { SectionType, StoreSection } from "@/lib/sections/types";
@@ -149,15 +150,21 @@ function LayerRow({
   return (
     <>
       <div
+        role="treeitem"
+        aria-level={depth + 1}
+        aria-selected={isActive}
+        aria-expanded={hasChildren ? !isCollapsed : undefined}
+        tabIndex={isActive ? 0 : -1}
         className={cn(
-          "group flex items-center gap-0.5 rounded-lg border py-1 pr-1 transition-all duration-150",
+          "group flex items-center gap-0.5 rounded-md border py-1 pr-1 transition-all duration-150",
           isDragging && "opacity-40",
           isActive
-            ? "border-[#007AFF]/40 bg-[#007AFF]/[0.08] shadow-[0_0_0_1px_rgba(0,122,255,0.1)]"
+            ? "border-[#007AFF]/40 bg-[#007AFF]/[0.08]"
             : "border-transparent hover:bg-neutral-50",
-          !node.visible && isSection && "opacity-60"
+          !node.visible && isSection && "opacity-60",
+          isSection && "mt-1 first:mt-0"
         )}
-        style={{ paddingLeft: depth * 14 + 4 }}
+        style={{ paddingLeft: Math.max(depth, 0) * 12 + 2 }}
         draggable={isSection && node.draggable}
         onDragStart={() => isSection && onDragStart(node.id)}
         onDragOver={(e) => {
@@ -165,6 +172,23 @@ function LayerRow({
         }}
         onDrop={() => isSection && onDrop(node.id)}
         onDragEnd={onDragEnd}
+        onKeyDown={(e) => {
+          if (isRenaming) return;
+          if (e.key === "ArrowRight" && hasChildren && isCollapsed) {
+            e.preventDefault();
+            onToggleExpand(node.id);
+          } else if (e.key === "ArrowLeft" && hasChildren && !isCollapsed) {
+            e.preventDefault();
+            onToggleExpand(node.id);
+          } else if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            if (node.kind === "page") onToggleExpand(node.id);
+            else onSelect(node.id);
+          } else if (e.key === "F2" && isSection) {
+            e.preventDefault();
+            onStartRename(node.id);
+          }
+        }}
       >
         {isSection ? (
           <GripVertical
@@ -172,7 +196,7 @@ function LayerRow({
             aria-hidden
           />
         ) : (
-          <span className="w-3.5 shrink-0" />
+          <span className="w-0 shrink-0" />
         )}
 
         <button
@@ -218,6 +242,9 @@ function LayerRow({
           {isRenaming ? (
             <Input
               ref={inputRef}
+              id={`layer-rename-${node.id}`}
+              name={`layer-rename-${node.id}`}
+              autoComplete="off"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onBlur={commitRename}
@@ -227,13 +254,19 @@ function LayerRow({
                 if (e.key === "Escape") onCancelRename();
               }}
               onClick={(e) => e.stopPropagation()}
-              className="h-6 min-w-0 flex-1 px-1.5 text-xs"
+              className="h-6 min-w-0 flex-1 px-1.5 text-xs font-semibold"
+              aria-label="Rename layer"
             />
           ) : (
             <span
               className={cn(
-                "min-w-0 flex-1 truncate text-xs font-medium",
-                isActive ? "text-[#007AFF]" : "text-neutral-800",
+                "min-w-0 flex-1 truncate",
+                isSection || node.kind === "page"
+                  ? "text-[13px] font-bold leading-tight text-neutral-900"
+                  : "text-xs font-normal text-neutral-600",
+                isActive && (isSection || node.kind === "page"
+                  ? "text-[#007AFF]"
+                  : "font-medium text-[#007AFF]"),
                 !node.visible && isSection && "line-through decoration-neutral-300"
               )}
             >
@@ -249,21 +282,21 @@ function LayerRow({
           <div
             className={cn(
               "flex shrink-0 items-center gap-0.5 transition-opacity",
-              isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              isActive || !node.visible ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             )}
           >
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-6 w-6"
+              className={cn("h-6 w-6", !node.visible && "text-amber-600")}
               onClick={() => onToggleVisible(node.id)}
-              title={node.visible ? "Hide" : "Show"}
+              title={node.visible ? "Hide section" : "Show section"}
             >
               {node.visible ? (
                 <Eye className="h-3 w-3 text-neutral-400" />
               ) : (
-                <EyeOff className="h-3 w-3 text-neutral-400" />
+                <EyeOff className="h-3 w-3 text-amber-600" />
               )}
             </Button>
             <DropdownMenu>
@@ -316,8 +349,16 @@ function LayerRow({
         )}
       </div>
 
-      {hasChildren && !isCollapsed
-        ? node.children.map((child) => (
+      {hasChildren && !isCollapsed ? (
+        <div
+          className={cn(
+            "min-w-0",
+            isSection && "mb-1 ml-4 border-l border-neutral-200 pl-1"
+          )}
+          role="group"
+          aria-label={`${node.label} content`}
+        >
+          {node.children.map((child) => (
             <LayerRow
               key={child.id}
               node={child}
@@ -342,8 +383,9 @@ function LayerRow({
               onEditComponent={onEditComponent}
               onRemove={onRemove}
             />
-          ))
-        : null}
+          ))}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -362,6 +404,9 @@ export function EditorLayersPanel({
 }: EditorLayersPanelProps) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [layerQuery, setLayerQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchFieldId = `layers-search-${useId().replace(/:/g, "")}`;
 
   const selectedSectionId = useCentralBuilderStore((s) => s.selectedSectionId);
   const selectedElementId = useCentralBuilderStore((s) => s.selectedElementId);
@@ -377,6 +422,29 @@ export function EditorLayersPanel({
     [sections, layerRenames, componentNames]
   );
 
+  const contentHits = useMemo(
+    () => searchLayoutSections(sections, layerQuery),
+    [sections, layerQuery]
+  );
+
+  const filteredChildren = useMemo(() => {
+    const q = layerQuery.trim().toLowerCase();
+    if (!q) return tree.children;
+    const hitIds = new Set(contentHits.map((h) => h.sectionId));
+    const matches = (node: LayerNode): boolean => {
+      if (node.label.toLowerCase().includes(q)) return true;
+      if (node.sectionId && hitIds.has(node.sectionId)) return true;
+      if (node.kind === "section" && hitIds.has(node.id)) return true;
+      return node.children.some(matches);
+    };
+    return tree.children.filter(matches);
+  }, [tree.children, layerQuery, contentHits]);
+
+  const visibleNodes = useMemo(
+    () => flattenVisibleLayerNodes(filteredChildren, collapsedLayers),
+    [filteredChildren, collapsedLayers]
+  );
+
   const activeLayerId = useMemo(
     () => resolveActiveLayerId(selectedSectionId, inspectorFocus, selectedElementId),
     [selectedSectionId, inspectorFocus, selectedElementId]
@@ -390,6 +458,41 @@ export function EditorLayersPanel({
     if (collapsed["page:home"]) toggleLayerExpanded("page:home");
     if (sectionId && collapsed[sectionId]) toggleLayerExpanded(sectionId);
   }, [activeLayerId, toggleLayerExpanded]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest("input, textarea, [contenteditable=true]")) return;
+        event.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+      if (event.key === "/" && !(event.target instanceof HTMLInputElement)) {
+        const target = event.target as HTMLElement | null;
+        if (target?.isContentEditable) return;
+        event.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const moveTreeSelection = useCallback(
+    (delta: number) => {
+      if (visibleNodes.length === 0) return;
+      const idx = Math.max(
+        0,
+        visibleNodes.findIndex((n) => n.id === activeLayerId)
+      );
+      const next = visibleNodes[Math.min(visibleNodes.length - 1, Math.max(0, idx + delta))];
+      if (!next) return;
+      if (next.kind === "page") toggleLayerExpanded(next.id);
+      else selectLayer(next.id);
+    },
+    [visibleNodes, activeLayerId, selectLayer, toggleLayerExpanded]
+  );
 
   const handleDrop = useCallback(
     (targetId: string) => {
@@ -425,52 +528,93 @@ export function EditorLayersPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <EditorPanelSection
-        label="Layers"
-        description="Page structure — select, rename, reorder, or delete"
-        count={sections.length}
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <p className="text-xs font-semibold text-neutral-800">
+          Layers
+          <span className="ml-1.5 font-normal text-neutral-400">({sections.length})</span>
+        </p>
+        <EditorHelpTooltip text="Drag to reorder. Click a section to edit it on the right. Press / to search." />
+      </div>
+
+      <div className="relative px-0.5">
+        <Input
+          ref={searchRef}
+          id={searchFieldId}
+          name="layers-search"
+          autoComplete="off"
+          value={layerQuery}
+          onChange={(e) => setLayerQuery(e.target.value)}
+          placeholder="Search layers & content…"
+          className="h-8 rounded-lg border-neutral-200 bg-white text-xs"
+          aria-label="Search layers and content"
+        />
+        {layerQuery.trim() && contentHits.length > 0 ? (
+          <p className="mt-1 text-[10px] text-neutral-400">
+            {contentHits.length} content match{contentHits.length === 1 ? "" : "es"}
+          </p>
+        ) : null}
+      </div>
+
+      <div
+        className="rounded-lg border border-neutral-200 bg-white"
+        role="tree"
+        aria-label="Page layers"
+        aria-live="polite"
+        onKeyDown={(e) => {
+          if (renamingId) return;
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            moveTreeSelection(1);
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            moveTreeSelection(-1);
+          } else if (e.key === "Home") {
+            e.preventDefault();
+            const first = visibleNodes.find((n) => n.kind !== "page") ?? visibleNodes[0];
+            if (first && first.kind !== "page") selectLayer(first.id);
+          } else if (e.key === "End") {
+            e.preventDefault();
+            const last = [...visibleNodes].reverse().find((n) => n.kind !== "page");
+            if (last) selectLayer(last.id);
+          }
+        }}
       >
-        <div className="flex items-center gap-1.5 text-[11px] text-neutral-400">
-          <GripVertical className="h-3.5 w-3.5" />
-          Drag sections to reorder
-          <EditorHelpTooltip text="Double-click a layer to rename. Expand sections to edit individual elements in the inspector." />
-        </div>
+        {filteredChildren.length === 0 ? (
+          <p className="px-3 py-4 text-center text-xs text-neutral-500">No layers match “{layerQuery}”.</p>
+        ) : (
+          filteredChildren.map((child) => (
+            <LayerRow
+              key={child.id}
+              node={child}
+              depth={0}
+              activeLayerId={activeLayerId}
+              collapsedLayers={collapsedLayers}
+              dragId={dragId}
+              renamingId={renamingId}
+              sections={sections}
+              onSelect={selectLayer}
+              onToggleExpand={toggleLayerExpanded}
+              onStartRename={setRenamingId}
+              onCommitRename={handleCommitRename}
+              onCancelRename={() => setRenamingId(null)}
+              onDragStart={setDragId}
+              onDragEnd={() => setDragId(null)}
+              onDrop={handleDrop}
+              onToggleVisible={onToggleVisible}
+              onDuplicate={onDuplicate}
+              onSaveAsComponent={onSaveAsComponent}
+              onDetachComponent={onDetachComponent}
+              onEditComponent={onEditComponent}
+              onRemove={onRemove}
+            />
+          ))
+        )}
+      </div>
 
-        <div
-          className="rounded-lg border border-neutral-200 bg-white py-1"
-          role="tree"
-          aria-label="Page layers"
-        >
-          <LayerRow
-            node={tree}
-            depth={0}
-            activeLayerId={activeLayerId}
-            collapsedLayers={collapsedLayers}
-            dragId={dragId}
-            renamingId={renamingId}
-            sections={sections}
-            onSelect={selectLayer}
-            onToggleExpand={toggleLayerExpanded}
-            onStartRename={setRenamingId}
-            onCommitRename={handleCommitRename}
-            onCancelRename={() => setRenamingId(null)}
-            onDragStart={setDragId}
-            onDragEnd={() => setDragId(null)}
-            onDrop={handleDrop}
-            onToggleVisible={onToggleVisible}
-            onDuplicate={onDuplicate}
-            onSaveAsComponent={onSaveAsComponent}
-            onDetachComponent={onDetachComponent}
-            onEditComponent={onEditComponent}
-            onRemove={onRemove}
-          />
-        </div>
-      </EditorPanelSection>
-
-      <EditorPanelSection label="Add block" divider>
+      <div className="pt-0.5">
         <EditorOpenAddPanelTrigger />
-      </EditorPanelSection>
+      </div>
     </div>
   );
 }

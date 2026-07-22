@@ -12,10 +12,11 @@ import {
   InspectorTextField,
 } from "../inspector/inspector-fields";
 import { OverrideIndicator } from "./override-indicator";
-import { readString, type StyleEditorProps } from "./style-editor-props";
+import { readString, type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
 export function DisplayEditor({
   device,
+  idPrefix,
   values,
   onPatch,
   hasOverride,
@@ -29,35 +30,35 @@ export function DisplayEditor({
         <OverrideIndicator active={hasOverride?.("display")} />
       </div>
       <InspectorSelectField
-        id={`display-${device}`}
+        id={styleFieldId(idPrefix, "display", device)}
         label="Display"
         value={readString(values, "display")}
         options={DISPLAY_OPTIONS}
         onChange={(v) => onPatch({ display: v || undefined }, { responsive: true })}
       />
       <InspectorSelectField
-        id={`flex-direction-${device}`}
+        id={styleFieldId(idPrefix, "flex-direction", device)}
         label="Flex direction"
         value={readString(values, "flexDirection")}
         options={FLEX_DIRECTION_OPTIONS}
         onChange={(v) => onPatch({ flexDirection: v || undefined })}
       />
       <InspectorSelectField
-        id={`align-items-${device}`}
+        id={styleFieldId(idPrefix, "align-items", device)}
         label="Align items"
         value={readString(values, "alignItems")}
         options={ALIGN_ITEMS_OPTIONS}
         onChange={(v) => onPatch({ alignItems: v || undefined })}
       />
       <InspectorSelectField
-        id={`justify-content-${device}`}
+        id={styleFieldId(idPrefix, "justify-content", device)}
         label="Justify content"
         value={readString(values, "justifyContent")}
         options={JUSTIFY_CONTENT_OPTIONS}
         onChange={(v) => onPatch({ justifyContent: v || undefined })}
       />
       <InspectorTextField
-        id={`gap-${device}`}
+        id={styleFieldId(idPrefix, "gap", device)}
         label="Gap"
         value={readString(values, "gap")}
         placeholder="1rem"

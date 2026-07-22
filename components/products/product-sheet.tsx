@@ -47,7 +47,15 @@ export function ProductSheet({
       }))
       .filter((v) => v.options.length > 0);
 
-    const payload = { ...data, variants: cleanedVariants };
+    const cleanedDetails = data.details
+      .filter((d) => d.label.trim() && d.value.trim())
+      .map((d) => ({
+        ...d,
+        label: d.label.trim(),
+        value: d.value.trim(),
+      }));
+
+    const payload = { ...data, variants: cleanedVariants, details: cleanedDetails };
 
     setLoading(true);
     try {

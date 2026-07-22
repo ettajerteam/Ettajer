@@ -6,20 +6,21 @@ import {
   InspectorSelectField,
   InspectorTextField,
 } from "../inspector/inspector-fields";
-import { readNumber, readString, type StyleEditorProps } from "./style-editor-props";
+import { readNumber, readString, type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
-export function AnimationEditor({ device, values, onPatch }: StyleEditorProps) {
+export function AnimationEditor({ device,
+  idPrefix, values, onPatch }: StyleEditorProps) {
   return (
     <InspectorFieldGroup title="Animation" description="Entrance animation timing">
       <InspectorSelectField
-        id={`animation-${device}`}
+        id={styleFieldId(idPrefix, "animation", device)}
         label="Entrance animation"
         value={readString(values, "animation") || "none"}
         options={ANIMATION_OPTIONS}
         onChange={(v) => onPatch({ animation: v === "none" || !v ? undefined : v })}
       />
       <InspectorTextField
-        id={`animation-duration-${device}`}
+        id={styleFieldId(idPrefix, "animation-duration", device)}
         label="Duration (ms)"
         value={readNumber(values, "animationDurationMs")}
         placeholder="300"
@@ -29,7 +30,7 @@ export function AnimationEditor({ device, values, onPatch }: StyleEditorProps) {
         }}
       />
       <InspectorTextField
-        id={`animation-delay-${device}`}
+        id={styleFieldId(idPrefix, "animation-delay", device)}
         label="Delay (ms)"
         value={readNumber(values, "animationDelayMs")}
         placeholder="0"
@@ -39,7 +40,7 @@ export function AnimationEditor({ device, values, onPatch }: StyleEditorProps) {
         }}
       />
       <InspectorSelectField
-        id={`animation-easing-${device}`}
+        id={styleFieldId(idPrefix, "animation-easing", device)}
         label="Easing"
         value={readString(values, "animationEasing")}
         options={EASING_OPTIONS}

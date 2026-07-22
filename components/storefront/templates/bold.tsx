@@ -28,7 +28,7 @@ export function BoldTemplate({
       <section className="relative h-[50vh] min-h-[360px] overflow-hidden">
         <Image
           src={assets.hero}
-          alt=""
+          alt={store.name}
           fill
           className="object-cover opacity-60"
           priority

@@ -19,13 +19,25 @@ export interface PublicStore {
   logo: string | null;
   description: string | null;
   currency: string;
+  /** Store UI language: en | fr | ar */
+  language?: string;
   primaryColor: string;
   secondaryColor: string;
   font: string;
   theme: string;
+  textColor?: string;
+  mutedColor?: string;
+  borderColor?: string;
+  buttonRadius?: string;
   checkout: PublicCheckoutSettings;
   marketing: PublicMarketingIntegrations;
   navigation?: NavItem[];
+}
+
+export interface PublicProductDetail {
+  id: string;
+  label: string;
+  value: string;
 }
 
 export interface PublicProduct {
@@ -39,6 +51,22 @@ export interface PublicProduct {
   images: string[];
   variants: ProductVariant[];
   tags: string[];
+  /** Spec rows (brand, material, weight, etc.) shown on the product page. */
+  details?: PublicProductDetail[];
+  /** Merchant-managed customer reviews for this product. */
+  reviews?: PublicProductReview[];
+  productType?: string;
+  copyrightOwner?: string | null;
+  copyrightNotice?: string | null;
+}
+
+export interface PublicProductReview {
+  id: string;
+  author: string;
+  location?: string;
+  rating: number;
+  text: string;
+  createdAt?: string;
 }
 
 export interface StorefrontProps {
@@ -55,4 +83,9 @@ export interface StoreThemeSettings {
   secondaryColor?: string;
   font?: string;
   logo?: string | null;
+  /** Extended design tokens (text, muted, border, button radius). */
+  textColor?: string;
+  mutedColor?: string;
+  borderColor?: string;
+  buttonRadius?: string;
 }

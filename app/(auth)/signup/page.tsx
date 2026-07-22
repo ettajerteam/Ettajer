@@ -2,8 +2,11 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { SignupForm } from "@/components/auth/signup-form";
+import { getAuthProviders } from "@/lib/auth-providers";
 import { getAuthSeo } from "@/lib/auth/auth-seo";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -26,10 +29,12 @@ function SignupFallback() {
 }
 
 export default function SignupPage() {
+  const providers = getAuthProviders();
+
   return (
     <AuthLayout variant="signin">
       <Suspense fallback={<SignupFallback />}>
-        <SignupForm />
+        <SignupForm providers={providers} />
       </Suspense>
     </AuthLayout>
   );

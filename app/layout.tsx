@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
 import { JsonLd } from "@/components/seo/json-ld";
+import { GoogleTagManager } from "@/components/seo/google-tag-manager";
+import { CookieConsentBanner } from "@/components/cookies/cookie-consent-banner";
+import { ConsentGatedAnalytics } from "@/components/cookies/consent-gated-analytics";
 import { buildOrganizationSchema } from "@/lib/seo/structured-data";
 import { buildRootMetadata, getServerLocale } from "@/lib/seo/page-metadata";
 import "@/styles/globals.css";
@@ -32,9 +35,12 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
+        <GoogleTagManager />
         <JsonLd graph={[buildOrganizationSchema(locale)]} />
+        <ConsentGatedAnalytics />
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>
+          <CookieConsentBanner />
         </Providers>
       </body>
     </html>

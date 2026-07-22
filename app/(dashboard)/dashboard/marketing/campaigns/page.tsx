@@ -24,7 +24,6 @@ export default async function MarketingCampaignsPage() {
         <MarketingCampaignsClient
           initial={checkouts}
           currency={store.currency}
-          storeSlug={store.slug}
         />
       </DashboardPageContent>
     </DashboardLayout>

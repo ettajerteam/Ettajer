@@ -15,6 +15,7 @@ const CONTENT_GROUP_FOCUS: Record<string, InspectorElementFocus[]> = {
   images: ["image", "section"],
   buttons: ["button"],
   links: ["link"],
+  products: ["section"],
   general: ["section"],
 };
 

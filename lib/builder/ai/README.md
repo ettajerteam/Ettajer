@@ -2,6 +2,8 @@
 
 Architecture for AI-assisted website generation in Ettajer. **No real AI is implemented** — the stub provider uses keyword-based rules for development and testing.
 
+**V1 wrap-up:** the Add panel “Generate section / page” UI is **hidden** until a real provider is wired. Keep this module for a future release; do not re-enable the button on stubs.
+
 ## Overview
 
 ```

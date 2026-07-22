@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Store, Tag, Coins, Check } from "lucide-react";
+import {
+  Store,
+  Tag,
+  Coins,
+  Check,
+  Briefcase,
+  LayoutTemplate,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,47 +25,102 @@ import {
 } from "@/components/ui/select";
 import { FadeIn } from "@/components/ui/motion";
 import { useOnboardingStore } from "@/lib/store";
-import { CURRENCIES } from "@/types";
-import { STORE_CATEGORIES } from "@/types";
+import { CURRENCIES, STORE_CATEGORIES } from "@/types";
 import { cn } from "@/lib/utils";
 import { FounderFlowRoot, useFounderFlowLocale } from "@/components/founder/founder-flow-root";
 import { FounderLanguageSwitcher } from "@/components/shared/language-switcher";
 import { LandingArrowForward } from "@/components/landing/landing-direction-icon";
 import { ArrowLeft } from "lucide-react";
+import type { BusinessModel } from "@/lib/onboarding/business-models";
+import {
+  getOnboardingExtendedCopy,
+  ONBOARDING_TOTAL_STEPS,
+} from "@/lib/onboarding/onboarding-i18n";
+import { OnboardingBusinessModelStep } from "@/components/onboarding/onboarding-business-model-step";
+import { OnboardingWebsiteStep } from "@/components/onboarding/onboarding-website-step";
+import type { WebsiteTemplateId } from "@/lib/website-templates/types";
 
 function OnboardingWizardInner() {
   const router = useRouter();
-  const { copy, isRtl } = useFounderFlowLocale();
+  const { copy, locale, isRtl } = useFounderFlowLocale();
+  const extended = getOnboardingExtendedCopy(locale);
   const o = copy.onboarding;
   const { step, data, setStep, setData, reset } = useOnboardingStore();
   const [loading, setLoading] = useState(false);
+  const [businessModel, setBusinessModel] = useState<BusinessModel | "">(
+    data.businessModel ?? "",
+  );
+  const [websiteTemplateId, setWebsiteTemplateId] = useState<WebsiteTemplateId | "">(
+    data.websiteTemplateId ?? "",
+  );
   const [storeName, setStoreName] = useState(data.storeName ?? "");
   const [category, setCategory] = useState(data.category ?? "");
   const [currency, setCurrency] = useState<string>(data.currency ?? "MAD");
 
   const steps = [
-    { number: 1, title: o.steps.storeName.title, icon: Store, description: o.steps.storeName.description },
-    { number: 2, title: o.steps.category.title, icon: Tag, description: o.steps.category.description },
-    { number: 3, title: o.steps.currency.title, icon: Coins, description: o.steps.currency.description },
+    {
+      number: 1,
+      title: extended.steps.businessModel.title,
+      icon: Briefcase,
+      description: extended.steps.businessModel.description,
+    },
+    {
+      number: 2,
+      title: extended.steps.website.title,
+      icon: LayoutTemplate,
+      description: extended.steps.website.description,
+    },
+    {
+      number: 3,
+      title: extended.steps.storeName.title,
+      icon: Store,
+      description: extended.steps.storeName.description,
+    },
+    {
+      number: 4,
+      title: extended.steps.category.title,
+      icon: Tag,
+      description: extended.steps.category.description,
+    },
+    {
+      number: 5,
+      title: extended.steps.currency.title,
+      icon: Coins,
+      description: extended.steps.currency.description,
+    },
   ];
 
-  const progress = (step / 3) * 100;
+  const progress = (step / ONBOARDING_TOTAL_STEPS) * 100;
 
   const handleNext = () => {
     if (step === 1) {
+      if (!businessModel) {
+        toast.error(extended.errors.businessModelRequired);
+        return;
+      }
+      setData({ businessModel });
+      setStep(2);
+    } else if (step === 2) {
+      if (!websiteTemplateId) {
+        toast.error(extended.errors.templateRequired);
+        return;
+      }
+      setData({ websiteTemplateId });
+      setStep(3);
+    } else if (step === 3) {
       if (!storeName.trim()) {
-        toast.error(o.errors.storeNameRequired);
+        toast.error(extended.errors.storeNameRequired);
         return;
       }
       setData({ storeName: storeName.trim() });
-      setStep(2);
-    } else if (step === 2) {
+      setStep(4);
+    } else if (step === 4) {
       if (!category) {
-        toast.error(o.errors.categoryRequired);
+        toast.error(extended.errors.categoryRequired);
         return;
       }
       setData({ category });
-      setStep(3);
+      setStep(5);
     }
   };
 
@@ -76,19 +138,34 @@ function OnboardingWizardInner() {
           name: storeName.trim(),
           category,
           currency,
+          businessModel,
+          websiteTemplateId,
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message ?? o.errors.createFailed);
+        throw new Error(error.message ?? extended.errors.createFailed);
       }
 
+      const created = await response.json();
+      const slug = created?.store?.slug as string | undefined;
+
       reset();
-      toast.success(o.success);
+      toast.success(o.success, {
+        description: slug
+          ? `Your website is live at /store/${slug}`
+          : undefined,
+        action: slug
+          ? {
+              label: "Open site",
+              onClick: () => window.open(`/store/${slug}`, "_blank", "noopener,noreferrer"),
+            }
+          : undefined,
+      });
       router.push("/dashboard");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : o.errors.generic);
+      toast.error(error instanceof Error ? error.message : extended.errors.generic);
     } finally {
       setLoading(false);
     }
@@ -97,27 +174,39 @@ function OnboardingWizardInner() {
   const categoryLabel = (value: string) =>
     copy.categories[value as keyof typeof copy.categories] ?? value;
 
+  const businessModelLabel = businessModel
+    ? extended.businessModels[businessModel]
+    : "—";
+
+  const templateLabel = websiteTemplateId
+    ? extended.templates[websiteTemplateId]?.name ?? websiteTemplateId
+    : "—";
+
   return (
-    <div className="w-full max-w-lg mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
       <FadeIn>
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 overflow-x-auto pb-1">
             {steps.map((s) => (
-              <div key={s.number} className="flex items-center">
+              <div key={s.number} className="flex items-center shrink-0">
                 <div
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300",
+                    "flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full transition-all duration-300",
                     step >= s.number
                       ? "bg-gradient-to-br from-[#007AFF] to-[#5856D6] text-white shadow-lg shadow-blue-500/25"
                       : "bg-muted text-muted-foreground",
                   )}
                 >
-                  {step > s.number ? <Check className="h-5 w-5" /> : <s.icon className="h-5 w-5" />}
+                  {step > s.number ? (
+                    <Check className="h-4 w-4 sm:h-5 sm:w-5" />
+                  ) : (
+                    <s.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  )}
                 </div>
-                {s.number < 3 ? (
+                {s.number < ONBOARDING_TOTAL_STEPS ? (
                   <div
                     className={cn(
-                      "hidden sm:block w-16 lg:w-24 h-0.5 mx-2 transition-colors duration-300",
+                      "hidden sm:block w-8 lg:w-12 h-0.5 mx-1.5 transition-colors duration-300",
                       step > s.number ? "bg-[#007AFF]" : "bg-muted",
                     )}
                   />
@@ -127,12 +216,12 @@ function OnboardingWizardInner() {
           </div>
           <Progress value={progress} className="h-1.5" />
           <p className="text-sm text-muted-foreground mt-2 text-center">
-            {o.stepOf(step, 3)}
+            {o.stepOf(step, ONBOARDING_TOTAL_STEPS)}
           </p>
         </div>
       </FadeIn>
 
-      <div className="glass rounded-2xl p-8 shadow-glass-lg">
+      <div className="glass rounded-2xl p-6 sm:p-8 shadow-glass-lg">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div
@@ -141,17 +230,50 @@ function OnboardingWizardInner() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRtl ? 20 : -20 }}
               transition={{ duration: 0.3 }}
+            >
+              <OnboardingBusinessModelStep
+                copy={extended}
+                value={businessModel}
+                onChange={setBusinessModel}
+              />
+            </motion.div>
+          )}
+
+          {step === 2 && businessModel ? (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: isRtl ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isRtl ? 20 : -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <OnboardingWebsiteStep
+                copy={extended}
+                businessModel={businessModel}
+                value={websiteTemplateId}
+                onChange={setWebsiteTemplateId}
+              />
+            </motion.div>
+          ) : null}
+
+          {step === 3 && (
+            <motion.div
+              key="step3"
+              initial={{ opacity: 0, x: isRtl ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isRtl ? 20 : -20 }}
+              transition={{ duration: 0.3 }}
               className="space-y-6"
             >
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold mb-2">{o.step1.heading}</h2>
-                <p className="text-muted-foreground">{o.step1.subheading}</p>
+                <h2 className="text-2xl font-bold mb-2">{extended.step4.heading}</h2>
+                <p className="text-muted-foreground">{extended.step4.subheading}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="storeName">{o.step1.label}</Label>
+                <Label htmlFor="storeName">{extended.step4.label}</Label>
                 <Input
                   id="storeName"
-                  placeholder={o.step1.placeholder}
+                  placeholder={extended.step4.placeholder}
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
                   autoFocus
@@ -160,9 +282,9 @@ function OnboardingWizardInner() {
             </motion.div>
           )}
 
-          {step === 2 && (
+          {step === 4 && (
             <motion.div
-              key="step2"
+              key="step4"
               initial={{ opacity: 0, x: isRtl ? -20 : 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRtl ? 20 : -20 }}
@@ -193,9 +315,9 @@ function OnboardingWizardInner() {
             </motion.div>
           )}
 
-          {step === 3 && (
+          {step === 5 && (
             <motion.div
-              key="step3"
+              key="step5"
               initial={{ opacity: 0, x: isRtl ? -20 : 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isRtl ? 20 : -20 }}
@@ -203,14 +325,14 @@ function OnboardingWizardInner() {
               className="space-y-6"
             >
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold mb-2">{o.step3.heading}</h2>
-                <p className="text-muted-foreground">{o.step3.subheading}</p>
+                <h2 className="text-2xl font-bold mb-2">{extended.step5.heading}</h2>
+                <p className="text-muted-foreground">{extended.step5.subheading}</p>
               </div>
               <div className="space-y-2">
-                <Label>{o.step3.label}</Label>
+                <Label>{extended.step5.label}</Label>
                 <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger>
-                    <SelectValue placeholder={o.step3.placeholder} />
+                    <SelectValue placeholder={extended.step5.placeholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {CURRENCIES.map((cur) => (
@@ -222,14 +344,16 @@ function OnboardingWizardInner() {
                 </Select>
               </div>
 
-              <div className="rounded-xl bg-muted/50 p-4 text-sm">
-                <p className="font-medium mb-1">{o.step3.summaryTitle}</p>
+              <div className="rounded-xl bg-muted/50 p-4 text-sm space-y-2">
+                <p className="font-medium">{extended.step5.summaryTitle}</p>
                 <p className="text-muted-foreground">
                   <span className="font-medium text-foreground">{storeName}</span>
-                  {" · "}
-                  {categoryLabel(category)}
-                  {" · "}
-                  {currency}
+                </p>
+                <p className="text-muted-foreground">
+                  {businessModelLabel} · {templateLabel}
+                </p>
+                <p className="text-muted-foreground">
+                  {categoryLabel(category)} · {currency}
                 </p>
               </div>
             </motion.div>
@@ -247,7 +371,7 @@ function OnboardingWizardInner() {
             {o.back}
           </Button>
 
-          {step < 3 ? (
+          {step < ONBOARDING_TOTAL_STEPS ? (
             <Button onClick={handleNext}>
               {o.continue}
               <LandingArrowForward className="h-4 w-4 ms-1" />
@@ -265,7 +389,8 @@ function OnboardingWizardInner() {
 }
 
 export function OnboardingPageClient() {
-  const { copy } = useFounderFlowLocale();
+  const { copy, locale } = useFounderFlowLocale();
+  const extended = getOnboardingExtendedCopy(locale);
   const o = copy.onboarding;
 
   return (
@@ -278,7 +403,7 @@ export function OnboardingPageClient() {
       <div className="flex flex-1 flex-col items-center justify-center">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">{o.pageTitle}</h1>
-          <p className="text-muted-foreground">{o.pageSubtitle}</p>
+          <p className="text-muted-foreground">{extended.pageSubtitle}</p>
         </div>
 
         <OnboardingWizardInner />

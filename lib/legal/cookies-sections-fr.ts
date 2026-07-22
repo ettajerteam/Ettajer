@@ -71,8 +71,8 @@ export const COOKIES_SECTIONS_FR: CookiesSection[] = [
         type: "Fonctionnel",
       },
       {
-        name: "état du consentement aux cookies",
-        purpose: "Mémorise la fermeture de l'avis cookies ou les choix de préférences lorsqu'ils sont affichés",
+        name: "ettajer_cookie_consent",
+        purpose: "Enregistre votre préférence cookies (essentiels uniquement ou tout accepter)",
         duration: "Jusqu'à 12 mois",
         type: "Fonctionnel",
       },

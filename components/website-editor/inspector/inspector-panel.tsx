@@ -3,15 +3,13 @@
 import { LayoutGrid, Settings2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getBlockBySectionType } from "@/lib/builder/block-registry";
-import { getInspectorProfile, type InspectorElementFocus } from "@/lib/builder/inspector-config";
+import type { InspectorElementFocus } from "@/lib/builder/inspector-config";
+import { getInspectorProfile } from "@/lib/builder/inspector-config";
 import { hasSchemaFields } from "@/lib/builder/schema-inspector-utils";
 import type { ElementStyleValues } from "@/lib/builder/style-system";
 import type { DeviceMode } from "@/lib/builder/types";
 import type { StoreSection } from "@/lib/sections/types";
-import { dashboardKicker, dashboardSubtitle } from "@/lib/dashboard-ui";
-import { cn } from "@/lib/utils";
 import { SchemaDrivenInspector } from "@/components/website-editor/schema-inspector";
-import { InspectorFocusPills } from "./inspector-focus-pills";
 import { InspectorContentPanel } from "./inspector-content-panel";
 import { InspectorStylePanel } from "./inspector-style-panel";
 import { InspectorLayoutPanel } from "./inspector-layout-panel";
@@ -46,102 +44,81 @@ export function InspectorPanel({
 
   if (useSchema && block) {
     return (
-      <div className="space-y-4">
-        <div>
-          <p className={dashboardKicker}>{block.name}</p>
-          <p className={cn("mt-0.5", dashboardSubtitle)}>{block.description}</p>
-        </div>
-        <SchemaDrivenInspector
-          block={block}
-          section={section}
-          focus={focus}
-          device={device}
-          onFocusChange={onFocusChange}
-          onChange={onChange}
-          onStylePatch={onStylePatch}
-          onToggleVisible={onToggleVisible}
-        />
-      </div>
+      <SchemaDrivenInspector
+        block={block}
+        section={section}
+        focus={focus}
+        device={device}
+        onFocusChange={onFocusChange}
+        onChange={onChange}
+        onStylePatch={onStylePatch}
+        onToggleVisible={onToggleVisible}
+      />
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className={dashboardKicker}>{profile.elementLabel}</p>
-        <p className={cn("mt-0.5", dashboardSubtitle)}>
-          Edit content, style, layout, and advanced options for this block.
-        </p>
-      </div>
+    <Tabs defaultValue="content" className="flex w-full flex-col gap-0">
+      <TabsList className="grid h-8 w-full shrink-0 grid-cols-3 rounded-lg bg-neutral-100 p-0.5">
+        <TabsTrigger value="content" className="rounded-md text-xs">
+          Content
+        </TabsTrigger>
+        <TabsTrigger value="style" className="rounded-md text-xs">
+          Style
+        </TabsTrigger>
+        <TabsTrigger value="more" className="gap-1 rounded-md text-xs">
+          <Settings2 className="h-3 w-3" />
+          More
+        </TabsTrigger>
+      </TabsList>
 
-      <InspectorFocusPills
-        focuses={profile.focuses}
-        value={focus}
-        onChange={onFocusChange}
-      />
+      <TabsContent value="content" className="!mt-2 space-y-0 outline-none">
+        <InspectorContentPanel
+          sectionType={section.type}
+          profile={profile}
+          focus="section"
+          settings={settings}
+          onChange={onChange}
+          showAll
+        />
+      </TabsContent>
 
-      <Tabs defaultValue="content" className="w-full">
-        <TabsList className="grid h-9 w-full grid-cols-4 rounded-lg bg-neutral-100 p-0.5">
-          <TabsTrigger value="content" className="rounded-md text-xs">
-            Content
-          </TabsTrigger>
-          <TabsTrigger value="style" className="rounded-md text-xs">
-            Style
-          </TabsTrigger>
-          <TabsTrigger value="layout" className="gap-1 rounded-md text-xs">
+      <TabsContent value="style" className="!mt-2 outline-none">
+        <InspectorStylePanel
+          profile={profile}
+          focus={focus === "section" ? "section" : focus}
+          settings={settings}
+          device={device}
+          onChange={onChange}
+          onStylePatch={onStylePatch}
+        />
+      </TabsContent>
+
+      <TabsContent value="more" className="!mt-2 space-y-4 outline-none">
+        <div>
+          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-neutral-400">
             <LayoutGrid className="h-3 w-3" />
             Layout
-          </TabsTrigger>
-          <TabsTrigger value="advanced" className="gap-1 rounded-md text-xs">
-            <Settings2 className="h-3 w-3" />
-            Advanced
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="content" className="editor-tab-content mt-4">
-          <InspectorContentPanel
-            sectionType={section.type}
-            profile={profile}
-            focus={focus}
-            settings={settings}
-            onChange={onChange}
-          />
-        </TabsContent>
-
-        <TabsContent value="style" className="editor-tab-content mt-4">
-          <InspectorStylePanel
-            profile={profile}
-            focus={focus}
-            settings={settings}
-            device={device}
-            onChange={onChange}
-            onStylePatch={onStylePatch}
-          />
-        </TabsContent>
-
-        <TabsContent value="layout" className="editor-tab-content mt-4">
+          </p>
           <InspectorLayoutPanel
             profile={profile}
-            focus={focus}
+            focus="section"
             settings={settings}
             device={device}
             onChange={onChange}
             onStylePatch={onStylePatch}
           />
-        </TabsContent>
-
-        <TabsContent value="advanced" className="editor-tab-content mt-4">
-          <InspectorAdvancedPanel
-            section={section}
-            profile={profile}
-            settings={settings}
-            sectionLabel={profile.label}
-            device={device}
-            onChange={onChange}
-            onToggleVisible={onToggleVisible}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+        </div>
+        <InspectorAdvancedPanel
+          section={section}
+          profile={profile}
+          settings={settings}
+          sectionLabel={profile.label}
+          device={device}
+          onChange={onChange}
+          onToggleVisible={onToggleVisible}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }

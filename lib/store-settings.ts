@@ -32,6 +32,8 @@ export interface StoreWithSettings {
   logo: string | null;
   description: string | null;
   category: string | null;
+  businessModel: string | null;
+  websiteTemplateId: string | null;
   currency: string;
   language: string;
   contactEmail: string | null;
@@ -97,6 +99,8 @@ export function serializeStoreWithSettings(store: {
   logo: string | null;
   description: string | null;
   category: string | null;
+  businessModel?: string | null;
+  websiteTemplateId?: string | null;
   currency: string;
   language?: string;
   contactEmail?: string | null;
@@ -121,6 +125,8 @@ export function serializeStoreWithSettings(store: {
     logo: store.logo,
     description: store.description,
     category: store.category,
+    businessModel: store.businessModel ?? null,
+    websiteTemplateId: store.websiteTemplateId ?? null,
     currency: store.currency,
     language: store.language ?? "en",
     contactEmail: store.contactEmail ?? null,

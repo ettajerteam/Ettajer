@@ -39,6 +39,7 @@ import { useFounderFlowLocale } from "@/components/founder/founder-flow-root";
 import { formatFounderNumber, formatFounderNumberShort, MAX_FOUNDERS } from "@/lib/founder/constants";
 import { buildWaitingIntelligence, type WaitingIntelligence } from "@/lib/founder/waiting-intelligence";
 import { formatJoinedDate, maskEmail } from "@/lib/founder/founder-flow-i18n";
+import { LaunchCountdown } from "@/components/founder/launch-countdown";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 
@@ -50,6 +51,7 @@ interface EarlyAccessContentProps {
   joinedAt: string;
   isReturning?: boolean;
   foundersJoinedRecently: number;
+  launchTargetIso: string;
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -347,11 +349,25 @@ function FounderCardSpotlight({
   );
 }
 
-function LaunchTimeline({ phases }: { phases: WaitingIntelligence["launchPhases"] }) {
+function LaunchTimeline({
+  phases,
+  labels,
+}: {
+  phases: WaitingIntelligence["launchPhases"];
+  labels: {
+    phaseDone: string;
+    phaseInProgress: string;
+    phaseNow: string;
+    progress: string;
+  };
+}) {
   return (
     <div className="space-y-0">
       {phases.map((phase, i) => {
         const isLast = i === phases.length - 1;
+        const isBetaActive =
+          phase.status === "active" &&
+          /beta|bêta|تجريبي/i.test(phase.label);
         return (
           <div key={phase.label} className="relative flex gap-4 pb-8 last:pb-0">
             {!isLast ? (
@@ -393,12 +409,19 @@ function LaunchTimeline({ phases }: { phases: WaitingIntelligence["launchPhases"
                 </h3>
                 {phase.status === "complete" ? (
                   <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                    Done
+                    {labels.phaseDone}
                   </span>
                 ) : null}
                 {phase.status === "active" ? (
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-                    In progress
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                      isBetaActive
+                        ? "bg-violet-50 text-violet-700"
+                        : "bg-blue-50 text-blue-700",
+                    )}
+                  >
+                    {isBetaActive ? labels.phaseNow : labels.phaseInProgress}
                   </span>
                 ) : null}
               </div>
@@ -406,7 +429,7 @@ function LaunchTimeline({ phases }: { phases: WaitingIntelligence["launchPhases"
               {phase.status === "active" && phase.progress ? (
                 <div className="mt-3">
                   <div className="mb-1.5 flex items-center justify-between text-[11px]">
-                    <span className="font-medium text-neutral-500">Progress</span>
+                    <span className="font-medium text-neutral-500">{labels.progress}</span>
                     <span className="font-bold tabular-nums text-blue-600">{phase.progress}%</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
@@ -534,6 +557,7 @@ export function EarlyAccessContent({
   joinedAt,
   isReturning = false,
   foundersJoinedRecently,
+  launchTargetIso,
 }: EarlyAccessContentProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { tab, setTab } = useFounderApp();
@@ -685,7 +709,21 @@ export function EarlyAccessContent({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.06, duration: 0.5 }}
+        className="space-y-4"
       >
+        <LaunchCountdown
+          targetIso={launchTargetIso}
+          title={w.countdownTitle}
+          subtitle={w.countdownSubtitle}
+          liveTitle={w.countdownLiveTitle}
+          liveSubtitle={w.countdownLiveSubtitle}
+          claimLabel={w.countdownClaim}
+          claimingLabel={w.countdownClaiming}
+          unitDays={w.countdownDays}
+          unitHours={w.countdownHours}
+          unitMinutes={w.countdownMinutes}
+          unitSeconds={w.countdownSeconds}
+        />
         <SmartInsightsPanel insights={intelligence.insights} w={w} />
       </motion.section>
 
@@ -801,7 +839,15 @@ export function EarlyAccessContent({
             title={w.launchRoadmap}
             subtitle={w.launchRoadmapSubtitle(intelligence.launchPhaseLabel, intelligence.launchProgress)}
           />
-          <LaunchTimeline phases={intelligence.launchPhases} />
+          <LaunchTimeline
+            phases={intelligence.launchPhases}
+            labels={{
+              phaseDone: w.phaseDone,
+              phaseInProgress: w.phaseInProgress,
+              phaseNow: w.phaseNow,
+              progress: w.progress,
+            }}
+          />
           <div className="mt-5 flex items-start gap-3 rounded-[0.625rem] bg-[#007AFF]/8 px-4 py-3.5 sm:mt-6 sm:rounded-xl sm:border sm:border-blue-100/80 sm:bg-blue-50/50">
             <Bell className="mt-0.5 h-4 w-4 shrink-0 text-[#007AFF] sm:text-blue-600" />
             <p className="text-[15px] leading-snug text-neutral-700 sm:text-[13px] sm:leading-relaxed sm:text-blue-900/80">

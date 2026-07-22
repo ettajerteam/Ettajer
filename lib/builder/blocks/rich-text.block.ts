@@ -14,11 +14,13 @@ export const richTextBlock: Omit<BlockDefinition, "component"> = {
   icon: "type",
   legacySectionType: "rich-text",
   implemented: true,
+  pageTemplates: ["home", "product"],
   thumbnail: { type: "gradient", value: "from-neutral-50 to-neutral-100" },
   defaultContent: {
     title: "About us",
     content: "Tell your brand story here.",
     alignment: "center",
+    layout: "default",
   },
   defaultStyles: {
     desktop: {

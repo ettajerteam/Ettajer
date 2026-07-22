@@ -44,7 +44,12 @@ import { blockAllowedOnPage } from "@/lib/builder/blocks/product-page-blocks";
 import { useCentralBuilderStore } from "@/lib/builder/central-builder-store";
 import type { BlockCategoryId, BlockDefinition, BlockId } from "@/lib/builder/types";
 import { BuilderComponentsPanel } from "@/components/website-editor/builder-components-panel";
+import { getPresetsForBlock } from "@/lib/builder/block-design-presets";
 import { cn } from "@/lib/utils";
+
+function designCountForBlock(blockId: BlockId): number {
+  return Math.max(1, getPresetsForBlock(blockId).length);
+}
 
 const ICONS: Record<string, typeof Box> = {
   box: Box,
@@ -74,8 +79,11 @@ const ICONS: Record<string, typeof Box> = {
 type CategoryFilter = BlockCategoryId | "all" | "favorites";
 
 interface BuilderAddPanelProps {
-  onInsertBlock: (blockId: BlockId, index?: number) => void;
+  /** Opens the design templates popup before insert (click or drop). */
+  onRequestDesignInsert: (blockId: BlockId) => void;
   onInsertComponent?: (componentId: string) => void;
+  storeName?: string;
+  storeDescription?: string | null;
 }
 
 function resolveBlockIcon(block: BlockDefinition) {
@@ -87,16 +95,33 @@ interface BlockCardProps {
   block: BlockDefinition;
   favorite: boolean;
   compact?: boolean;
+  designCount?: number;
   onInsert: (blockId: BlockId) => void;
   onToggleFavorite: (blockId: BlockId) => void;
   onDragStart: (blockId: BlockId) => (e: React.DragEvent) => void;
   onDragEnd: () => void;
 }
 
+function DesignCountChip({ count, compact }: { count: number; compact?: boolean }) {
+  if (count <= 1) return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-md bg-neutral-100 font-medium tabular-nums text-neutral-600",
+        compact ? "px-1 py-px text-[9px]" : "px-1.5 py-0.5 text-[10px]"
+      )}
+      title={`${count} design options`}
+    >
+      {count} {compact ? "styles" : "designs"}
+    </span>
+  );
+}
+
 function BlockCard({
   block,
   favorite,
   compact = false,
+  designCount = 0,
   onInsert,
   onToggleFavorite,
   onDragStart,
@@ -117,6 +142,74 @@ function BlockCard({
     }
   };
 
+  if (compact) {
+    return (
+      <div
+        role="button"
+        tabIndex={block.implemented ? 0 : -1}
+        draggable={block.implemented}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        onDragStart={block.implemented ? onDragStart(block.id) : undefined}
+        onDragEnd={onDragEnd}
+        className={cn(
+          "group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white text-left transition-all",
+          block.implemented
+            ? "cursor-pointer hover:border-[#007AFF]/40 hover:shadow-sm active:cursor-grabbing"
+            : "cursor-default opacity-70"
+        )}
+        aria-label={block.implemented ? `Insert ${block.name}` : `${block.name} — coming soon`}
+      >
+        <div
+          className={cn(
+            "relative flex h-12 w-full items-center justify-center bg-gradient-to-br",
+            thumbnailClass
+          )}
+        >
+          {block.thumbnail.type === "image" ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={block.thumbnail.value}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : null}
+          <span className="relative flex h-7 w-7 items-center justify-center rounded-md bg-white/95 shadow-sm">
+            <Icon className="h-3.5 w-3.5 text-neutral-700" />
+          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(block.id);
+            }}
+            className={cn(
+              "absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-md transition-colors",
+              favorite
+                ? "bg-amber-100 text-amber-600"
+                : "bg-white/90 text-neutral-400 opacity-0 group-hover:opacity-100 hover:text-amber-500"
+            )}
+            aria-label={favorite ? `Remove ${block.name} from favorites` : `Add ${block.name} to favorites`}
+            aria-pressed={favorite}
+          >
+            <Star className={cn("h-2.5 w-2.5", favorite && "fill-current")} />
+          </button>
+          {!block.implemented ? (
+            <span className="absolute bottom-1 left-1 rounded bg-black/55 px-1 py-px text-[8px] font-medium text-white">
+              Soon
+            </span>
+          ) : null}
+        </div>
+        <div className="flex flex-col gap-1 px-2 py-1.5">
+          <p className="truncate text-[11px] font-semibold leading-tight text-neutral-900">
+            {block.name}
+          </p>
+          <DesignCountChip count={designCount} compact />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       role="button"
@@ -127,18 +220,16 @@ function BlockCard({
       onDragStart={block.implemented ? onDragStart(block.id) : undefined}
       onDragEnd={onDragEnd}
       className={cn(
-        "group relative flex overflow-hidden rounded-xl border border-neutral-200 bg-white text-left transition-all",
+        "group relative flex w-full flex-row overflow-hidden rounded-xl border border-neutral-200 bg-white text-left transition-all",
         block.implemented
           ? "cursor-pointer hover:border-[#007AFF]/40 hover:shadow-sm active:cursor-grabbing"
-          : "cursor-default opacity-70",
-        compact ? "min-w-[132px] shrink-0 flex-col" : "w-full flex-row gap-0"
+          : "cursor-default opacity-70"
       )}
       aria-label={block.implemented ? `Insert ${block.name}` : `${block.name} — coming soon`}
     >
       <div
         className={cn(
-          "relative flex shrink-0 items-center justify-center bg-gradient-to-br",
-          compact ? "h-[72px] w-full" : "h-[72px] w-[72px]",
+          "relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center bg-gradient-to-br",
           thumbnailClass
         )}
       >
@@ -150,7 +241,7 @@ function BlockCard({
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : null}
-        <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 shadow-sm backdrop-blur-sm">
+        <span className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-white/95 shadow-sm">
           <Icon className="h-3.5 w-3.5 text-neutral-700" />
         </span>
         <button
@@ -170,27 +261,24 @@ function BlockCard({
         >
           <Star className={cn("h-3 w-3", favorite && "fill-current")} />
         </button>
-        {!block.implemented && (
-          <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/50 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white">
+        {!block.implemented ? (
+          <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/55 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-white">
             Soon
           </span>
-        )}
+        ) : null}
       </div>
-      <div className={cn("flex min-w-0 flex-1 flex-col justify-center", compact ? "p-2" : "px-3 py-2")}>
-        <p className={cn("font-semibold text-neutral-900", compact ? "text-[11px]" : "text-sm")}>
-          {block.name}
-        </p>
-        {!compact && (
-          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-neutral-500">
-            {block.description}
-          </p>
-        )}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 truncate text-sm font-semibold text-neutral-900">{block.name}</p>
+          <DesignCountChip count={designCount} />
+        </div>
+        <p className="line-clamp-2 text-[11px] leading-snug text-neutral-500">{block.description}</p>
       </div>
     </div>
   );
 }
 
-function HorizontalBlockRow({
+function ShortcutBlockRow({
   title,
   blocks,
   favorites,
@@ -210,15 +298,16 @@ function HorizontalBlockRow({
   if (blocks.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-2">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">{title}</p>
-      <div className="editor-scroll-hidden -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="grid grid-cols-2 gap-2">
         {blocks.map((block) => (
           <BlockCard
             key={block.id}
             block={block}
             favorite={favorites.has(block.id)}
             compact
+            designCount={designCountForBlock(block.id)}
             onInsert={onInsert}
             onToggleFavorite={onToggleFavorite}
             onDragStart={onDragStart}
@@ -244,7 +333,7 @@ function CategoryChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+        "inline-flex max-w-full shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
         active
           ? "bg-[#007AFF] text-white shadow-sm"
           : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
@@ -276,12 +365,13 @@ function BlockList({
 
   if (!grouped) {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex min-w-0 flex-col gap-2">
         {blocks.map((block) => (
           <BlockCard
             key={block.id}
             block={block}
             favorite={favorites.has(block.id)}
+            designCount={designCountForBlock(block.id)}
             onInsert={onInsert}
             onToggleFavorite={onToggleFavorite}
             onDragStart={onDragStart}
@@ -293,24 +383,25 @@ function BlockList({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       {BLOCK_CATEGORIES.map((cat) => {
         const catBlocks = blocks.filter((b) => b.category === cat.id);
         if (catBlocks.length === 0) return null;
         return (
-          <div key={cat.id} className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+          <div key={cat.id} className="min-w-0 space-y-2">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <p className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
                 {cat.label}
               </p>
-              <span className="text-[10px] tabular-nums text-neutral-400">{catBlocks.length}</span>
+              <span className="shrink-0 text-[10px] tabular-nums text-neutral-400">{catBlocks.length}</span>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex min-w-0 flex-col gap-2">
               {catBlocks.map((block) => (
                 <BlockCard
                   key={block.id}
                   block={block}
                   favorite={favorites.has(block.id)}
+                  designCount={designCountForBlock(block.id)}
                   onInsert={onInsert}
                   onToggleFavorite={onToggleFavorite}
                   onDragStart={onDragStart}
@@ -325,7 +416,10 @@ function BlockList({
   );
 }
 
-export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAddPanelProps) {
+export function BuilderAddPanel({
+  onRequestDesignInsert,
+  onInsertComponent,
+}: BuilderAddPanelProps) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [addTab, setAddTab] = useState<"blocks" | "components">("blocks");
@@ -346,8 +440,11 @@ export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAdd
 
   const favoriteSet = useMemo(() => new Set(favorites), [favorites]);
 
-  const allBlocks = useMemo(
-    () => getAllBlocks().filter((block) => blockAllowedOnPage(block, pageTemplate)),
+  const availableBlocks = useMemo(
+    () =>
+      getAllBlocks().filter(
+        (block) => block.implemented && blockAllowedOnPage(block, pageTemplate)
+      ),
     [pageTemplate]
   );
 
@@ -356,30 +453,29 @@ export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAdd
     let pool: BlockDefinition[];
 
     if (activeCategory === "all") {
-      pool = allBlocks;
+      pool = availableBlocks;
     } else if (activeCategory === "favorites") {
       pool = favorites
         .map((id) => getBlock(id))
         .filter((b): b is BlockDefinition => Boolean(b))
-        .filter((b) => blockAllowedOnPage(b, pageTemplate));
+        .filter((b) => b.implemented && blockAllowedOnPage(b, pageTemplate));
     } else {
-      pool = getBlocksByCategory(activeCategory).filter((b) =>
-        blockAllowedOnPage(b, pageTemplate)
-      );
+      pool = getBlocksByCategory(activeCategory)
+        .filter((b) => b.implemented && blockAllowedOnPage(b, pageTemplate));
     }
 
     if (!q) return pool;
     return pool.filter(
       (b) => b.name.toLowerCase().includes(q) || b.description.toLowerCase().includes(q)
     );
-  }, [query, activeCategory, allBlocks, favorites, pageTemplate]);
+  }, [query, activeCategory, availableBlocks, favorites, pageTemplate]);
 
   const recentBlocks = useMemo(
     () =>
       recent
         .map((id) => getBlock(id))
         .filter((b): b is BlockDefinition => Boolean(b))
-        .filter((b) => blockAllowedOnPage(b, pageTemplate)),
+        .filter((b) => b.implemented && blockAllowedOnPage(b, pageTemplate)),
     [recent, pageTemplate]
   );
 
@@ -388,7 +484,7 @@ export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAdd
       favorites
         .map((id) => getBlock(id))
         .filter((b): b is BlockDefinition => Boolean(b))
-        .filter((b) => blockAllowedOnPage(b, pageTemplate)),
+        .filter((b) => b.implemented && blockAllowedOnPage(b, pageTemplate)),
     [favorites, pageTemplate]
   );
 
@@ -406,7 +502,8 @@ export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAdd
   const handleInsert = (blockId: BlockId) => {
     const block = getBlock(blockId);
     if (!block?.implemented) return;
-    onInsertBlock(blockId);
+    // Always open the design templates popup — user picks a layout before insert.
+    onRequestDesignInsert(blockId);
   };
 
   const handleToggleFavorite = (blockId: BlockId) => {
@@ -414,51 +511,60 @@ export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAdd
   };
 
   return (
-    <div className="editor-add-panel flex min-h-0 flex-col">
-      <div className="shrink-0 space-y-3 border-b border-neutral-100 pb-3">
-        <div className="flex gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-1">
+    <div className="editor-add-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="min-w-0 shrink-0 space-y-2.5 border-b border-neutral-100 pb-2.5">
+        <div className="min-w-0 px-0.5">
+          <p className="text-xs font-semibold text-neutral-800">Add</p>
+          <p className="mt-0.5 text-[11px] text-neutral-400">
+            Click or drop a block, then pick a design template
+          </p>
+        </div>
+
+        <div className="flex min-w-0 gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-1">
           <button
             type="button"
             onClick={() => setAddTab("blocks")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+              "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
               addTab === "blocks"
                 ? "bg-white text-[#007AFF] shadow-sm"
                 : "text-neutral-500 hover:text-neutral-700"
             )}
           >
-            <Box className="h-3.5 w-3.5" />
+            <Box className="h-3.5 w-3.5 shrink-0" />
             Blocks
           </button>
           <button
             type="button"
             onClick={() => setAddTab("components")}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+              "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
               addTab === "components"
                 ? "bg-white text-[#007AFF] shadow-sm"
                 : "text-neutral-500 hover:text-neutral-700"
             )}
           >
-            <Puzzle className="h-3.5 w-3.5" />
+            <Puzzle className="h-3.5 w-3.5 shrink-0" />
             Components
           </button>
         </div>
 
         {addTab === "blocks" ? (
           <>
-            <div className="relative">
+            <div className="relative min-w-0">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search blocks…"
-                className="h-8 pl-8 text-xs"
+                className="h-8 w-full min-w-0 pl-8 text-xs"
                 aria-label="Search blocks"
+                name="add-blocks-search"
+                autoComplete="off"
               />
             </div>
 
-            <div className="editor-scroll-hidden -mx-1 flex gap-1.5 overflow-x-auto px-1">
+            <div className="flex min-w-0 flex-wrap gap-1.5">
               <CategoryChip active={activeCategory === "all"} onClick={() => setActiveCategory("all")}>
                 All
               </CategoryChip>
@@ -485,13 +591,13 @@ export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAdd
         ) : null}
       </div>
 
-      <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto pt-3">
+      <div className="editor-scroll-hidden min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-3">
         {addTab === "components" && onInsertComponent ? (
           <BuilderComponentsPanel onInsertComponent={onInsertComponent} />
         ) : (
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             {showShortcuts && recentBlocks.length > 0 ? (
-              <HorizontalBlockRow
+              <ShortcutBlockRow
                 title="Recently used"
                 blocks={recentBlocks}
                 favorites={favoriteSet}
@@ -503,7 +609,7 @@ export function BuilderAddPanel({ onInsertBlock, onInsertComponent }: BuilderAdd
             ) : null}
 
             {showShortcuts && favoriteBlocks.length > 0 ? (
-              <HorizontalBlockRow
+              <ShortcutBlockRow
                 title="Favorites"
                 blocks={favoriteBlocks}
                 favorites={favoriteSet}

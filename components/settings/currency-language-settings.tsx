@@ -1,7 +1,6 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { CURRENCIES } from "@/types";
 import { STORE_LANGUAGES } from "@/lib/morocco-cities";
-import { DashboardCardSection } from "@/components/dashboard/dashboard-card-section";
+import { SettingsPanel } from "@/components/settings/settings-panel";
 import type { StoreWithSettings } from "@/lib/store-settings";
 
 interface CurrencyLanguageSettingsProps {
@@ -28,20 +27,19 @@ export function CurrencyLanguageSettings({
   saving,
 }: CurrencyLanguageSettingsProps) {
   return (
-    <DashboardCardSection
+    <SettingsPanel
+      kicker="Locale"
       title="Currency & language"
-      description="How prices are displayed and your store's default language."
-      footer={
-        <Button onClick={onSave} loading={saving} className="bg-[#007AFF] hover:bg-[#0071EB]">
-          Save currency & language
-        </Button>
-      }
+      description="How prices are shown and which language your store defaults to."
+      onSave={onSave}
+      saving={saving}
+      saveLabel="Save locale"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Currency</Label>
           <Select value={store.currency} onValueChange={(v) => onChange({ currency: v })}>
-            <SelectTrigger>
+            <SelectTrigger className="h-11 rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -57,7 +55,7 @@ export function CurrencyLanguageSettings({
         <div className="space-y-2">
           <Label>Language</Label>
           <Select value={store.language} onValueChange={(v) => onChange({ language: v })}>
-            <SelectTrigger>
+            <SelectTrigger className="h-11 rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -71,10 +69,9 @@ export function CurrencyLanguageSettings({
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground rounded-xl bg-muted/40 p-3">
-        Full Arabic RTL storefront support is coming soon. Language selection is saved for future
-        localization.
+      <p className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 px-4 py-3 text-[13px] leading-relaxed text-emerald-900">
+        Storefront buttons, cart, and checkout follow this language. Arabic also enables RTL layout.
       </p>
-    </DashboardCardSection>
+    </SettingsPanel>
   );
 }

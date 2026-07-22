@@ -7,11 +7,16 @@ import { Upload, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUploadThing } from "@/components/uploadthing";
 import { isUploadthingConfigured } from "@/lib/uploadthing-config";
+import {
+  formatImageDimensions,
+  formatImageFileSize,
+  type ProductImageAsset,
+} from "@/lib/product-images";
 import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
-  images: string[];
-  onChange: (images: string[]) => void;
+  images: ProductImageAsset[];
+  onChange: (images: ProductImageAsset[]) => void;
 }
 
 export function ImageUpload({ images, onChange }: ImageUploadProps) {
@@ -21,9 +26,15 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
 
   const { startUpload, isUploading } = useUploadThing("productImage", {
     onClientUploadComplete: (res) => {
-      const urls = res.map((f) => f.url);
-      onChange([...images, ...urls]);
-      toast.success(`${urls.length} image(s) uploaded`);
+      const next = res.map((f) => ({
+        url: f.url,
+        sizeBytes: typeof f.size === "number" ? f.size : null,
+        width: null,
+        height: null,
+        alt: f.name ?? null,
+      }));
+      onChange([...images, ...next]);
+      toast.success(`${next.length} image(s) uploaded`);
     },
     onUploadError: (error) => {
       toast.error(error.message || "Upload failed");
@@ -45,8 +56,12 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
 
         if (!res.ok) throw new Error(data.message ?? "Upload failed");
 
-        onChange([...images, ...data.urls]);
-        toast.success(`${data.urls.length} image(s) uploaded`);
+        const assets: ProductImageAsset[] = Array.isArray(data.assets)
+          ? data.assets
+          : (data.urls as string[]).map((url: string) => ({ url }));
+
+        onChange([...images, ...assets]);
+        toast.success(`${assets.length} image(s) uploaded`);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Upload failed");
       } finally {
@@ -108,7 +123,7 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
             <Upload className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-sm font-medium mb-1">Drag & drop images here</p>
             <p className="text-xs text-muted-foreground mb-1">
-              PNG, JPG, WebP up to 4MB
+              PNG, JPG, WebP · recommended 1200×1500 or larger
             </p>
             {!uploadthingEnabled && (
               <p className="text-xs text-amber-600 mb-3">
@@ -132,31 +147,48 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
       </div>
 
       {images.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           <AnimatePresence>
-            {images.map((url, index) => (
-              <motion.div
-                key={`${url}-${index}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="group relative aspect-square rounded-xl overflow-hidden border bg-muted"
-              >
-                <Image src={url} alt={`Product ${index + 1}`} fill className="object-cover" unoptimized />
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            {images.map((asset, index) => {
+              const dims = formatImageDimensions(asset);
+              const size = formatImageFileSize(asset.sizeBytes);
+              return (
+                <motion.div
+                  key={`${asset.url}-${index}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="group relative overflow-hidden rounded-xl border bg-muted"
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-                {index === 0 && (
-                  <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
-                    Cover
-                  </span>
-                )}
-              </motion.div>
-            ))}
+                  <div className="relative aspect-square">
+                    <Image
+                      src={asset.url}
+                      alt={asset.alt || `Product ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    {index === 0 && (
+                      <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+                        Cover
+                      </span>
+                    )}
+                  </div>
+                  {(dims || size) && (
+                    <p className="border-t border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground">
+                      {[dims, size].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
       )}

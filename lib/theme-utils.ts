@@ -14,6 +14,10 @@ export function resolveThemeDraft(
     secondaryColor: draft.secondaryColor ?? template?.defaultSecondary ?? saved.secondaryColor,
     font: draft.font ?? template?.defaultFont ?? saved.font,
     logo: draft.logo !== undefined ? draft.logo : saved.logo,
+    textColor: draft.textColor ?? saved.textColor,
+    mutedColor: draft.mutedColor ?? saved.mutedColor,
+    borderColor: draft.borderColor ?? saved.borderColor,
+    buttonRadius: draft.buttonRadius ?? saved.buttonRadius,
   };
 }
 
@@ -24,7 +28,11 @@ export function isThemeDirty(saved: StoreThemeData, draft: StoreThemeSettings, s
     saved.primaryColor !== resolved.primaryColor ||
     saved.secondaryColor !== resolved.secondaryColor ||
     saved.font !== resolved.font ||
-    saved.logo !== resolved.logo
+    saved.logo !== resolved.logo ||
+    (saved.textColor ?? undefined) !== (resolved.textColor ?? undefined) ||
+    (saved.mutedColor ?? undefined) !== (resolved.mutedColor ?? undefined) ||
+    (saved.borderColor ?? undefined) !== (resolved.borderColor ?? undefined) ||
+    (saved.buttonRadius ?? undefined) !== (resolved.buttonRadius ?? undefined)
   );
 }
 

@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
 import { ThemesPageClient } from "@/components/themes/themes-page-client";
+import { isWebsiteTemplateId } from "@/lib/website-templates/registry";
 
 export const metadata = { title: "Themes" };
 
@@ -23,7 +24,10 @@ export default async function DashboardThemesPage() {
 
   return (
     <DashboardLayout>
-      <DashboardHeader title="Online Store" description="Themes, pages, and storefront appearance" />
+      <DashboardHeader
+        title="Themes"
+        description="Storefront design, brand, and live preview"
+      />
       <DashboardPageContent>
         <ThemesPageClient
           store={{
@@ -34,6 +38,11 @@ export default async function DashboardThemesPage() {
             secondaryColor: store.secondaryColor,
             font: store.font,
             updatedAt: store.updatedAt.toISOString(),
+            websiteTemplateId:
+              store.websiteTemplateId && isWebsiteTemplateId(store.websiteTemplateId)
+                ? store.websiteTemplateId
+                : null,
+            businessModel: store.businessModel,
           }}
           previewPaths={{
             product: sampleProduct?.slug ?? null,

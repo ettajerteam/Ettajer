@@ -7,7 +7,7 @@ import {
 import { calculateCheckoutShipping } from "@/lib/checkout";
 import { validateCouponForCheckout } from "@/lib/marketing";
 import type { ShippingMethod } from "@/types/cart";
-import { parseProductImages } from "@/lib/products";
+import { parseProductImages } from "@/lib/product-images";
 import type { OrderStatus, ShippingAddress } from "@/types";
 import type { OrderDetail, OrderListItem, OrderItemDetail, OrderStatusEvent } from "@/types/orders";
 import type { CreateOrderInput } from "@/lib/validations/order";

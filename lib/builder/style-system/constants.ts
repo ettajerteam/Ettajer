@@ -1,3 +1,5 @@
+import { STORE_FONTS } from "@/lib/themes";
+
 export const BREAKPOINT_TABLET_MAX = 1023;
 export const BREAKPOINT_MOBILE_MAX = 767;
 
@@ -7,26 +9,40 @@ export const DEVICE_LABELS = {
   mobile: "Mobile",
 } as const;
 
+/** Section typography fonts aligned with store brand fonts. */
 export const FONT_FAMILY_OPTIONS = [
-  { value: "", label: "Default" },
+  { value: "", label: "Store default" },
   { value: "inherit", label: "Inherit" },
-  { value: "Georgia, serif", label: "Georgia" },
-  { value: "'Times New Roman', serif", label: "Times" },
-  { value: "Arial, sans-serif", label: "Arial" },
-  { value: "Helvetica, sans-serif", label: "Helvetica" },
-  { value: "'Courier New', monospace", label: "Courier" },
+  ...STORE_FONTS.map((f) => ({
+    value: f.value,
+    label: f.label,
+  })),
 ];
 
+/** Merchant-friendly type scale (includes heading sizes). */
 export const FONT_SIZE_OPTIONS = [
   { value: "", label: "Default" },
-  { value: "0.75rem", label: "XS" },
-  { value: "0.875rem", label: "Small" },
-  { value: "1rem", label: "Base" },
-  { value: "1.125rem", label: "LG" },
-  { value: "1.25rem", label: "XL" },
-  { value: "1.5rem", label: "2XL" },
-  { value: "2rem", label: "3XL" },
+  { value: "0.75rem", label: "XS · caption" },
+  { value: "0.875rem", label: "Small · body" },
+  { value: "1rem", label: "Base · body" },
+  { value: "1.125rem", label: "LG · lead" },
+  { value: "1.25rem", label: "XL · H4" },
+  { value: "1.5rem", label: "2XL · H3" },
+  { value: "1.875rem", label: "3XL · H2" },
+  { value: "2.25rem", label: "4XL · H1" },
+  { value: "3rem", label: "5XL · display" },
 ];
+
+/** One-tap heading / body presets for the typography editor. */
+export const TYPOGRAPHY_SCALE_PRESETS = [
+  { id: "body", label: "Body", fontSize: "1rem", fontWeight: "400", lineHeight: "1.5" },
+  { id: "lead", label: "Lead", fontSize: "1.125rem", fontWeight: "400", lineHeight: "1.5" },
+  { id: "h4", label: "H4", fontSize: "1.25rem", fontWeight: "600", lineHeight: "1.25" },
+  { id: "h3", label: "H3", fontSize: "1.5rem", fontWeight: "600", lineHeight: "1.25" },
+  { id: "h2", label: "H2", fontSize: "1.875rem", fontWeight: "700", lineHeight: "1.25" },
+  { id: "h1", label: "H1", fontSize: "2.25rem", fontWeight: "700", lineHeight: "1.2" },
+  { id: "display", label: "Display", fontSize: "3rem", fontWeight: "700", lineHeight: "1.1" },
+] as const;
 
 export const FONT_WEIGHT_OPTIONS = [
   { value: "", label: "Default" },

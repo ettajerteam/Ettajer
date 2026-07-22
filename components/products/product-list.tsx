@@ -151,9 +151,19 @@ export function ProductList({
                     {product.inventory}
                   </td>
                   <td className="hidden px-6 py-4 sm:table-cell">
-                    <Badge variant={product.inventory > 0 ? "success" : "warning"}>
-                      {product.inventory > 0 ? "In stock" : "Out of stock"}
-                    </Badge>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant={product.status === "active" ? "success" : "secondary"}>
+                        {product.status === "active" ? "Active" : "Draft"}
+                      </Badge>
+                      {product.inventory <= 0 && product.status === "active" && (
+                        product.productType === "physical" || product.productType === "dropshipping"
+                      ) ? (
+                        <Badge variant="warning">Out of stock</Badge>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 text-[11px] capitalize text-muted-foreground">
+                      {product.productType}
+                    </p>
                   </td>
                   <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>

@@ -302,6 +302,59 @@ export function composeSectionForBlock(
     };
   }
 
+  if (blockId === "faq") {
+    return {
+      blockId,
+      content: mergeContent("faq", {
+        title: "Frequently asked questions",
+        items: [
+          {
+            question: "How long does shipping take?",
+            answer: "Most orders arrive within a few business days.",
+          },
+          {
+            question: `Do you serve ${intent.industry.toLowerCase()} customers nationwide?`,
+            answer: promptText.slice(0, 180) || "Yes — we ship across the country.",
+          },
+          {
+            question: "Can I get help after purchase?",
+            answer: "Absolutely. Reach out anytime and we’ll help.",
+          },
+        ],
+      }),
+      styles: blockDefaultStyles("faq"),
+      visible: true,
+    };
+  }
+
+  if (blockId === "testimonials") {
+    return {
+      blockId,
+      content: mergeContent("testimonials", {
+        title: "What customers say",
+        items: [
+          {
+            quote: promptText.slice(0, 120) || "Beautiful quality and arrived quickly.",
+            author: "Amira K.",
+            role: "Verified buyer",
+          },
+          {
+            quote: "Exactly what I needed — will order again.",
+            author: "Youssef B.",
+            role: "Verified buyer",
+          },
+          {
+            quote: "Support was friendly and the product matched the photos.",
+            author: "Sara M.",
+            role: "Verified buyer",
+          },
+        ],
+      }),
+      styles: blockDefaultStyles("testimonials"),
+      visible: true,
+    };
+  }
+
   return {
     blockId,
     content: baseContent,

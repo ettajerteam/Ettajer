@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
-import { parseProductImages } from "@/lib/products";
+import { parseProductImages } from "@/lib/product-images";
 import { parseShippingAddress, orderInclude } from "@/lib/orders";
 import type { CreateDraftInput, UpdateDraftInput } from "@/lib/validations/draft";
 import type { DraftDetail, DraftItemDetail, DraftListItem } from "@/types/drafts";

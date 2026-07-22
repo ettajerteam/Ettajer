@@ -1,27 +1,87 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OnlineStorePageShell } from "@/components/online-store/online-store-page-shell";
-import { OnlineStoreEmptyState } from "@/components/online-store/online-store-empty-state";
 import { DashboardCardSection } from "@/components/dashboard/dashboard-card-section";
 import { cn } from "@/lib/utils";
-import type { NavItem } from "@/lib/navigation";
+import {
+  isDestinationInMenu,
+  type NavItem,
+  type StoreMenuDestination,
+} from "@/lib/navigation";
 
-export function NavigationClient({ initial }: { initial: NavItem[] }) {
+const GROUP_LABELS: Record<StoreMenuDestination["group"], string> = {
+  core: "Core",
+  shop: "Shop",
+  content: "Content",
+  discover: "Discover",
+  legal: "Policies",
+  custom: "Your pages",
+};
+
+const GROUP_ORDER: StoreMenuDestination["group"][] = [
+  "core",
+  "shop",
+  "content",
+  "discover",
+  "legal",
+  "custom",
+];
+
+export function NavigationClient({
+  initial,
+  destinations,
+}: {
+  initial: NavItem[];
+  destinations: StoreMenuDestination[];
+}) {
   const [items, setItems] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
+
+  const grouped = useMemo(() => {
+    const map = new Map<StoreMenuDestination["group"], StoreMenuDestination[]>();
+    for (const dest of destinations) {
+      const list = map.get(dest.group) ?? [];
+      list.push(dest);
+      map.set(dest.group, list);
+    }
+    return GROUP_ORDER.map((group) => ({
+      group,
+      label: GROUP_LABELS[group],
+      items: map.get(group) ?? [],
+    })).filter((g) => g.items.length > 0);
+  }, [destinations]);
 
   function updateItem(id: string, field: "label" | "href", value: string) {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
   }
 
-  function addItem() {
-    setItems((prev) => [...prev, { id: `nav-${Date.now()}`, label: "New link", href: "/" }]);
+  function addItem(seed?: Pick<NavItem, "label" | "href">) {
+    setItems((prev) => [
+      ...prev,
+      {
+        id: `nav-${Date.now()}`,
+        label: seed?.label ?? "New link",
+        href: seed?.href ?? "/",
+      },
+    ]);
+  }
+
+  function addDestination(dest: StoreMenuDestination) {
+    if (isDestinationInMenu(items, dest.href)) {
+      toast.message(`${dest.label} is already in your menu`);
+      return;
+    }
+    setItems((prev) => [
+      ...prev,
+      { id: `nav-${dest.id}-${Date.now()}`, label: dest.label, href: dest.href },
+    ]);
+    toast.success(`Added ${dest.label}`);
   }
 
   function removeItem(id: string) {
@@ -71,26 +131,15 @@ export function NavigationClient({ initial }: { initial: NavItem[] }) {
 
   return (
     <OnlineStorePageShell>
-      {items.length === 0 ? (
-        <OnlineStoreEmptyState
-          title="No menu links yet"
-          description="Build your storefront header menu. Add Home, Shop, About, or custom links."
-          action={
-            <Button onClick={addItem} className="bg-[#007AFF] hover:bg-[#0071EB]">
-              <Plus className="mr-2 h-4 w-4" />
-              Add first link
-            </Button>
-          }
-        />
-      ) : (
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)]">
         <DashboardCardSection
           title="Store menu"
-          description="Drag to reorder, or use the arrows. Links appear in your storefront header."
+          description="These links appear in your storefront header. Reorder, rename, or remove them."
           footer={
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={addItem}>
+              <Button variant="outline" onClick={() => addItem()}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add link
+                Custom link
               </Button>
               <Button onClick={handleSave} disabled={saving} className="bg-[#007AFF] hover:bg-[#0071EB]">
                 {saving ? "Saving..." : "Save navigation"}
@@ -99,64 +148,126 @@ export function NavigationClient({ initial }: { initial: NavItem[] }) {
           }
           bodyClassName="!p-0"
         >
-          <div>
-            {items.map((item, index) => (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={() => setDragId(item.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => {
-                  if (dragId) reorder(dragId, item.id);
-                  setDragId(null);
-                }}
-                onDragEnd={() => setDragId(null)}
-                className={cn(
-                  "flex items-center gap-2 border-b border-border/60 px-4 py-3 last:border-0",
-                  dragId === item.id && "opacity-50"
-                )}
-              >
-                <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
-                <Input
-                  value={item.label}
-                  onChange={(e) => updateItem(item.id, "label", e.target.value)}
-                  className="flex-1"
-                  placeholder="Label"
-                />
-                <Input
-                  value={item.href}
-                  onChange={(e) => updateItem(item.id, "href", e.target.value)}
-                  className="flex-1"
-                  placeholder="/path"
-                />
-                <div className="flex shrink-0 gap-0.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={index === 0}
-                    onClick={() => moveItem(item.id, -1)}
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={index === items.length - 1}
-                    onClick={() => moveItem(item.id, 1)}
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+          {items.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+              No links in the menu yet. Add pages from the list on the right.
+            </div>
+          ) : (
+            <div>
+              {items.map((item, index) => (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={() => setDragId(item.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => {
+                    if (dragId) reorder(dragId, item.id);
+                    setDragId(null);
+                  }}
+                  onDragEnd={() => setDragId(null)}
+                  className={cn(
+                    "flex items-center gap-2 border-b border-border/60 px-4 py-3 last:border-0",
+                    dragId === item.id && "opacity-50"
+                  )}
+                >
+                  <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
+                  <Input
+                    value={item.label}
+                    onChange={(e) => updateItem(item.id, "label", e.target.value)}
+                    className="flex-1"
+                    placeholder="Label"
+                  />
+                  <Input
+                    value={item.href}
+                    onChange={(e) => updateItem(item.id, "href", e.target.value)}
+                    className="flex-1"
+                    placeholder="/path"
+                  />
+                  <div className="flex shrink-0 gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={index === 0}
+                      onClick={() => moveItem(item.id, -1)}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={index === items.length - 1}
+                      onClick={() => moveItem(item.id, 1)}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </DashboardCardSection>
+
+        <DashboardCardSection
+          title="Available pages"
+          description="Everything that already exists for your store — add it to the menu when you want it in the header."
+          bodyClassName="!p-0"
+        >
+          <div className="divide-y divide-border/60">
+            {grouped.map((section) => (
+              <div key={section.group} className="px-4 py-3">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {section.label}
+                </p>
+                <ul className="space-y-1">
+                  {section.items.map((dest) => {
+                    const inMenu = isDestinationInMenu(items, dest.href);
+                    return (
+                      <li
+                        key={dest.id}
+                        className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/50"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{dest.label}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {dest.description ?? dest.href}
+                          </p>
+                        </div>
+                        {inMenu ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            In menu
+                          </span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 shrink-0"
+                            onClick={() => addDestination(dest)}
+                          >
+                            <Plus className="mr-1 h-3.5 w-3.5" />
+                            Add
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             ))}
           </div>
         </DashboardCardSection>
-      )}
+      </div>
     </OnlineStorePageShell>
   );
 }

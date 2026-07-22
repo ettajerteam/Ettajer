@@ -1,14 +1,14 @@
 "use client";
 
+import { useId } from "react";
 import { LayoutGrid, Settings2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { SettingFieldSchema, InspectorTab } from "@/lib/builder/block-schema";
+import { fieldMatchesShowWhen } from "@/lib/builder/block-schema";
 import type { InspectorElementFocus } from "@/lib/builder/inspector-config";
 import type { StyleGroupId, ElementStyleValues } from "@/lib/builder/style-system";
 import {
-  filterFieldsByFocus,
   getSchemaFieldsForTab,
-  getSchemaInspectorFocuses,
   hasSchemaFields,
   schemaHasTab,
 } from "@/lib/builder/schema-inspector-utils";
@@ -16,7 +16,6 @@ import type { DeviceMode } from "@/lib/builder/types";
 import { DEVICE_LABELS } from "@/lib/builder/responsive-styles";
 import type { BlockDefinition } from "@/lib/builder/types";
 import type { StoreSection } from "@/lib/sections/types";
-import { InspectorFocusPills } from "./inspector/inspector-focus-pills";
 import { InspectorFieldGroup, InspectorToggleField } from "./inspector/inspector-fields";
 import { SchemaField, SchemaFieldRenderer } from "./inspector/field-renderer";
 import {
@@ -78,10 +77,12 @@ function SchemaFieldGroups({
     ) : null;
   }
 
-  const groups = groupFields(fields);
+  const groups = groupFields(
+    fields.filter((field) => fieldMatchesShowWhen(field, settings))
+  );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {showDeviceBadge ? (
         <div className="inline-flex items-center rounded-full border border-[#007AFF]/20 bg-[#007AFF]/[0.06] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#007AFF]">
           Editing: {DEVICE_LABELS[device]}
@@ -91,11 +92,6 @@ function SchemaFieldGroups({
         <InspectorFieldGroup
           key={group}
           title={formatGroupLabel(group)}
-          description={
-            groupFields.some((f) => f.responsive || f.deviceAware)
-              ? `Per-device overrides apply on ${DEVICE_LABELS[device].toLowerCase()}`
-              : groupFields[0]?.description
-          }
           collapsible={collapsible}
           defaultOpen
         >
@@ -161,7 +157,7 @@ function SchemaStyleTab({
           settings={settings}
           device={device}
           onChange={onChange}
-          showDeviceBadge={groups.length === 0}
+          showDeviceBadge
           emptyMessage=""
         />
       ) : null}
@@ -216,7 +212,7 @@ function SchemaLayoutTab({
           settings={settings}
           device={device}
           onChange={onChange}
-          showDeviceBadge={groups.length === 0}
+          showDeviceBadge
           emptyMessage=""
         />
       ) : null}
@@ -234,16 +230,14 @@ const INSPECTOR_TABS: { id: InspectorTab; label: string; icon?: React.ReactNode 
 export function SchemaDrivenInspector({
   block,
   section,
-  focus,
   device,
-  onFocusChange,
   onChange,
   onStylePatch,
   onToggleVisible,
 }: SchemaDrivenInspectorProps) {
   const settings = section.settings as Record<string, unknown>;
   const schema = block.settingsSchema;
-  const focuses = getSchemaInspectorFocuses(block);
+  const sectionVisibleId = `section-visible-${useId().replace(/:/g, "")}`;
 
   const visibleTabs = INSPECTOR_TABS.filter((tab) => {
     if (tab.id === "advanced") {
@@ -262,111 +256,85 @@ export function SchemaDrivenInspector({
           ? "grid-cols-2"
           : "grid-cols-1";
 
-  const fieldsForTab = (tab: InspectorTab) =>
-    filterFieldsByFocus(getSchemaFieldsForTab(schema, tab), tab, focus);
+  // Always show full field sets — don't hide controls behind Edit Focus.
+  const fieldsForTab = (tab: InspectorTab) => getSchemaFieldsForTab(schema, tab);
 
   return (
-    <div className="space-y-4">
-      <InspectorFocusPills focuses={focuses} value={focus} onChange={onFocusChange} />
+    <Tabs defaultValue="content" className="flex w-full flex-col gap-0">
+      <TabsList className={`grid h-8 w-full shrink-0 rounded-lg bg-neutral-100 p-0.5 ${gridClass}`}>
+        {visibleTabs.map((tab) => (
+          <TabsTrigger key={tab.id} value={tab.id} className="gap-1 rounded-md text-xs">
+            {tab.icon}
+            {tab.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
 
-      <Tabs defaultValue="content" className="w-full">
-        <TabsList className={`grid h-9 w-full rounded-lg bg-neutral-100 p-0.5 ${gridClass}`}>
-          {visibleTabs.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id} className="gap-1 rounded-md text-xs">
-              {tab.icon}
-              {tab.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {visibleTabs.some((t) => t.id === "content") ? (
+        <TabsContent value="content" className="!mt-2 space-y-0 outline-none">
+          <SchemaFieldGroups
+            fields={fieldsForTab("content")}
+            settings={settings}
+            device={device}
+            onChange={onChange}
+            emptyMessage="No content fields for this section."
+            collapsible={false}
+          />
+        </TabsContent>
+      ) : null}
 
-        {visibleTabs.some((t) => t.id === "content") ? (
-          <TabsContent value="content" className="editor-tab-content mt-4">
-            <SchemaFieldGroups
-              fields={fieldsForTab("content")}
-              settings={settings}
-              device={device}
-              onChange={onChange}
-              emptyMessage="No content fields for this focus. Try another element tab above."
-            />
-          </TabsContent>
-        ) : null}
+      {visibleTabs.some((t) => t.id === "style") ? (
+        <TabsContent value="style" className="!mt-2 outline-none">
+          <SchemaStyleTab
+            styleFields={fieldsForTab("style")}
+            settings={settings}
+            device={device}
+            focus="section"
+            onChange={onChange}
+            onStylePatch={onStylePatch}
+          />
+        </TabsContent>
+      ) : null}
 
-        {visibleTabs.some((t) => t.id === "style") ? (
-          <TabsContent value="style" className="editor-tab-content mt-4">
-            <SchemaStyleTab
-              styleFields={fieldsForTab("style")}
-              settings={settings}
-              device={device}
-              focus={focus}
-              onChange={onChange}
-              onStylePatch={onStylePatch}
-            />
-          </TabsContent>
-        ) : null}
+      {visibleTabs.some((t) => t.id === "layout") ? (
+        <TabsContent value="layout" className="!mt-2 outline-none">
+          <SchemaLayoutTab
+            layoutFields={fieldsForTab("layout")}
+            settings={settings}
+            device={device}
+            focus="section"
+            onChange={onChange}
+            onStylePatch={onStylePatch}
+          />
+        </TabsContent>
+      ) : null}
 
-        {visibleTabs.some((t) => t.id === "layout") ? (
-          <TabsContent value="layout" className="editor-tab-content mt-4">
-            <SchemaLayoutTab
-              layoutFields={fieldsForTab("layout")}
-              settings={settings}
-              device={device}
-              focus={focus}
-              onChange={onChange}
-              onStylePatch={onStylePatch}
-            />
-          </TabsContent>
-        ) : null}
-
-        {visibleTabs.some((t) => t.id === "advanced") ? (
-          <TabsContent value="advanced" className="editor-tab-content mt-4">
-            <div className="space-y-4">
-              {onToggleVisible ? (
-                <InspectorFieldGroup title="Visibility">
-                  <InspectorToggleField
-                    id="section-visible"
-                    label="Show on storefront"
-                    description="Hidden sections remain in the editor but not on the live store"
-                    checked={section.visible}
-                    onChange={onToggleVisible}
-                  />
-                </InspectorFieldGroup>
-              ) : null}
-
-              <SchemaFieldGroups
-                fields={fieldsForTab("advanced")}
-                settings={settings}
-                device={device}
-                onChange={onChange}
-                emptyMessage=""
-                collapsible={false}
-              />
-
-              <InspectorFieldGroup title="Section details" collapsible={false}>
-                <dl className="space-y-2 text-xs">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-neutral-400">Block</dt>
-                    <dd className="font-medium text-neutral-700">{block.name}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-neutral-400">Focus</dt>
-                    <dd className="font-medium capitalize text-neutral-700">{focus}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-neutral-400">Device</dt>
-                    <dd className="font-medium text-neutral-700">{DEVICE_LABELS[device]}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-neutral-400">Section ID</dt>
-                    <dd className="truncate font-mono text-[10px] text-neutral-500">
-                      {section.id}
-                    </dd>
-                  </div>
-                </dl>
+      {visibleTabs.some((t) => t.id === "advanced") ? (
+        <TabsContent value="advanced" className="!mt-2 outline-none">
+          <div className="space-y-3">
+            {onToggleVisible ? (
+              <InspectorFieldGroup title="Visibility">
+                <InspectorToggleField
+                  id={sectionVisibleId}
+                  label="Show on storefront"
+                  description="Hidden sections stay in the editor but not on the live store"
+                  checked={section.visible}
+                  onChange={onToggleVisible}
+                />
               </InspectorFieldGroup>
-            </div>
-          </TabsContent>
-        ) : null}
-      </Tabs>
-    </div>
+            ) : null}
+
+            <SchemaFieldGroups
+              fields={fieldsForTab("advanced")}
+              settings={settings}
+              device={device}
+              onChange={onChange}
+              emptyMessage=""
+              collapsible={false}
+            />
+          </div>
+        </TabsContent>
+      ) : null}
+    </Tabs>
   );
 }

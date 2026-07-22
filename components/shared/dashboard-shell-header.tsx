@@ -7,6 +7,7 @@ import { Bell, Menu, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebarStore } from "@/lib/store";
 import { DashboardCommandSearch } from "@/components/shared/dashboard-command-search";
+import { StoreWebsiteAccess } from "@/components/shared/store-website-access";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ export function DashboardShellHeader() {
   const [lastSyncedAt, setLastSyncedAt] = useState(() => new Date().toISOString());
   const [notificationCount, setNotificationCount] = useState(0);
   const [storeName, setStoreName] = useState<string | null>(null);
+  const [storeSlug, setStoreSlug] = useState<string | null>(null);
 
   const displayName = storeName ?? session?.user?.name ?? "Merchant";
   const initials =
@@ -38,6 +40,7 @@ export function DashboardShellHeader() {
       if (storeRes.ok) {
         const storeData = await storeRes.json();
         if (storeData.store?.name) setStoreName(storeData.store.name);
+        if (storeData.store?.slug) setStoreSlug(storeData.store.slug);
       }
 
       if (ordersRes.ok) {
@@ -80,6 +83,14 @@ export function DashboardShellHeader() {
         </div>
 
         <div className="flex items-center gap-2 self-end lg:self-auto">
+          {storeSlug ? (
+            <StoreWebsiteAccess
+              storeSlug={storeSlug}
+              storeName={storeName ?? undefined}
+              variant="compact"
+            />
+          ) : null}
+
           <div className="hidden items-center gap-1.5 rounded-lg border border-neutral-200/90 bg-white px-2.5 py-1.5 text-[11px] text-neutral-500 dark:border-white/10 dark:bg-[#161616] sm:flex">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />

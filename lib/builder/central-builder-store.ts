@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import type { HomeLayout, StoreSection } from "@/lib/sections/types";
-import { getDefaultHomeLayout, getDefaultProductLayout, getDefaultCollectionLayout } from "@/lib/sections/defaults";
-import { serializeHomeLayout } from "@/lib/sections/parse";
+import { isKnownSectionType } from "@/lib/sections/parse";
+import { getDefaultHomeLayout, getDefaultProductLayout, getDefaultCollectionLayout, getDefaultBlogPostLayout } from "@/lib/sections/defaults";
+import { layoutsEqualFast } from "@/lib/builder/layout-hash";
 import { createSectionFromBlock } from "@/lib/builder/legacy-adapter";
 import { getBlock, getBlockBySectionType } from "@/lib/builder/block-registry";
 import { getInspectorProfile } from "./inspector-config";
@@ -37,7 +38,111 @@ import { patchElementStyle, type ElementStyleValues } from "./style-system";
 export const MIN_ZOOM = 0.25;
 export const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.05;
-const HISTORY_LIMIT = 20;
+const HISTORY_LIMIT = 40;
+const HISTORY_COALESCE_MS = 450;
+const HISTORY_SNAPSHOT_EVERY = 8;
+
+let lastHistoryPushAt = 0;
+let lastHistoryCoalesceKey: string | null = null;
+let historyStepsSinceSnapshot = 0;
+
+export type LayoutHistoryEntry =
+  | {
+      kind: "snapshot";
+      layout: HomeLayout;
+      selectedSectionId: string | null;
+      selectedElementId: string | null;
+    }
+  | {
+      kind: "section";
+      sectionId: string;
+      before: StoreSection;
+      after: StoreSection;
+      selectedSectionId: string | null;
+      selectedElementId: string | null;
+    };
+
+function resolveSelectionAfterHistory(
+  layout: HomeLayout,
+  preferredSectionId: string | null,
+  preferredElementId: string | null
+): { selectedSectionId: string | null; selectedElementId: string | null } {
+  const sectionStillExists = preferredSectionId
+    ? layout.sections.some((s) => s.id === preferredSectionId)
+    : false;
+  const selectedSectionId = sectionStillExists
+    ? preferredSectionId
+    : (layout.sections[0]?.id ?? null);
+  if (!selectedSectionId) {
+    return { selectedSectionId: null, selectedElementId: null };
+  }
+  if (preferredElementId?.startsWith(`${selectedSectionId}:`)) {
+    return { selectedSectionId, selectedElementId: preferredElementId };
+  }
+  if (preferredElementId === selectedSectionId) {
+    return { selectedSectionId, selectedElementId: preferredElementId };
+  }
+  return { selectedSectionId, selectedElementId: selectedSectionId };
+}
+
+function buildHistoryEntry(
+  before: HomeLayout,
+  after: HomeLayout,
+  selection: {
+    selectedSectionId: string | null;
+    selectedElementId: string | null;
+  }
+): LayoutHistoryEntry {
+  const forceSnapshot = historyStepsSinceSnapshot >= HISTORY_SNAPSHOT_EVERY - 1;
+  if (!forceSnapshot && before.sections.length === after.sections.length) {
+    const sameOrder = before.sections.every((s, i) => s.id === after.sections[i]?.id);
+    if (sameOrder) {
+      let changedIndex = -1;
+      for (let i = 0; i < before.sections.length; i++) {
+        if (JSON.stringify(before.sections[i]) !== JSON.stringify(after.sections[i])) {
+          if (changedIndex !== -1) {
+            changedIndex = -2;
+            break;
+          }
+          changedIndex = i;
+        }
+      }
+      if (changedIndex >= 0) {
+        historyStepsSinceSnapshot += 1;
+        return {
+          kind: "section",
+          sectionId: before.sections[changedIndex]!.id,
+          before: cloneSection(before.sections[changedIndex]!),
+          after: cloneSection(after.sections[changedIndex]!),
+          ...selection,
+        };
+      }
+    }
+  }
+  historyStepsSinceSnapshot = 0;
+  return {
+    kind: "snapshot",
+    layout: cloneLayout(before),
+    ...selection,
+  };
+}
+
+function applyHistoryEntryToLayout(
+  layout: HomeLayout,
+  entry: LayoutHistoryEntry,
+  direction: "undo" | "redo"
+): HomeLayout {
+  if (entry.kind === "snapshot") {
+    return cloneLayout(entry.layout);
+  }
+  const section = direction === "undo" ? entry.before : entry.after;
+  return {
+    version: 1,
+    sections: layout.sections.map((s) =>
+      s.id === entry.sectionId ? cloneSection(section) : s
+    ),
+  };
+}
 
 const defaultCanvas: BuilderCanvasState = {
   zoom: 1,
@@ -66,20 +171,30 @@ function newSectionId(type: string): string {
 }
 
 function cloneSection(section: StoreSection): StoreSection {
-  return JSON.parse(JSON.stringify(section)) as StoreSection;
+  try {
+    return structuredClone(section);
+  } catch {
+    return JSON.parse(JSON.stringify(section)) as StoreSection;
+  }
 }
 
 function cloneLayout(layout: HomeLayout): HomeLayout {
-  return JSON.parse(JSON.stringify(layout)) as HomeLayout;
+  try {
+    return structuredClone(layout);
+  } catch {
+    return JSON.parse(JSON.stringify(layout)) as HomeLayout;
+  }
 }
 
 function layoutsEqual(a: HomeLayout, b: HomeLayout): boolean {
-  return JSON.stringify(serializeHomeLayout(a)) === JSON.stringify(serializeHomeLayout(b));
+  return layoutsEqualFast(a, b);
 }
 
 export interface PageLayoutSnapshot {
   draft: HomeLayout;
   saved: HomeLayout;
+  historyPast?: LayoutHistoryEntry[];
+  historyFuture?: LayoutHistoryEntry[];
 }
 
 export interface CentralBuilderState {
@@ -91,8 +206,8 @@ export interface CentralBuilderState {
   canvas: BuilderCanvasState;
   drag: BuilderDragState;
   clipboardSection: StoreSection | null;
-  historyPast: HomeLayout[];
-  historyFuture: HomeLayout[];
+  historyPast: LayoutHistoryEntry[];
+  historyFuture: LayoutHistoryEntry[];
   savedLayout: HomeLayout;
   draftLayout: HomeLayout;
   /** Per-page layout snapshots keyed by `home` or `page:{id}`. */
@@ -143,14 +258,18 @@ export interface CentralBuilderState {
   getDirtyPageKeys: () => PageLayoutKey[];
   commitSavedLayouts: () => void;
   applyTemplateToDraft: (layout: HomeLayout) => void;
+  /** Replace draft + saved for the active page (e.g. after legacy → sections convert). */
+  seedActivePageLayout: (layout: HomeLayout) => void;
   resetDraft: () => void;
   reorderSections: (fromId: string, toId: string) => void;
+  /** Move section so it lands at insertIndex in the resulting list. */
+  reorderSectionToIndex: (sectionId: string, insertIndex: number) => void;
   moveSectionUp: (id: string) => void;
   moveSectionDown: (id: string) => void;
   moveSectionBy: (id: string, delta: number) => void;
   duplicateSection: (id: string) => void;
   copySection: (id: string) => void;
-  pasteSection: (afterId?: string) => void;
+  pasteSection: (afterId?: string, fromClipboard?: StoreSection | null) => boolean;
   clearClipboard: () => void;
   removeSection: (id: string) => void;
   addSection: (type: StoreSection["type"]) => void;
@@ -178,22 +297,44 @@ export interface CentralBuilderState {
   isDirty: () => boolean;
 }
 
-function pushHistory(state: CentralBuilderState): Pick<CentralBuilderState, "historyPast" | "historyFuture"> {
-  const snapshot = cloneLayout(state.draftLayout);
-  const past = [...state.historyPast, snapshot].slice(-HISTORY_LIMIT);
+function pushHistory(
+  state: CentralBuilderState,
+  nextLayout: HomeLayout,
+  options?: { coalesceKey?: string }
+): Pick<CentralBuilderState, "historyPast" | "historyFuture"> {
+  const now =
+    typeof performance !== "undefined" ? performance.now() : Date.now();
+  const coalesceKey = options?.coalesceKey ?? null;
+  if (
+    coalesceKey &&
+    coalesceKey === lastHistoryCoalesceKey &&
+    now - lastHistoryPushAt < HISTORY_COALESCE_MS &&
+    state.historyPast.length > 0
+  ) {
+    return { historyPast: state.historyPast, historyFuture: [] };
+  }
+
+  lastHistoryPushAt = now;
+  lastHistoryCoalesceKey = coalesceKey;
+  const entry = buildHistoryEntry(state.draftLayout, nextLayout, {
+    selectedSectionId: state.selectedSectionId,
+    selectedElementId: state.selectedElementId,
+  });
+  const past = [...state.historyPast, entry].slice(-HISTORY_LIMIT);
   return { historyPast: past, historyFuture: [] };
 }
 
 function applyLayoutChange(
   state: CentralBuilderState,
   updater: (layout: HomeLayout) => HomeLayout,
-  extra?: Partial<CentralBuilderState>
+  extra?: Partial<CentralBuilderState>,
+  options?: { coalesceKey?: string }
 ): CentralBuilderState {
   const nextLayout = updater(state.draftLayout);
   if (layoutsEqual(state.draftLayout, nextLayout)) return state;
   return {
     ...state,
-    ...pushHistory(state),
+    ...pushHistory(state, nextLayout, options),
     draftLayout: nextLayout,
     ...extra,
   };
@@ -223,7 +364,13 @@ function persistActiveLayoutToCache(
   const key = getPageLayoutKey(state.activePage);
   return {
     ...state.pageLayoutCache,
-    [key]: { draft: cloneLayout(state.draftLayout), saved: cloneLayout(state.savedLayout) },
+    [key]: {
+      draft: cloneLayout(state.draftLayout),
+      saved: cloneLayout(state.savedLayout),
+      // History entries are immutable snapshots — reuse references (no deep reclone).
+      historyPast: state.historyPast,
+      historyFuture: state.historyFuture,
+    },
   };
 }
 
@@ -314,7 +461,16 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
   },
 
   setActivePage: (page) => get().switchPage(page),
-  setActiveDevice: (device) => set({ activeDevice: device }),
+  setActiveDevice: (device) =>
+    set((s) => ({
+      activeDevice: device,
+      canvas: {
+        ...s.canvas,
+        zoom: device === "desktop" ? 1 : device === "tablet" ? 0.85 : 0.72,
+        panX: 0,
+        panY: 0,
+      },
+    })),
 
   setBuilderSettings: (partial) =>
     set((s) => ({
@@ -348,6 +504,30 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
 
   setLayerRename: (layerId, name) => {
     const trimmed = name.trim();
+    // Section layers persist rename on StoreSection.label (survives save / reload).
+    if (!layerId.includes(":")) {
+      set((state) => {
+        const nextRenames = { ...state.builderSettings.layerRenames };
+        delete nextRenames[layerId];
+        const withSettings: CentralBuilderState = {
+          ...state,
+          builderSettings: { ...state.builderSettings, layerRenames: nextRenames },
+        };
+        return applyLayoutChange(withSettings, (draft) => ({
+          version: 1,
+          sections: draft.sections.map((s) => {
+            if (s.id !== layerId) return s;
+            if (!trimmed) {
+              const { label: _removed, ...rest } = s;
+              return rest as StoreSection;
+            }
+            return { ...s, label: trimmed };
+          }),
+        }));
+      });
+      return;
+    }
+
     set((s) => {
       const next = { ...s.builderSettings.layerRenames };
       if (!trimmed) {
@@ -423,10 +603,12 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
   },
 
   initTemplateLayouts: (layouts, pages, theme) => {
+    const blogPost = getDefaultBlogPostLayout(theme);
     const cache: Record<string, PageLayoutSnapshot> = {
       home: { draft: cloneLayout(layouts.home), saved: cloneLayout(layouts.home) },
       product: { draft: cloneLayout(layouts.product), saved: cloneLayout(layouts.product) },
       collection: { draft: cloneLayout(layouts.collection), saved: cloneLayout(layouts.collection) },
+      "blog-post": { draft: cloneLayout(blogPost), saved: cloneLayout(blogPost) },
     };
     for (const page of pages) {
       const saved = getSavedLayoutFromPageContent(page.content, theme);
@@ -468,6 +650,10 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
         (page.type === "home" ||
           page.type === "product" ||
           page.type === "collection" ||
+          page.type === "blog-post" ||
+          (page.type === "route" &&
+            state.activePage.type === "route" &&
+            state.activePage.route === page.route) ||
           (state.activePage.type === "custom" &&
             page.type === "custom" &&
             state.activePage.page.id === page.page.id))
@@ -488,6 +674,12 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
         } else if (page.type === "collection") {
           const layout = getDefaultCollectionLayout();
           snapshot = { draft: cloneLayout(layout), saved: cloneLayout(layout) };
+        } else if (page.type === "blog-post") {
+          const layout = getDefaultBlogPostLayout();
+          snapshot = { draft: cloneLayout(layout), saved: cloneLayout(layout) };
+        } else if (page.type === "route") {
+          const empty = { version: 1 as const, sections: [] };
+          snapshot = { draft: cloneLayout(empty), saved: cloneLayout(empty) };
         } else {
           snapshot = {
             draft: cloneLayout(getDefaultHomeLayout()),
@@ -498,6 +690,8 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
       }
       const nextDraft = cloneLayout(snapshot.draft);
       const nextSaved = cloneLayout(snapshot.saved);
+      lastHistoryCoalesceKey = null;
+      lastHistoryPushAt = 0;
 
       return {
         activePage: page,
@@ -505,8 +699,8 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
         draftLayout: nextDraft,
         savedLayout: nextSaved,
         ...firstSectionSelection(nextDraft),
-        historyPast: [],
-        historyFuture: [],
+        historyPast: snapshot.historyPast ?? [],
+        historyFuture: snapshot.historyFuture ?? [],
       };
     });
   },
@@ -551,6 +745,24 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
     );
   },
 
+  seedActivePageLayout: (layout) => {
+    set((state) => {
+      const cloned = cloneLayout(layout);
+      const key = getPageLayoutKey(state.activePage);
+      return {
+        draftLayout: cloned,
+        savedLayout: cloneLayout(cloned),
+        pageLayoutCache: {
+          ...state.pageLayoutCache,
+          [key]: { draft: cloneLayout(cloned), saved: cloneLayout(cloned) },
+        },
+        ...firstSectionSelection(cloned),
+        historyPast: [],
+        historyFuture: [],
+      };
+    });
+  },
+
   resetDraft: () => {
     const { savedLayout } = get();
     set((state) => ({
@@ -578,6 +790,20 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
         if (from < 0 || to < 0) return draft;
         const [item] = sections.splice(from, 1);
         sections.splice(to, 0, item);
+        return { version: 1, sections };
+      })
+    );
+  },
+
+  reorderSectionToIndex: (sectionId, insertIndex) => {
+    set((state) =>
+      applyLayoutChange(state, (draft) => {
+        const sections = [...draft.sections];
+        const from = sections.findIndex((s) => s.id === sectionId);
+        if (from < 0) return draft;
+        const [item] = sections.splice(from, 1);
+        const clamped = Math.max(0, Math.min(insertIndex, sections.length));
+        sections.splice(clamped, 0, item);
         return { version: 1, sections };
       })
     );
@@ -645,16 +871,25 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
   copySection: (id) => {
     const section = get().draftLayout.sections.find((s) => s.id === id);
     if (!section) return;
-    set({ clipboardSection: cloneSection(section) });
+    const cloned = cloneSection(section);
+    set({ clipboardSection: cloned });
+    void import("@/lib/builder/section-clipboard").then(({ writeSectionToSystemClipboard }) => {
+      void writeSectionToSystemClipboard(cloned);
+    });
   },
 
-  pasteSection: (afterId) => {
+  pasteSection: (afterId, fromClipboard) => {
     const { clipboardSection, draftLayout, selectedSectionId } = get();
-    if (!clipboardSection) return;
+    const source = fromClipboard ?? clipboardSection;
+    if (!source) return false;
+    // Reject unknown types — they crash layers / inspector via registry lookups.
+    if (!isKnownSectionType(source.type)) return false;
     const newSection: StoreSection = {
-      ...cloneSection(clipboardSection),
-      id: newSectionId(clipboardSection.type),
-      settings: { ...clipboardSection.settings },
+      ...cloneSection(source),
+      id: newSectionId(source.type),
+      type: source.type,
+      visible: source.visible !== false,
+      settings: { ...(source.settings && typeof source.settings === "object" ? source.settings : {}) },
     };
     const anchorId = afterId ?? selectedSectionId;
     const anchorIdx = anchorId
@@ -669,9 +904,14 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
           sections.splice(insertIndex, 0, newSection);
           return { version: 1, sections };
         },
-        { selectedSectionId: newSection.id, selectedElementId: newSection.id }
+        {
+          selectedSectionId: newSection.id,
+          selectedElementId: newSection.id,
+          clipboardSection: source,
+        }
       )
     );
+    return true;
   },
 
   clearClipboard: () => set({ clipboardSection: null }),
@@ -734,12 +974,17 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
 
   updateSectionSettings: (id, settings) => {
     set((state) =>
-      applyLayoutChange(state, (draft) => ({
-        version: 1,
-        sections: draft.sections.map((s) =>
-          s.id === id ? { ...s, settings: { ...s.settings, ...settings } } : s
-        ),
-      }))
+      applyLayoutChange(
+        state,
+        (draft) => ({
+          version: 1,
+          sections: draft.sections.map((s) =>
+            s.id === id ? { ...s, settings: { ...s.settings, ...settings } } : s
+          ),
+        }),
+        undefined,
+        { coalesceKey: `settings:${id}` }
+      )
     );
   },
 
@@ -750,12 +995,17 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
       const current = section.settings as Record<string, unknown>;
       const nextSettings = patchElementStyle(current, device, patch, options);
       if (JSON.stringify(current) === JSON.stringify(nextSettings)) return state;
-      return applyLayoutChange(state, (draft) => ({
-        version: 1,
-        sections: draft.sections.map((s) =>
-          s.id === id ? { ...s, settings: nextSettings as StoreSection["settings"] } : s
-        ),
-      }));
+      return applyLayoutChange(
+        state,
+        (draft) => ({
+          version: 1,
+          sections: draft.sections.map((s) =>
+            s.id === id ? { ...s, settings: nextSettings as StoreSection["settings"] } : s
+          ),
+        }),
+        undefined,
+        { coalesceKey: `style:${id}:${device}` }
+      );
     });
   },
 
@@ -771,19 +1021,26 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
     set((state) => {
       if (state.historyPast.length === 0) return state;
       const past = [...state.historyPast];
-      const previous = past.pop()!;
-      const current = cloneLayout(state.draftLayout);
-      const future = [current, ...state.historyFuture].slice(0, HISTORY_LIMIT);
-      const selectedStillExists = previous.sections.some((s) => s.id === state.selectedSectionId);
-      const nextSelected = selectedStillExists
-        ? state.selectedSectionId
-        : (previous.sections[0]?.id ?? null);
+      const entry = past.pop()!;
+      const currentSnapshot: LayoutHistoryEntry = {
+        kind: "snapshot",
+        layout: cloneLayout(state.draftLayout),
+        selectedSectionId: state.selectedSectionId,
+        selectedElementId: state.selectedElementId,
+      };
+      const future = [currentSnapshot, ...state.historyFuture].slice(0, HISTORY_LIMIT);
+      const nextLayout = applyHistoryEntryToLayout(state.draftLayout, entry, "undo");
+      const selection = resolveSelectionAfterHistory(
+        nextLayout,
+        entry.selectedSectionId,
+        entry.selectedElementId
+      );
+      lastHistoryCoalesceKey = null;
       return {
         historyPast: past,
         historyFuture: future,
-        draftLayout: previous,
-        selectedSectionId: nextSelected,
-        selectedElementId: nextSelected,
+        draftLayout: nextLayout,
+        ...selection,
       };
     });
   },
@@ -791,19 +1048,29 @@ export const useCentralBuilderStore = create<CentralBuilderState>((set, get) => 
   redo: () => {
     set((state) => {
       if (state.historyFuture.length === 0) return state;
-      const [next, ...future] = state.historyFuture;
-      const current = cloneLayout(state.draftLayout);
-      const past = [...state.historyPast, current].slice(0, HISTORY_LIMIT);
-      const selectedStillExists = next.sections.some((s) => s.id === state.selectedSectionId);
-      const nextSelected = selectedStillExists
-        ? state.selectedSectionId
-        : (next.sections[0]?.id ?? null);
+      const [entry, ...future] = state.historyFuture;
+      const currentSnapshot: LayoutHistoryEntry = {
+        kind: "snapshot",
+        layout: cloneLayout(state.draftLayout),
+        selectedSectionId: state.selectedSectionId,
+        selectedElementId: state.selectedElementId,
+      };
+      const past = [...state.historyPast, currentSnapshot].slice(0, HISTORY_LIMIT);
+      const nextLayout =
+        entry.kind === "snapshot"
+          ? cloneLayout(entry.layout)
+          : applyHistoryEntryToLayout(state.draftLayout, entry, "redo");
+      const selection = resolveSelectionAfterHistory(
+        nextLayout,
+        entry.selectedSectionId,
+        entry.selectedElementId
+      );
+      lastHistoryCoalesceKey = null;
       return {
         historyPast: past,
         historyFuture: future,
-        draftLayout: next,
-        selectedSectionId: nextSelected,
-        selectedElementId: nextSelected,
+        draftLayout: nextLayout,
+        ...selection,
       };
     });
   },

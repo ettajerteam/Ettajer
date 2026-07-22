@@ -4,10 +4,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { InspectorFieldGroup } from "../inspector/inspector-fields";
 import { OverrideIndicator } from "./override-indicator";
-import { type StyleEditorProps } from "./style-editor-props";
+import { type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
 export function OpacityEditor({
   device,
+  idPrefix,
   values,
   onPatch,
   hasOverride,
@@ -26,7 +27,7 @@ export function OpacityEditor({
       </div>
       <div className="flex items-center gap-3">
         <input
-          id={`opacity-range-${device}`}
+          id={styleFieldId(idPrefix, "opacity-range", device)}
           type="range"
           min={0}
           max={100}
@@ -41,7 +42,7 @@ export function OpacityEditor({
           className="flex-1"
         />
         <Input
-          id={`opacity-${device}`}
+          id={styleFieldId(idPrefix, "opacity", device)}
           value={String(opacity)}
           onChange={(e) => {
             const n = Number.parseFloat(e.target.value);

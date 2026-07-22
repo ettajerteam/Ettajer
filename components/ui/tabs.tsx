@@ -39,10 +39,15 @@ TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 const TabsContent = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
+>(({ className, forceMount, ...props }, ref) => (
   <TabsPrimitive.Content
     ref={ref}
-    className={cn("mt-6 focus-visible:outline-none", className)}
+    // Never keep inactive tab panels mounted — duplicate field ids across Style/Layout.
+    forceMount={forceMount}
+    className={cn(
+      "mt-6 focus-visible:outline-none data-[state=inactive]:hidden",
+      className
+    )}
     {...props}
   />
 ));

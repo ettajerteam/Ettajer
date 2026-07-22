@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Image from "next/image";
-import { Upload, Loader2, RotateCcw, Palette, Type, ImageIcon } from "lucide-react";
+import { Upload, Loader2, RotateCcw, Palette, Type, ImageIcon, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STORE_FONTS, THEME_TEMPLATES, type ThemeId } from "@/lib/themes";
 import { getColorSchemesForTheme, findMatchingScheme } from "@/lib/theme-color-schemes";
 import { getTemplateDefaults } from "@/lib/theme-utils";
+import { DEFAULT_DESIGN_TOKENS } from "@/lib/design-tokens";
 import { dashboardCard, dashboardCardPad, dashboardKicker } from "@/lib/dashboard-ui";
 import type { StoreThemeSettings } from "@/types/storefront";
 import { cn } from "@/lib/utils";
@@ -20,8 +21,15 @@ interface ThemeCustomizerProps {
   selectedTemplate: ThemeId;
   onChange: (updates: Partial<StoreThemeSettings>) => void;
   embedded?: boolean;
-  sections?: ("brand" | "colors" | "typography")[];
+  sections?: ("brand" | "colors" | "typography" | "surface")[];
 }
+
+const RADIUS_PRESETS = [
+  { value: "0", label: "Sharp" },
+  { value: "0.375rem", label: "Soft" },
+  { value: "0.75rem", label: "Rounded" },
+  { value: "9999px", label: "Pill" },
+];
 
 export function ThemeCustomizer({
   draft,
@@ -31,11 +39,17 @@ export function ThemeCustomizer({
   sections,
 }: ThemeCustomizerProps) {
   const [uploading, setUploading] = useState(false);
+  const idPrefix = useId().replace(/:/g, "");
+  const fid = (name: string) => `${idPrefix}-${name}`;
 
   const primaryColor = draft.primaryColor ?? "#007AFF";
   const secondaryColor = draft.secondaryColor ?? "#FFFFFF";
   const font = draft.font ?? "Inter";
   const logo = draft.logo ?? null;
+  const textColor = draft.textColor ?? DEFAULT_DESIGN_TOKENS.textColor;
+  const mutedColor = draft.mutedColor ?? DEFAULT_DESIGN_TOKENS.mutedColor;
+  const borderColor = draft.borderColor ?? DEFAULT_DESIGN_TOKENS.borderColor;
+  const buttonRadius = draft.buttonRadius ?? DEFAULT_DESIGN_TOKENS.buttonRadius;
   const template = THEME_TEMPLATES.find((t) => t.id === selectedTemplate);
   const colorSchemes = getColorSchemesForTheme(selectedTemplate);
   const activeScheme = findMatchingScheme(selectedTemplate, primaryColor, secondaryColor);
@@ -64,13 +78,20 @@ export function ThemeCustomizer({
 
   const resetToTemplateDefaults = () => {
     const defaults = getTemplateDefaults(selectedTemplate);
-    onChange(defaults);
+    onChange({
+      ...defaults,
+      textColor: DEFAULT_DESIGN_TOKENS.textColor,
+      mutedColor: DEFAULT_DESIGN_TOKENS.mutedColor,
+      borderColor: DEFAULT_DESIGN_TOKENS.borderColor,
+      buttonRadius: DEFAULT_DESIGN_TOKENS.buttonRadius,
+    });
     toast.message("Reset to template defaults");
   };
 
   const showBrand = !sections || sections.includes("brand");
   const showColors = !sections || sections.includes("colors");
   const showTypography = !sections || sections.includes("typography");
+  const showSurface = !sections || sections.includes("surface");
   const showTabs = sections == null;
 
   const brandContent = (
@@ -164,36 +185,48 @@ export function ThemeCustomizer({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="primaryColor">Primary</Label>
+          <Label htmlFor={fid("primaryColor")}>Accent</Label>
           <div className="flex items-center gap-2">
             <input
               type="color"
-              id="primaryColor"
+              id={fid("primaryColor")}
+              name="primaryColor"
+              autoComplete="off"
               value={primaryColor}
               onChange={(e) => onChange({ primaryColor: e.target.value })}
               className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border shadow-sm"
             />
             <Input
+              id={fid("primaryColor-hex")}
+              name="primaryColorHex"
+              autoComplete="off"
               value={primaryColor}
               onChange={(e) => onChange({ primaryColor: e.target.value })}
               className="font-mono text-xs"
+              aria-label="Accent color hex"
             />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="secondaryColor">Secondary</Label>
+          <Label htmlFor={fid("secondaryColor")}>Page background</Label>
           <div className="flex items-center gap-2">
             <input
               type="color"
-              id="secondaryColor"
+              id={fid("secondaryColor")}
+              name="secondaryColor"
+              autoComplete="off"
               value={secondaryColor}
               onChange={(e) => onChange({ secondaryColor: e.target.value })}
               className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border shadow-sm"
             />
             <Input
+              id={fid("secondaryColor-hex")}
+              name="secondaryColorHex"
+              autoComplete="off"
               value={secondaryColor}
               onChange={(e) => onChange({ secondaryColor: e.target.value })}
               className="font-mono text-xs"
+              aria-label="Page background hex"
             />
           </div>
         </div>
@@ -232,6 +265,109 @@ export function ThemeCustomizer({
     </>
   );
 
+  const surfaceContent = (
+    <>
+      <p className="text-xs text-muted-foreground">
+        Text, borders, and button shape used across your storefront.
+      </p>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor={fid("textColor")}>Text</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              id={fid("textColor")}
+              name="textColor"
+              autoComplete="off"
+              value={textColor}
+              onChange={(e) => onChange({ textColor: e.target.value })}
+              className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border shadow-sm"
+            />
+            <Input
+              id={fid("textColor-hex")}
+              name="textColorHex"
+              autoComplete="off"
+              value={textColor}
+              onChange={(e) => onChange({ textColor: e.target.value })}
+              className="font-mono text-xs"
+              aria-label="Text color hex"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={fid("mutedColor")}>Muted text</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              id={fid("mutedColor")}
+              name="mutedColor"
+              autoComplete="off"
+              value={mutedColor}
+              onChange={(e) => onChange({ mutedColor: e.target.value })}
+              className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border shadow-sm"
+            />
+            <Input
+              id={fid("mutedColor-hex")}
+              name="mutedColorHex"
+              autoComplete="off"
+              value={mutedColor}
+              onChange={(e) => onChange({ mutedColor: e.target.value })}
+              className="font-mono text-xs"
+              aria-label="Muted text color hex"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={fid("borderColor")}>Borders</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              id={fid("borderColor")}
+              name="borderColor"
+              autoComplete="off"
+              value={borderColor}
+              onChange={(e) => onChange({ borderColor: e.target.value })}
+              className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border shadow-sm"
+            />
+            <Input
+              id={fid("borderColor-hex")}
+              name="borderColorHex"
+              autoComplete="off"
+              value={borderColor}
+              onChange={(e) => onChange({ borderColor: e.target.value })}
+              className="font-mono text-xs"
+              aria-label="Border color hex"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label className={dashboardKicker}>Button corners</Label>
+        <div className="grid grid-cols-4 gap-2">
+          {RADIUS_PRESETS.map((preset) => (
+            <button
+              key={preset.value}
+              type="button"
+              onClick={() => onChange({ buttonRadius: preset.value })}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 text-[11px] font-medium transition-all",
+                buttonRadius === preset.value
+                  ? "border-[#007AFF] bg-[#007AFF]/5 text-[#007AFF]"
+                  : "hover:bg-accent/50"
+              )}
+            >
+              <span
+                className="h-6 w-10 border-2 border-current bg-current/10"
+                style={{ borderRadius: preset.value, color: primaryColor }}
+              />
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
   const typographyContent = (
     <>
       <Label className={dashboardKicker}>Font family</Label>
@@ -266,6 +402,7 @@ export function ThemeCustomizer({
       <section className={embedded ? "block space-y-4" : dashboardCard}>
         {showBrand && brandContent}
         {showColors && colorsContent}
+        {showSurface && surfaceContent}
         {showTypography && typographyContent}
       </section>
     );
@@ -277,22 +414,26 @@ export function ThemeCustomizer({
         <div className={`${dashboardCardPad} border-b border-border/70`}>
           <h3 className="text-base font-semibold tracking-[-0.02em]">Customize</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Brand, colors, and typography. Changes preview instantly.
+            Brand, colors, surfaces, and typography. Changes preview instantly.
           </p>
         </div>
       )}
 
       <Tabs defaultValue="brand" className={embedded ? "p-0" : "p-4 sm:p-5"}>
-        <TabsList className="premium-card mb-5 grid h-auto w-full grid-cols-3 gap-1 p-1">
-          <TabsTrigger value="brand" className="gap-1.5 rounded-lg text-xs">
+        <TabsList className="premium-card mb-5 grid h-auto w-full grid-cols-4 gap-1 p-1">
+          <TabsTrigger value="brand" className="gap-1 rounded-lg px-1 text-[11px] sm:text-xs">
             <ImageIcon className="h-3.5 w-3.5" />
             Brand
           </TabsTrigger>
-          <TabsTrigger value="colors" className="gap-1.5 rounded-lg text-xs">
+          <TabsTrigger value="colors" className="gap-1 rounded-lg px-1 text-[11px] sm:text-xs">
             <Palette className="h-3.5 w-3.5" />
             Colors
           </TabsTrigger>
-          <TabsTrigger value="typography" className="gap-1.5 rounded-lg text-xs">
+          <TabsTrigger value="surface" className="gap-1 rounded-lg px-1 text-[11px] sm:text-xs">
+            <Square className="h-3.5 w-3.5" />
+            Surface
+          </TabsTrigger>
+          <TabsTrigger value="typography" className="gap-1 rounded-lg px-1 text-[11px] sm:text-xs">
             <Type className="h-3.5 w-3.5" />
             Type
           </TabsTrigger>
@@ -304,6 +445,10 @@ export function ThemeCustomizer({
 
         <TabsContent value="colors" className="mt-0 space-y-5">
           {colorsContent}
+        </TabsContent>
+
+        <TabsContent value="surface" className="mt-0 space-y-5">
+          {surfaceContent}
         </TabsContent>
 
         <TabsContent value="typography" className="mt-0 space-y-3">

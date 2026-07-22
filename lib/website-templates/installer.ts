@@ -27,7 +27,9 @@ function cloneSection(section: StoreSection): StoreSection {
 function cloneLayout(layout: HomeLayout): HomeLayout {
   return {
     version: 1,
-    sections: layout.sections.map(cloneSection),
+    sections: layout.sections
+      .filter((section) => Boolean(section?.type) && typeof section.visible === "boolean")
+      .map(cloneSection),
   };
 }
 
@@ -55,6 +57,7 @@ export interface TemplateApplyResult {
   pages: TemplatePageApplyPayload[];
   productLayout?: HomeLayout;
   collectionLayout?: HomeLayout;
+  blogPostLayout?: HomeLayout;
 }
 
 function serializePageForApply(
@@ -64,7 +67,7 @@ function serializePageForApply(
     title: page.title,
     slug: page.slug,
     content: serializePageContentWithLayout({ body: "", layout: cloneLayout(page.layout) }),
-    status: page.status ?? "draft",
+    status: page.status ?? "published",
   };
 }
 
@@ -93,6 +96,9 @@ export function buildTemplateApplyResult(template: WebsiteTemplateDefinition): T
       : undefined,
     collectionLayout: template.collectionLayout
       ? cloneLayout(template.collectionLayout)
+      : undefined,
+    blogPostLayout: template.blogPostLayout
+      ? cloneLayout(template.blogPostLayout)
       : undefined,
   };
 }

@@ -58,6 +58,19 @@ export function isSectionVisibleOnDevice(
   return deviceStyles.visible !== false;
 }
 
+/**
+ * When `previewDevice` is set (editor iframe / ?device=), hide sections in JS
+ * so the forced viewport matches. On the live storefront, always render and let
+ * ResponsiveSectionStyles media queries handle per-device hide/show.
+ */
+export function shouldMountSectionForDevice(
+  settings: Record<string, unknown>,
+  previewDevice: DeviceMode | undefined
+): boolean {
+  if (!previewDevice) return true;
+  return isSectionVisibleOnDevice(settings, previewDevice);
+}
+
 export function updateDeviceStyle(
   settings: Record<string, unknown>,
   device: DeviceMode,
@@ -75,30 +88,18 @@ export function buildResponsiveCss(sectionId: string, settings: Record<string, u
   return buildElementStyleCss(sectionId, settings);
 }
 
-/** Fallback Tailwind classes for legacy hideOnMobile/hideOnDesktop. */
+/** Fallback Tailwind classes for legacy hideOnMobile/hideOnDesktop only.
+ * Per-device `styles.*.visible` is handled by ResponsiveSectionStyles media CSS
+ * so we do not double-apply conflicting utility classes. */
 export function sectionVisibilityClassName(settings: Record<string, unknown>): string {
   const classes: string[] = [];
-  const normalized = normalizeSectionSettings(settings);
-  const styles = normalized.styles;
-
-  const desktopHidden =
-    styles.desktop?.visible === false || settings.hideOnDesktop === true;
-  const mobileHidden =
-    styles.mobile?.visible === false || settings.hideOnMobile === true;
-  const tabletHidden = styles.tablet?.visible === false;
 
   if (settings.hideOnDesktop === true) {
     classes.push("md:hidden");
-  } else if (desktopHidden) {
-    classes.push("lg:hidden");
   }
 
-  if (settings.hideOnMobile === true || mobileHidden) {
+  if (settings.hideOnMobile === true) {
     classes.push("max-md:hidden");
-  }
-
-  if (tabletHidden) {
-    classes.push("md:hidden", "lg:block");
   }
 
   return classes.filter(Boolean).join(" ");

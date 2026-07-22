@@ -1,6 +1,6 @@
 "use client";
 
-import { SECTION_REGISTRY } from "@/lib/sections/registry";
+import { getSectionLabel } from "@/lib/sections/registry";
 import type { StoreSection } from "@/lib/sections/types";
 import { getBlock } from "@/lib/builder/block-registry";
 import { sectionToBlockId } from "@/lib/builder/legacy-adapter";
@@ -29,7 +29,6 @@ export function BuilderLayersPanel({ sections, selectedId, onSelect }: BuilderLa
       {sections.map((section, index) => {
         const blockId = sectionToBlockId(section);
         const block = getBlock(blockId);
-        const def = SECTION_REGISTRY[section.type];
         const active = selectedId === section.id;
 
         return (
@@ -53,7 +52,7 @@ export function BuilderLayersPanel({ sections, selectedId, onSelect }: BuilderLa
               {index + 1}
             </span>
             <span className="min-w-0 flex-1 truncate font-medium text-neutral-800">
-              {block?.name ?? def.label}
+              {block?.name ?? getSectionLabel(section.type)}
             </span>
             {!section.visible ? (
               <EyeOff className="h-3.5 w-3.5 shrink-0 text-neutral-400" />

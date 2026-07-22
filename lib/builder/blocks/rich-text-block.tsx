@@ -2,10 +2,18 @@ import { RichTextSection } from "@/components/storefront/sections/rich-text-sect
 import type { RichTextSectionSettings } from "@/lib/sections/types";
 import type { BlockComponent } from "../types";
 
-export const RichTextBlock: BlockComponent = ({ store, settings, previewDevice }) => (
+export const RichTextBlock: BlockComponent = ({
+  store,
+  settings,
+  previewDevice,
+  builderMode,
+  sectionId,
+}) => (
   <RichTextSection
     store={store}
     settings={settings as RichTextSectionSettings}
     previewDevice={previewDevice}
+    builderMode={builderMode}
+    sectionId={sectionId}
   />
 );

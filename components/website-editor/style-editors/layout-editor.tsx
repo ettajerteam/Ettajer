@@ -3,10 +3,11 @@
 import { COLUMN_OPTIONS } from "@/lib/builder/style-system";
 import { InspectorFieldGroup, InspectorSelectField } from "../inspector/inspector-fields";
 import { OverrideIndicator } from "./override-indicator";
-import { type StyleEditorProps } from "./style-editor-props";
+import { type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
 export function LayoutEditor({
   device,
+  idPrefix,
   values,
   onPatch,
   hasOverride,
@@ -20,7 +21,7 @@ export function LayoutEditor({
         <OverrideIndicator active={hasOverride?.("columns")} />
       </div>
       <InspectorSelectField
-        id={`columns-${device}`}
+        id={styleFieldId(idPrefix, "columns", device)}
         label="Columns"
         value={values.columns != null ? String(values.columns) : ""}
         options={COLUMN_OPTIONS}

@@ -17,11 +17,15 @@ export async function GET() {
   } catch (error) {
     console.error("[founder/public-stats]", error);
 
-    return NextResponse.json({
-      founderCount: 0,
-      maxFounders: MAX_FOUNDERS,
-      spotsLeft: MAX_FOUNDERS,
-      isFull: false,
-    });
+    return NextResponse.json(
+      {
+        founderCount: 0,
+        maxFounders: MAX_FOUNDERS,
+        spotsLeft: MAX_FOUNDERS,
+        isFull: false,
+        dbError: process.env.NODE_ENV === "development",
+      },
+      { status: 503 },
+    );
   }
 }

@@ -81,23 +81,37 @@ export function buildPageMetadata({
 export function buildRootMetadata(): Metadata {
   const siteUrl = getSiteUrl().toString();
   const ogImage = absoluteUrl(DEFAULT_OG_IMAGE_PATH);
+  const defaultTitle = "Ettajer — COD Ecommerce Platform for Morocco";
+  const defaultDescription =
+    "Ettajer (التاجر): launch your online store with cash-on-delivery checkout, WhatsApp order verification, and a visual builder — built for Moroccan merchants.";
 
   return {
     metadataBase: getSiteUrl(),
+    applicationName: SITE_NAME,
+    appleWebApp: {
+      capable: true,
+      title: SITE_NAME,
+      statusBarStyle: "default",
+    },
     title: {
-      default: "Ettajer — Sell Online Beautifully",
+      default: defaultTitle,
       template: `%s | ${SITE_NAME}`,
     },
-    description:
-      "COD-first ecommerce for Moroccan merchants. Launch your store with WhatsApp verification, order automation, and a visual builder.",
+    description: defaultDescription,
     keywords: [
-      "ecommerce",
-      "morocco",
-      "shopify alternative",
-      "online store",
       "ettajer",
-      "cod",
+      "التاجر",
+      "تاجير",
+      "etajer",
+      "tajir",
+      "atajir",
+      "etajir",
+      "itajir",
+      "ecommerce morocco",
+      "cod morocco",
+      "online store",
       "cash on delivery",
+      "shopify alternative morocco",
     ],
     alternates: {
       canonical: siteUrl,
@@ -112,9 +126,8 @@ export function buildRootMetadata(): Metadata {
       type: "website",
       url: siteUrl,
       siteName: SITE_NAME,
-      title: "Ettajer — Sell Online Beautifully",
-      description:
-        "COD-first ecommerce for Moroccan merchants. Launch your store with WhatsApp verification, order automation, and a visual builder.",
+      title: defaultTitle,
+      description: defaultDescription,
       locale: "en_US",
       alternateLocale: ["fr_MA", "ar_MA"],
       images: [
@@ -122,15 +135,14 @@ export function buildRootMetadata(): Metadata {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: SITE_NAME,
+          alt: `${SITE_NAME} — التاجر`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Ettajer — Sell Online Beautifully",
-      description:
-        "COD-first ecommerce for Moroccan merchants. Launch your store with WhatsApp verification, order automation, and a visual builder.",
+      title: defaultTitle,
+      description: defaultDescription,
       images: [ogImage],
     },
   };

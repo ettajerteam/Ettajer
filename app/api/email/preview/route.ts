@@ -8,6 +8,11 @@ import {
   buildSupportConfirmationEmailHtml,
   buildWelcomeEmailHtml,
   buildFounderWelcomeEmailHtml,
+  buildFounderLaunchAnnounceEmailHtml,
+  buildFounderAccessUnlockedEmailHtml,
+  buildVerifyEmailReminderEmailHtml,
+  buildMerchantNewOrderEmailHtml,
+  buildStoreLiveEmailHtml,
   buildActivationCodeEmailHtml,
 } from "@/lib/email/templates";
 import { generateFounderCardAssets } from "@/lib/founder/founder-card-assets";
@@ -34,6 +39,44 @@ const PREVIEWS: Record<string, (locale: LandingLocale) => string | Promise<strin
     const assets = await generateFounderCardAssets("Youssef", 42);
     return buildFounderWelcomeEmailHtml("Youssef", 42, { base64: assets.pngBase64 }, locale);
   },
+  "founder-launch": (locale) =>
+    buildFounderLaunchAnnounceEmailHtml(
+      "Youssef",
+      7,
+      locale === "fr"
+        ? "jeudi 23 juillet 2026"
+        : locale === "ar"
+          ? "الخميس 23 يوليو 2026"
+          : "Thursday 23 July 2026",
+      locale,
+    ),
+  "founder-unlocked": (locale) =>
+    buildFounderAccessUnlockedEmailHtml("Youssef", 7, locale),
+  "verify-reminder": (locale) =>
+    buildVerifyEmailReminderEmailHtml(
+      "Youssef",
+      "merchant@example.com",
+      locale === "fr"
+        ? "jeudi 23 juillet 2026"
+        : locale === "ar"
+          ? "الخميس 23 يوليو 2026"
+          : "Thursday 23 July 2026",
+      locale,
+    ),
+  "merchant-new-order": (locale) =>
+    buildMerchantNewOrderEmailHtml(
+      {
+        merchantName: "Youssef",
+        orderNumber: "ETT-1042",
+        customerName: "Amina",
+        total: 480,
+        currency: "MAD",
+        orderId: "preview-order-id",
+      },
+      locale,
+    ),
+  "store-live": (locale) =>
+    buildStoreLiveEmailHtml("Youssef", "Ma Boutique", "ma-boutique", locale),
   activation: (locale) =>
     buildActivationCodeEmailHtml("Youssef", "merchant@example.com", "482913", locale),
   "support-received": (locale) =>

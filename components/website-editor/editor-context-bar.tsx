@@ -5,15 +5,20 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
-  Eye,
+  ExternalLink,
   FileText,
   Home,
+  LayoutGrid,
   Loader2,
   Monitor,
+  Palette,
   Redo2,
   RotateCcw,
+  Save,
+  ShoppingBag,
   Smartphone,
   Tablet,
+  Tag,
   Undo2,
 } from "lucide-react";
 import {
@@ -30,6 +35,8 @@ import { DEVICE_LABELS } from "@/lib/builder/responsive-styles";
 import type { DeviceMode } from "@/lib/builder/types";
 import { dashboardGlassHeader, dashboardPrimaryBtn } from "@/lib/dashboard-ui";
 import type { StorePageRow } from "@/lib/pages";
+import { isEditorHiddenPageSlug } from "@/lib/editor-system-pages";
+import { getEditorPageLabel } from "@/lib/editor-pages-config";
 import { cn } from "@/lib/utils";
 
 const DEVICE_MODES: DeviceMode[] = ["desktop", "tablet", "mobile"];
@@ -49,12 +56,21 @@ interface EditorTopBarProps {
   undoAvailable: boolean;
   redoAvailable: boolean;
   storeSlug: string;
+  zoomPercent?: number;
+  draftSaveStatus?: "idle" | "saving" | "saved" | "error";
+  lastDraftSavedAt?: number | null;
+  unpublishedPageCount?: number;
+  dirtyPageKeys?: string[];
+  shortcutsOpen?: boolean;
+  onShortcutsOpenChange?: (open: boolean) => void;
   onSelectPage: (target: EditorPageTarget) => void;
   onDeviceChange: (device: DeviceMode) => void;
+  onSaveDraft?: () => void;
   onPublish: () => void;
   onDiscard: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onOpenBrand?: () => void;
 }
 
 export function EditorTopBar({
@@ -66,22 +82,36 @@ export function EditorTopBar({
   undoAvailable,
   redoAvailable,
   storeSlug,
+  zoomPercent,
+  draftSaveStatus = "idle",
+  lastDraftSavedAt = null,
+  unpublishedPageCount = 0,
+  dirtyPageKeys = [],
+  shortcutsOpen,
+  onShortcutsOpenChange,
   onSelectPage,
   onDeviceChange,
+  onSaveDraft,
   onPublish,
   onDiscard,
   onUndo,
   onRedo,
+  onOpenBrand,
 }: EditorTopBarProps) {
-  const pageName =
-    activePage.type === "home"
-      ? "Home"
-      : activePage.type === "custom"
-        ? activePage.page.title
-        : activePage.type === "product"
-          ? "Product page"
-          : "Collection page";
+  const pageName = getEditorPageLabel(activePage);
   const DeviceIcon = DEVICE_ICONS[device];
+  const customPages = pages.filter((page) => !isEditorHiddenPageSlug(page.slug));
+  const productsPage = pages.find((page) => page.slug === "products") ?? null;
+  const dirtySet = new Set(dirtyPageKeys);
+
+  const savedLabel =
+    draftSaveStatus === "saving"
+      ? "Saving draft…"
+      : draftSaveStatus === "error"
+        ? "Draft save failed"
+        : draftSaveStatus === "saved" && lastDraftSavedAt
+          ? "Draft saved"
+          : null;
 
   return (
     <header className={cn(dashboardGlassHeader, "border-b border-neutral-200/80")}>
@@ -111,64 +141,140 @@ export function EditorTopBar({
             <DropdownMenuContent align="start" className="w-56">
               <DropdownMenuItem onClick={() => onSelectPage({ type: "home" })}>
                 <Home className="mr-2 h-4 w-4 text-[#007AFF]" />
-                Home
+                <span className="flex-1">Home</span>
+                {dirtySet.has("home") ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                ) : null}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onSelectPage({ type: "product" })}>
-                <FileText className="mr-2 h-4 w-4 text-[#007AFF]" />
-                Product template
+                <ShoppingBag className="mr-2 h-4 w-4 text-[#007AFF]" />
+                <span className="flex-1">Product template</span>
+                {dirtySet.has("product") ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                ) : null}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onSelectPage({ type: "collection" })}>
-                <FileText className="mr-2 h-4 w-4 text-[#007AFF]" />
-                Collection template
+                <Tag className="mr-2 h-4 w-4 text-[#007AFF]" />
+                <span className="flex-1">Collection template</span>
+                {dirtySet.has("collection") ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                ) : null}
               </DropdownMenuItem>
-              {pages.length > 0 ? <DropdownMenuSeparator /> : null}
-              {pages.map((page) => (
+              <DropdownMenuItem onClick={() => onSelectPage({ type: "blog-post" })}>
+                <FileText className="mr-2 h-4 w-4 text-[#007AFF]" />
+                <span className="flex-1">Blog post</span>
+                {dirtySet.has("blog-post") ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                ) : null}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (productsPage) onSelectPage({ type: "custom", page: productsPage });
+                }}
+                disabled={!productsPage}
+              >
+                <LayoutGrid className="mr-2 h-4 w-4 text-[#007AFF]" />
+                <span className="flex-1">Shop catalog</span>
+                {productsPage && dirtySet.has(`page:${productsPage.id}`) ? (
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                ) : null}
+              </DropdownMenuItem>
+              {customPages.length > 0 ? <DropdownMenuSeparator /> : null}
+              {customPages.map((page) => (
                 <DropdownMenuItem
                   key={page.id}
                   onClick={() => onSelectPage({ type: "custom", page })}
                 >
                   <FileText className="mr-2 h-4 w-4 text-neutral-400" />
-                  <span className="truncate">{page.title}</span>
+                  <span className="flex-1 truncate">{page.title}</span>
+                  {dirtySet.has(`page:${page.id}`) ? (
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                  ) : null}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
           {dirty ? (
+            <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 sm:inline-flex">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
+              {unpublishedPageCount > 1
+                ? `${unpublishedPageCount} pages unpublished`
+                : "Unpublished changes"}
+            </span>
+          ) : (
+            <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 sm:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Live
+            </span>
+          )}
+          {savedLabel ? (
             <span
-              className="hidden h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-500 sm:inline-block"
-              title="Unsaved changes"
-            />
+              className={cn(
+                "hidden items-center rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
+                draftSaveStatus === "error"
+                  ? "border-red-200 bg-red-50 text-red-700"
+                  : draftSaveStatus === "saving"
+                    ? "border-neutral-200 bg-white text-neutral-500"
+                    : "border-sky-200 bg-sky-50 text-sky-800"
+              )}
+            >
+              {savedLabel}
+            </span>
+          ) : null}
+          {zoomPercent != null ? (
+            <span className="hidden rounded-md bg-neutral-100 px-2 py-1 text-[10px] font-medium tabular-nums text-neutral-500 md:inline">
+              {zoomPercent}%
+            </span>
           ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <div className="inline-flex items-center rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm">
+          <div
+            className={cn(
+              "inline-flex items-center rounded-lg border p-0.5 shadow-sm transition-colors",
+              undoAvailable || redoAvailable
+                ? "border-[#007AFF]/30 bg-[#007AFF]/5"
+                : "border-neutral-200 bg-white"
+            )}
+          >
             <Button
               type="button"
               variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-md"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 rounded-md px-2",
+                undoAvailable
+                  ? "text-neutral-900 hover:bg-white hover:text-[#007AFF]"
+                  : "text-neutral-300"
+              )}
               onClick={onUndo}
               disabled={!undoAvailable}
-              title="Undo (Ctrl/Cmd+Z)"
-              aria-label="Undo"
+              title="Undo layout change (Ctrl/Cmd+Z) — does not undo brand/colors"
+              aria-label="Undo layout"
             >
               <Undo2 className="h-3.5 w-3.5" />
+              <span className="hidden text-xs font-medium sm:inline">Undo</span>
             </Button>
             <Button
               type="button"
               variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-md"
+              size="sm"
+              className={cn(
+                "h-8 gap-1.5 rounded-md px-2",
+                redoAvailable
+                  ? "text-neutral-900 hover:bg-white hover:text-[#007AFF]"
+                  : "text-neutral-300"
+              )}
               onClick={onRedo}
               disabled={!redoAvailable}
-              title="Redo (Ctrl/Cmd+Shift+Z)"
-              aria-label="Redo"
+              title="Redo layout change (Ctrl/Cmd+Shift+Z)"
+              aria-label="Redo layout"
             >
               <Redo2 className="h-3.5 w-3.5" />
+              <span className="hidden text-xs font-medium sm:inline">Redo</span>
             </Button>
-            <EditorShortcutsHelp />
+            <EditorShortcutsHelp open={shortcutsOpen} onOpenChange={onShortcutsOpenChange} />
           </div>
 
           <DropdownMenu>
@@ -201,17 +307,51 @@ export function EditorTopBar({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {onOpenBrand ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
+              onClick={onOpenBrand}
+              title="Brand colors, logo, and fonts"
+            >
+              <Palette className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Brand</span>
+            </Button>
+          ) : null}
+
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg"
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
             asChild
             title="View live storefront"
           >
-            <Link href={`/store/${storeSlug}`} target="_blank" aria-label="View live storefront">
-              <Eye className="h-4 w-4" />
+            <Link href={`/store/${storeSlug}`} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">View live</span>
+              <span className="sm:hidden">Live</span>
             </Link>
           </Button>
+
+          {onSaveDraft ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg border-neutral-200 bg-white px-2.5 shadow-sm"
+              onClick={onSaveDraft}
+              disabled={draftSaveStatus === "saving" || (!dirty && draftSaveStatus !== "error")}
+              title="Save draft (Ctrl/Cmd+S)"
+            >
+              {draftSaveStatus === "saving" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">Save</span>
+            </Button>
+          ) : null}
 
           {dirty ? (
             <Button
@@ -232,17 +372,21 @@ export function EditorTopBar({
             onClick={onPublish}
             disabled={!dirty || publishing}
             className={cn("h-8 gap-1.5 rounded-lg px-3", dashboardPrimaryBtn)}
-            title="Save changes (Ctrl/Cmd+S)"
+            title={
+              dirty
+                ? "Go live (Ctrl/Cmd+Shift+S)"
+                : "No unpublished changes"
+            }
           >
             {publishing ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span className="hidden sm:inline">Saving…</span>
+                <span className="hidden sm:inline">Going live…</span>
               </>
             ) : (
               <>
                 <Check className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Save</span>
+                <span className="hidden sm:inline">Go live</span>
               </>
             )}
           </Button>

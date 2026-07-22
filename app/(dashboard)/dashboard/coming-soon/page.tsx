@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
@@ -12,11 +13,12 @@ const featureLabels: Record<string, string> = {
   users: "Users & permissions",
   taxes: "Taxes & duties",
   security: "Security",
-  domains: "Custom domains & APIs",
 };
 
 export default function ComingSoonPage({ searchParams }: PageProps) {
   const feature = searchParams.feature ?? "feature";
+  if (feature === "domains") redirect("/dashboard/domains");
+
   const title = featureLabels[feature] ?? feature.replace(/-/g, " ");
 
   return (

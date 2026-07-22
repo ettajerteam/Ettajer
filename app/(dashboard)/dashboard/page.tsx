@@ -41,7 +41,7 @@ export default async function DashboardPage({
 
   return (
     <DashboardLayout>
-      <HomeDashboard data={dashboardData} userName={firstName} />
+      <HomeDashboard data={dashboardData} userName={firstName} storeSlug={store.slug} />
     </DashboardLayout>
   );
 }

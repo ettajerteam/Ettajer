@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
-import { parseProductImages } from "@/lib/products";
+import { parseProductImages } from "@/lib/product-images";
 import type {
   Category,
   CategoryDetail,

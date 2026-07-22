@@ -9,6 +9,10 @@ import {
   serializePublicStore,
 } from "@/lib/storefront";
 import { applyPreviewOverrides } from "@/lib/preview-engine";
+import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
+import { getStoreCheckoutUrl, getStoreUrl } from "@/lib/storefront-urls";
+import { cn } from "@/lib/utils";
+import type { ThemeId } from "@/lib/themes";
 
 interface PageProps {
   params: { slug: string };
@@ -25,7 +29,13 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const store = await getStoreBySlug(params.slug);
   if (!store) return { title: "Checkout" };
-  return { title: `Checkout — ${store.name}` };
+  return buildStorefrontMetadata({
+    storeName: store.name,
+    path: getStoreCheckoutUrl(store.slug),
+    title: "Checkout",
+    description: `Secure checkout at ${store.name}`,
+    noIndex: true,
+  });
 }
 
 export default async function CheckoutPage({ params, searchParams }: PageProps) {
@@ -37,24 +47,44 @@ export default async function CheckoutPage({ params, searchParams }: PageProps) 
     searchParams
   );
   const isPreview = searchParams.preview === "true";
+  const themeId = (store.theme in { minimal: 1, modern: 1, bold: 1 }
+    ? store.theme
+    : "minimal") as ThemeId;
+  const isBold = themeId === "bold";
 
   return (
     <StorefrontShell store={store} preview={isPreview}>
-      <div className="min-h-screen bg-white">
+      <div
+        className={cn("min-h-screen", isBold ? "bg-zinc-950 text-white" : "bg-white")}
+        style={themeId === "modern" ? { backgroundColor: store.secondaryColor } : undefined}
+      >
         <StorefrontHeader
           store={store}
-          variant={store.theme === "bold" ? "bold" : store.theme === "modern" ? "modern" : "minimal"}
-          backHref={`/store/${store.slug}`}
+          variant={themeId}
+          backHref={getStoreUrl(store.slug)}
           backLabel="← Continue shopping"
         />
-        <main className="max-w-6xl mx-auto px-6 py-10 sm:py-16">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-center mb-2">
-            Checkout
-          </h1>
-          <p className="text-center text-gray-500 text-sm mb-10">
-            Complete your order in 3 easy steps
-          </p>
+        <main className="mx-auto max-w-5xl px-4 pb-10 pt-6 sm:px-6 sm:pb-16 sm:pt-10">
+          <header className="mb-6 max-w-lg sm:mb-8 lg:max-w-none">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+              Secure checkout
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
+              Checkout
+            </h1>
+            <p className="mt-1.5 text-sm text-neutral-500">
+              {store.checkout.cashOnDelivery
+                ? "A calm, three-step order — pay cash on delivery if you prefer."
+                : "Complete your order in three quiet steps."}
+            </p>
+          </header>
           <CheckoutForm store={store} />
+          <p className="mt-10 text-center text-[11px] text-neutral-400 lg:text-left">
+            Need help?{" "}
+            <Link href={getStoreUrl(store.slug)} className="underline underline-offset-2 hover:text-neutral-600">
+              Return to {store.name}
+            </Link>
+          </p>
         </main>
       </div>
     </StorefrontShell>

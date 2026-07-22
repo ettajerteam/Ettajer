@@ -33,15 +33,17 @@ export async function isFounderSlotsFull(): Promise<boolean> {
  */
 export async function assignFounderNumber(userId: string): Promise<number | null> {
   return prisma.$transaction(async (tx) => {
-    const count = await tx.user.count({
+    const aggregate = await tx.user.aggregate({
+      _max: { founderNumber: true },
       where: { founderNumber: { not: null } },
     });
 
-    if (count >= MAX_FOUNDERS) {
+    const currentMax = aggregate._max.founderNumber ?? 0;
+    if (currentMax >= MAX_FOUNDERS) {
       return null;
     }
 
-    const next = count + 1;
+    const next = currentMax + 1;
 
     await tx.user.update({
       where: { id: userId },

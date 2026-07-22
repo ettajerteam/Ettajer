@@ -4,6 +4,8 @@ import { slugify } from "@/lib/utils";
 import { productSchema } from "@/lib/validations/product";
 import { getAuthenticatedStore, serializeProduct, productInclude } from "@/lib/products";
 import { validateProductIds } from "@/lib/catalog";
+import { serializeProductImagesForDb } from "@/lib/product-images";
+import { productTracksInventory, type ProductType } from "@/lib/product-types";
 
 export async function GET(request: Request) {
   try {
@@ -14,10 +16,12 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim();
+    const status = searchParams.get("status")?.trim();
 
     const products = await prisma.product.findMany({
       where: {
         storeId: store.id,
+        ...(status === "draft" || status === "active" ? { status } : {}),
         ...(search
           ? {
               OR: [
@@ -60,6 +64,23 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data;
+    const reviews = data.reviews
+      .filter((r) => r.author.trim() && r.text.trim())
+      .map((r) => ({
+        id: r.id,
+        author: r.author.trim(),
+        location: r.location?.trim() || undefined,
+        rating: r.rating,
+        text: r.text.trim(),
+        createdAt: r.createdAt || new Date().toISOString(),
+      }));
+    const details = data.details
+      .filter((d) => d.label.trim() && d.value.trim())
+      .map((d) => ({
+        id: d.id,
+        label: d.label.trim(),
+        value: d.value.trim(),
+      }));
 
     if (data.categoryId) {
       const category = await prisma.category.findFirst({
@@ -74,13 +95,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid collection assignment" }, { status: 400 });
     }
 
-    let slug = slugify(data.title);
+    let slug = slugify(data.title) || "product";
     const slugExists = await prisma.product.findFirst({
       where: { storeId: store.id, slug },
     });
     if (slugExists) {
       slug = `${slug}-${Date.now().toString(36)}`;
     }
+
+    const productType = data.productType as ProductType;
+    const inventory = productTracksInventory(productType) ? data.inventory : data.inventory;
 
     const product = await prisma.product.create({
       data: {
@@ -89,10 +113,18 @@ export async function POST(request: Request) {
         description: data.description || null,
         price: data.price,
         comparePrice: data.comparePrice ?? null,
-        inventory: data.inventory,
+        costPrice: data.costPrice ?? null,
+        inventory,
         sku: data.sku || null,
-        images: data.images,
+        barcode: data.barcode || null,
+        status: data.status,
+        productType,
+        copyrightOwner: data.copyrightOwner,
+        copyrightNotice: data.copyrightNotice,
+        images: serializeProductImagesForDb(data.images),
         variants: data.variants,
+        details,
+        reviews,
         tags: data.tags,
         ticketPrinterId: data.ticketPrinterId ?? null,
         categoryId: data.categoryId ?? null,

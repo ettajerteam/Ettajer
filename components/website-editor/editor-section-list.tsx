@@ -30,7 +30,7 @@ import {
 import { EditorOpenAddPanelTrigger } from "@/components/website-editor/editor-add-section-picker";
 import { EditorHelpTooltip } from "@/components/website-editor/editor-help-tooltip";
 import { EditorPanelSection } from "@/components/website-editor/editor-panel-section";
-import { SECTION_REGISTRY } from "@/lib/sections/registry";
+import { getSectionDefinition, getSectionLabel } from "@/lib/sections/registry";
 import type { SectionType, StoreSection } from "@/lib/sections/types";
 import { cn } from "@/lib/utils";
 
@@ -75,8 +75,10 @@ export function EditorSectionList({
     const q = search.trim().toLowerCase();
     if (!q) return sections;
     return sections.filter((section) => {
-      const def = SECTION_REGISTRY[section.type];
-      return def.label.toLowerCase().includes(q) || def.description.toLowerCase().includes(q);
+      const def = getSectionDefinition(section.type);
+      const label = def?.label ?? getSectionLabel(section.type);
+      const description = def?.description ?? "";
+      return label.toLowerCase().includes(q) || description.toLowerCase().includes(q);
     });
   }, [sections, search]);
 
@@ -165,8 +167,10 @@ export function EditorSectionList({
           ) : (
             filteredSections.map((section) => {
               const index = sections.findIndex((s) => s.id === section.id);
-              const def = SECTION_REGISTRY[section.type];
-              const Icon = ICONS[def.icon] ?? LayoutGrid;
+              const def = getSectionDefinition(section.type);
+              const label = def?.label ?? getSectionLabel(section.type);
+              const description = def?.description ?? "";
+              const Icon = ICONS[def?.icon ?? "box"] ?? LayoutGrid;
               const active = selectedId === section.id;
               const canMoveUp = index > 0;
               const canMoveDown = index < sections.length - 1;
@@ -216,7 +220,7 @@ export function EditorSectionList({
                     type="button"
                     onClick={() => onSelect(section.id)}
                     className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-left"
-                    aria-label={`${def.label}${!section.visible ? ", hidden" : ""}`}
+                    aria-label={`${label}${!section.visible ? ", hidden" : ""}`}
                   >
                     <span
                       className={cn(
@@ -243,14 +247,16 @@ export function EditorSectionList({
                           !section.visible && "text-neutral-400 line-through decoration-neutral-300"
                         )}
                       >
-                        {def.label}
+                        {label}
                         {!section.visible && (
                           <span className="rounded bg-neutral-200/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 no-underline">
                             Hidden
                           </span>
                         )}
                       </span>
-                      <span className="block truncate text-[11px] text-neutral-400">{def.description}</span>
+                      {description ? (
+                        <span className="block truncate text-[11px] text-neutral-400">{description}</span>
+                      ) : null}
                     </span>
                   </button>
                   <div

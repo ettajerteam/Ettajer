@@ -31,6 +31,8 @@ export {
   registerTemplate,
   getTemplate,
   getAllTemplates,
+  getTemplatesForBusinessModel,
+  isWebsiteTemplateId,
   listWebsiteTemplates,
   getWebsiteTemplate,
   WEBSITE_TEMPLATES,

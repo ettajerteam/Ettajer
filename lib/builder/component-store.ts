@@ -132,6 +132,7 @@ function buildInstanceSections(
       componentId: component.id,
       instanceId,
       sectionIndex,
+      pinnedVersion: component.version,
     });
   });
 }
@@ -188,17 +189,24 @@ export const useComponentStore = create<ComponentStoreState>((set, get) => ({
     const component = get().components[componentId];
     if (!component) return null;
 
-    const instanceId = newInstanceId();
-    const instanceSections = buildInstanceSections(component, instanceId);
-    const sections = [...layout.sections];
-    const insertAt = Math.max(0, Math.min(index ?? sections.length, sections.length));
-    sections.splice(insertAt, 0, ...instanceSections);
+    try {
+      const instanceId = newInstanceId();
+      const instanceSections = buildInstanceSections(component, instanceId);
+      if (instanceSections.length === 0) return null;
 
-    return {
-      layout: { version: 1, sections },
-      instanceId,
-      sectionIds: instanceSections.map((s) => s.id),
-    };
+      const sections = [...layout.sections];
+      const insertAt = Math.max(0, Math.min(index ?? sections.length, sections.length));
+      sections.splice(insertAt, 0, ...instanceSections);
+
+      return {
+        layout: { version: 1, sections },
+        instanceId,
+        sectionIds: instanceSections.map((s) => s.id),
+      };
+    } catch (error) {
+      console.error("insertComponent failed", error);
+      return null;
+    }
   },
 
   detachComponent: (instanceId, layout) => {
@@ -267,7 +275,7 @@ export const useComponentStore = create<ComponentStoreState>((set, get) => ({
 
   syncComponentSectionFromLayout: async (componentId, sectionIndex, section) => {
     const component = get().components[componentId];
-    if (!component || component.root.kind !== "sections") return;
+    if (!component || !component.root || component.root.kind !== "sections") return;
 
     const templates = [...component.root.sections];
     const stripped = stripComponentRef(section);

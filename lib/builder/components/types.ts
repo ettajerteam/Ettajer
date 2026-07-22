@@ -47,6 +47,8 @@ export interface ComponentInstanceRef {
   detached?: boolean;
   /** Instance-specific setting overrides merged on resolve. */
   overrides?: Record<string, unknown>;
+  /** Definition version when this instance was placed / last migrated. */
+  pinnedVersion?: number;
 }
 
 export interface ComponentInstance extends ComponentInstanceRef {

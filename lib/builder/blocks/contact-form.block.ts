@@ -1,0 +1,118 @@
+import type { BlockDefinition } from "../types";
+import {
+  BASIC_BACKGROUND_STYLE,
+  BASIC_SPACING_STYLES,
+  BASIC_TYPOGRAPHY_STYLES,
+  STANDARD_ADVANCED_FIELDS,
+} from "./shared-schemas";
+
+export const contactFormBlock: Omit<BlockDefinition, "component"> = {
+  id: "contact-form",
+  category: "forms",
+  name: "Contact form",
+  description: "Let visitors reach you",
+  icon: "form",
+  legacySectionType: "contact-form",
+  implemented: true,
+  thumbnail: { type: "gradient", value: "from-lime-50 to-green-100" },
+  defaultContent: {
+    title: "Get in touch",
+    description: "Send a message and we’ll reply as soon as we can.",
+    buttonText: "Send message",
+    showPhone: true,
+    layout: "split",
+  },
+  defaultStyles: {
+    desktop: {
+      padding: "4rem 1.5rem",
+    },
+  },
+  settingsSchema: {
+    focuses: ["text", "section", "button"],
+    content: [
+      {
+        key: "layout",
+        type: "select",
+        label: "Layout",
+        group: "layout",
+        focus: "section",
+        options: [
+          { value: "centered", label: "Centered form" },
+          { value: "split", label: "Form + details" },
+        ],
+      },
+      {
+        key: "title",
+        type: "text",
+        label: "Title",
+        group: "text",
+        focus: ["text", "section"],
+      },
+      {
+        key: "description",
+        type: "textarea",
+        label: "Description",
+        group: "text",
+        focus: ["text", "section"],
+      },
+      {
+        key: "buttonText",
+        type: "text",
+        label: "Button text",
+        group: "buttons",
+        focus: ["button", "section"],
+      },
+      {
+        key: "showPhone",
+        type: "toggle",
+        label: "Show phone field",
+        group: "text",
+        focus: "section",
+      },
+      {
+        key: "detailEmail",
+        type: "text",
+        label: "Detail email",
+        group: "text",
+        focus: "section",
+        placeholder: "hello@yourstore.com",
+      },
+      {
+        key: "detailPhone",
+        type: "text",
+        label: "Detail phone",
+        group: "text",
+        focus: "section",
+        placeholder: "+212 5XX XXX XXX",
+      },
+      {
+        key: "detailHours",
+        type: "text",
+        label: "Hours",
+        group: "text",
+        focus: "section",
+        placeholder: "Mon–Fri · 9am–6pm",
+      },
+      {
+        key: "detailAddress",
+        type: "textarea",
+        label: "Address",
+        group: "text",
+        focus: "section",
+        placeholder: "Street, city",
+      },
+      {
+        key: "mapEmbedUrl",
+        type: "text",
+        label: "Map embed URL",
+        group: "images",
+        focus: "section",
+        placeholder: "https://www.google.com/maps/embed?…",
+        description: "Paste a Google Maps embed URL to show a map beside the form",
+      },
+    ],
+    styles: [...BASIC_TYPOGRAPHY_STYLES, BASIC_BACKGROUND_STYLE],
+    layout: BASIC_SPACING_STYLES,
+    advanced: STANDARD_ADVANCED_FIELDS,
+  },
+};

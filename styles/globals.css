@@ -164,6 +164,10 @@
     transition: top 0.08s ease-out, left 0.08s ease-out, width 0.08s ease-out, height 0.08s ease-out;
   }
 
+  .ettajer-builder-reorder-handle {
+    @apply pointer-events-auto absolute left-1/2 top-0 z-10 flex h-6 w-8 -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-md border border-[#007AFF]/40 bg-white text-[10px] font-bold tracking-tighter text-[#007AFF] shadow-sm active:cursor-grabbing;
+  }
+
   .ettajer-builder-selection-overlay-active {
     box-shadow: 0 0 0 2px #007aff, 0 0 0 4px rgba(0, 122, 255, 0.15);
   }
@@ -319,8 +323,6 @@
   }
 
   .builder-canvas-infinite {
-    background-image: radial-gradient(circle, #d8d8dc 0.75px, transparent 0.75px);
-    background-size: 16px 16px;
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
   }
@@ -406,12 +408,54 @@
   .editor-shimmer {
     background: linear-gradient(
       90deg,
-      rgba(228, 228, 231, 0.4) 0%,
-      rgba(244, 244, 245, 0.9) 50%,
-      rgba(228, 228, 231, 0.4) 100%
+      rgba(228, 228, 231, 0.45) 0%,
+      rgba(244, 244, 245, 0.95) 50%,
+      rgba(228, 228, 231, 0.45) 100%
     );
     background-size: 200% 100%;
     animation: editor-shimmer 1.4s ease-in-out infinite;
+  }
+
+  .editor-bone {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background: linear-gradient(
+      135deg,
+      #ececf0 0%,
+      #f4f4f6 40%,
+      #e8e8ec 100%
+    );
+  }
+
+  .editor-bone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-120%);
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.72) 48%,
+      rgba(0, 122, 255, 0.06) 52%,
+      rgba(255, 255, 255, 0.72) 56%,
+      transparent 70%
+    );
+    animation: editor-bone-sweep 1.65s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .editor-bone-sweep {
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.18) 50%,
+      transparent 65%
+    );
+    animation: editor-bone-sweep 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .editor-preview-frame {
+    min-height: min(62vh, 520px);
   }
 
   @keyframes editor-shimmer {
@@ -423,8 +467,25 @@
     }
   }
 
-  .editor-tab-content {
-    animation: editor-tab-fade 0.2s ease-out;
+  @keyframes editor-bone-sweep {
+    0% {
+      transform: translateX(-120%);
+    }
+    100% {
+      transform: translateX(120%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .editor-shimmer,
+    .editor-bone::after,
+    .editor-bone-sweep {
+      animation: none !important;
+    }
+
+    .editor-bone::after {
+      display: none;
+    }
   }
 
   .editor-scroll-hidden {
@@ -434,27 +495,6 @@
 
   .editor-scroll-hidden::-webkit-scrollbar {
     display: none;
-  }
-
-  .editor-add-panel {
-    max-height: calc(100vh - 13rem);
-  }
-
-  @media (min-width: 1280px) {
-    .editor-add-panel {
-      max-height: calc(100vh - 11rem);
-    }
-  }
-
-  @keyframes editor-tab-fade {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 
   .ettajer-animate-fade {
@@ -590,4 +630,15 @@
 
 .founder-card-glow {
   animation: founder-glow-pulse 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-editor-panel] {
+    transition: none !important;
+  }
+
+  .founder-card-shimmer::after,
+  .founder-card-glow {
+    animation: none !important;
+  }
 }

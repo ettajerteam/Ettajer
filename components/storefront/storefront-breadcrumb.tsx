@@ -14,17 +14,17 @@ interface StorefrontBreadcrumbProps {
 
 export function StorefrontBreadcrumb({ items, variant = "minimal" }: StorefrontBreadcrumbProps) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-8">
-      <ol className="flex flex-wrap items-center gap-1.5 text-sm">
+    <nav aria-label="Breadcrumb" className="mb-0">
+      <ol className="flex flex-wrap items-center gap-1 text-[12px] sm:text-[13px]">
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
-            <li key={item.label} className="flex items-center gap-1.5">
+            <li key={`${item.label}-${index}`} className="flex items-center gap-1">
               {index > 0 && (
                 <ChevronRight
                   className={cn(
-                    "h-3.5 w-3.5",
-                    variant === "bold" ? "text-white/30" : "text-gray-300"
+                    "h-3 w-3",
+                    variant === "bold" ? "text-white/25" : "text-neutral-300"
                   )}
                 />
               )}
@@ -33,9 +33,11 @@ export function StorefrontBreadcrumb({ items, variant = "minimal" }: StorefrontB
                   href={item.href}
                   className={cn(
                     "transition-colors",
-                    variant === "minimal" && "text-gray-500 hover:text-gray-900",
-                    variant === "modern" && "text-neutral-500 hover:text-black uppercase text-xs tracking-widest font-bold",
-                    variant === "bold" && "text-white/50 hover:text-[var(--store-primary)] text-[10px] uppercase tracking-widest"
+                    variant === "minimal" && "text-neutral-500 hover:text-neutral-900",
+                    variant === "modern" &&
+                      "text-xs font-bold uppercase tracking-[0.14em] text-neutral-500 hover:text-black",
+                    variant === "bold" &&
+                      "text-[10px] uppercase tracking-[0.16em] text-white/45 hover:text-[var(--store-primary)]"
                   )}
                 >
                   {item.label}
@@ -43,9 +45,9 @@ export function StorefrontBreadcrumb({ items, variant = "minimal" }: StorefrontB
               ) : (
                 <span
                   className={cn(
-                    "font-medium",
-                    variant === "bold" ? "text-white" : "text-gray-900",
-                    variant === "modern" && "uppercase text-xs tracking-widest"
+                    "max-w-[14rem] truncate font-medium sm:max-w-xs",
+                    variant === "bold" ? "text-white/80" : "text-neutral-800",
+                    variant === "modern" && "text-xs uppercase tracking-[0.14em]"
                   )}
                 >
                   {item.label}

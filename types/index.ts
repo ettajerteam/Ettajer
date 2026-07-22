@@ -5,6 +5,8 @@ export interface Store {
   logo?: string | null;
   description?: string | null;
   category?: string | null;
+  businessModel?: string | null;
+  websiteTemplateId?: string | null;
   currency: string;
   primaryColor: string;
   secondaryColor: string;
@@ -15,6 +17,23 @@ export interface Store {
   updatedAt: Date;
 }
 
+export interface ProductDetail {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export type ProductStatus = "draft" | "active";
+export type ProductType = "physical" | "digital" | "service" | "dropshipping";
+
+export interface ProductImageAsset {
+  url: string;
+  width?: number | null;
+  height?: number | null;
+  sizeBytes?: number | null;
+  alt?: string | null;
+}
+
 export interface Product {
   id: string;
   title: string;
@@ -22,11 +41,20 @@ export interface Product {
   description?: string | null;
   price: number;
   comparePrice?: number | null;
+  costPrice?: number | null;
   inventory: number;
   sku?: string | null;
+  barcode?: string | null;
+  status: ProductStatus;
+  productType: ProductType;
+  copyrightOwner?: string | null;
+  copyrightNotice?: string | null;
   images: string[];
+  imageAssets: ProductImageAsset[];
   variants: ProductVariant[];
+  details: ProductDetail[];
   tags: string[];
+  reviews: ProductReview[];
   ticketPrinterId?: string | null;
   storeId: string;
   categoryId?: string | null;
@@ -35,6 +63,15 @@ export interface Product {
   collectionNames: string[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProductReview {
+  id: string;
+  author: string;
+  location?: string;
+  rating: number;
+  text: string;
+  createdAt?: string;
 }
 
 export interface ProductVariant {
@@ -70,6 +107,8 @@ export interface ShippingAddress {
 }
 
 export interface OnboardingData {
+  businessModel: "physical" | "digital" | "dropshipping";
+  websiteTemplateId: "aura" | "tech" | "paper";
   storeName: string;
   category: string;
   currency: "MAD" | "DZD" | "TND" | "USD" | "EUR";

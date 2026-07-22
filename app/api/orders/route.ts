@@ -6,6 +6,7 @@ import {
   serializeOrderDetail,
   createStoreOrder,
 } from "@/lib/orders";
+import { sendMerchantNewOrderEmail } from "@/lib/email/automations";
 import { createOrderSchema, isValidOrderStatus } from "@/lib/validations/order";
 
 export async function GET(request: Request) {
@@ -83,6 +84,28 @@ export async function POST(request: Request) {
     }
 
     const order = await createStoreOrder(parsed.data);
+
+    const storeOwner = await prisma.store.findUnique({
+      where: { slug: parsed.data.storeSlug },
+      select: {
+        currency: true,
+        language: true,
+        user: { select: { email: true, name: true } },
+      },
+    });
+
+    if (storeOwner?.user.email) {
+      void sendMerchantNewOrderEmail({
+        to: storeOwner.user.email,
+        merchantName: storeOwner.user.name ?? "Merchant",
+        orderNumber: order.orderNumber,
+        customerName: order.customerName,
+        total: order.total,
+        currency: storeOwner.currency,
+        orderId: order.id,
+        locale: storeOwner.language,
+      }).catch((err) => console.error("[orders] merchant notify failed:", err));
+    }
 
     return NextResponse.json(
       { order: serializeOrderDetail(order) },

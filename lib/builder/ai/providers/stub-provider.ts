@@ -190,12 +190,34 @@ function buildCustomPage(
     title = "Work";
   }
 
+  const sections: AiGeneratedSection[] =
+    slug === "contact"
+      ? [
+          composeSectionForBlock(
+            "rich-text",
+            intent,
+            prompt.storeName
+              ? `Get in touch with ${prompt.storeName}. We usually reply within one business day.`
+              : "Get in touch — we usually reply within one business day."
+          ),
+          composeSectionForBlock("contact-form", intent, prompt.text),
+        ]
+      : [
+          composeSectionForBlock(
+            "hero",
+            intent,
+            title === "About"
+              ? `Our story${prompt.storeName ? ` — ${prompt.storeName}` : ""}`
+              : title
+          ),
+          composeSectionForBlock("rich-text", intent, prompt.text),
+        ];
+
   return {
     id: `page-${slug}`,
     slug,
     title,
     type: "custom",
-    sections: [],
-    content: `<h1>${title}</h1><p>${prompt.text}</p>`,
+    sections,
   };
 }

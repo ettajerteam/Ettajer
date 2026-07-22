@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedStore } from "@/lib/products";
 import { getStoreNavigation, saveStoreNavigation, type NavItem } from "@/lib/navigation";
+import { revalidateStorefront } from "@/lib/builder/storefront-revalidate";
 
 export async function GET() {
   try {
@@ -9,7 +10,7 @@ export async function GET() {
 
     const items = await getStoreNavigation(store.id);
     return NextResponse.json({ items });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ message: "Failed to fetch" }, { status: 500 });
   }
 }
@@ -26,8 +27,9 @@ export async function PUT(request: Request) {
     }
 
     await saveStoreNavigation(store.id, items);
+    revalidateStorefront(store.slug);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ message: "Failed to save" }, { status: 500 });
   }
 }

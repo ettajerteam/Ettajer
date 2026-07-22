@@ -23,6 +23,7 @@ import {
   getAuthErrorMap,
   parseAuthLoginError,
 } from "@/lib/auth/auth-i18n";
+import { useAuthProviders } from "@/lib/auth/use-auth-providers";
 
 const BRAND_ICON = "/brand/App-Logo.png";
 
@@ -110,6 +111,7 @@ const cardShell =
 
 export function AuthForm({ mode, providers }: AuthFormProps) {
   const { copy: authCopy } = useAuthLocale();
+  const liveProviders = useAuthProviders(providers);
   const c = mode === "login"
     ? {
         title: authCopy.login.title,
@@ -170,7 +172,7 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
   }, [activatedSuccess, queryEmail, mode, email]);
 
   const sendMagicLink = async () => {
-    if (!providers.email) {
+    if (!liveProviders.email) {
       toast.error(err.emailNotConfigured);
       return false;
     }
@@ -211,7 +213,7 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!providers.google) {
+    if (!liveProviders.google) {
       toast.error(err.googleNotConfigured);
       return;
     }
@@ -351,9 +353,9 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
 
   const l = isLogin ? authCopy.login : null;
 
-  const showGoogle = providers.google;
-  const showEmailLink = providers.email;
-  const noProviders = !providers.google && !providers.email;
+  const showGoogle = liveProviders.google;
+  const showEmailLink = liveProviders.email;
+  const noProviders = !liveProviders.google && !liveProviders.email;
 
   return (
     <div>

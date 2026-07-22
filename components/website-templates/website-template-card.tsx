@@ -1,8 +1,11 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { dashboardCard, dashboardCardInteractive, dashboardKicker } from "@/lib/dashboard-ui";
-import { getTemplateThumbnailStyle, type WebsiteTemplate } from "@/lib/website-templates";
+import { Check, Layers, Sparkles } from "lucide-react";
+import { getTemplateHomeLayout, type WebsiteTemplate } from "@/lib/website-templates";
+import {
+  TEMPLATE_MOCKUP,
+  WebsiteTemplateMockup,
+} from "@/components/website-templates/website-template-mockup";
 import { cn } from "@/lib/utils";
 
 interface WebsiteTemplateCardProps {
@@ -18,13 +21,16 @@ export function WebsiteTemplateCard({
   onPreview,
   onApply,
 }: WebsiteTemplateCardProps) {
+  const home = getTemplateHomeLayout(template);
+  const look = TEMPLATE_MOCKUP[template.id];
+
   return (
     <article
       className={cn(
-        dashboardCard,
-        dashboardCardInteractive,
-        "group flex flex-col overflow-hidden",
-        selected && "ring-2 ring-[#007AFF] ring-offset-2"
+        "group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all",
+        selected
+          ? "border-[#007AFF] ring-2 ring-[#007AFF]/20"
+          : "border-neutral-200 hover:border-neutral-300 hover:shadow-md",
       )}
     >
       <button
@@ -33,47 +39,55 @@ export function WebsiteTemplateCard({
         className="relative block w-full text-left"
         aria-label={`Preview ${template.name} template`}
       >
-        <div
-          className="aspect-[16/10] w-full"
-          style={(() => {
-            const thumb = getTemplateThumbnailStyle(template.thumbnail);
-            return thumb.type === "gradient"
-              ? { background: thumb.value }
-              : {
-                  backgroundImage: `url(${thumb.value})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                };
-          })()}
-        />
-        <div className="absolute left-3 top-3">
-          <Badge variant="secondary" className="bg-white/90 text-[10px] font-medium text-neutral-700 shadow-sm">
-            {template.industry}
-          </Badge>
+        <WebsiteTemplateMockup templateId={template.id} compact />
+        <div className="absolute left-2 top-2">
+          <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-neutral-700 shadow-sm">
+            {look.mood}
+          </span>
         </div>
+        {selected ? (
+          <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+            <Check className="h-2.5 w-2.5" />
+            Draft
+          </span>
+        ) : null}
       </button>
 
-      <div className="flex flex-1 flex-col gap-3 p-3.5">
+      <div className="flex flex-1 flex-col gap-2.5 p-3">
         <div>
-          <p className={dashboardKicker}>Website template</p>
-          <h3 className="text-sm font-semibold tracking-[-0.02em] text-neutral-900">{template.name}</h3>
-          <p className="mt-0.5 text-xs text-neutral-500">
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold tracking-[-0.02em] text-neutral-900">
+              {template.name}
+            </h3>
+            <Sparkles className="h-3 w-3 text-amber-500" />
+          </div>
+          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-neutral-500">
             {template.tagline ?? template.branding?.tagline ?? template.description}
           </p>
         </div>
 
-        <div className="mt-auto flex gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-600">
+            <Layers className="h-2.5 w-2.5" />
+            {home.sections.length} sections
+          </span>
+          <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium capitalize text-neutral-600">
+            {template.theme.font}
+          </span>
+        </div>
+
+        <div className="mt-auto flex gap-1.5 pt-1">
           <button
             type="button"
             onClick={onPreview}
-            className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+            className="h-8 flex-1 rounded-lg border border-neutral-200 bg-white text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
           >
             Preview
           </button>
           <button
             type="button"
             onClick={onApply}
-            className="flex-1 rounded-lg bg-[#007AFF] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#0066DD]"
+            className="h-8 flex-1 rounded-lg bg-neutral-900 text-xs font-medium text-white transition-colors hover:bg-neutral-800"
           >
             Apply
           </button>

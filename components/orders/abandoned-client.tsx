@@ -48,15 +48,6 @@ function formatDateTime(date: string) {
   });
 }
 
-function recoveryMailto(row: AbandonedCheckoutRow): string | null {
-  if (!row.email) return null;
-  const subject = encodeURIComponent("Complete your order");
-  const body = encodeURIComponent(
-    `Hi${row.customerName ? ` ${row.customerName}` : ""},\n\nYou left items in your cart. Come back to complete your purchase!\n\nThank you.`
-  );
-  return `mailto:${row.email}?subject=${subject}&body=${body}`;
-}
-
 export function AbandonedClient({
   initial,
   currency,
@@ -90,6 +81,20 @@ export function AbandonedClient({
   }, [search, fetchRows, initial]);
 
   const displayStats = useMemo(() => computeAbandonedStats(rows), [rows]);
+
+  async function handleRecover(id: string) {
+    setActionId(id);
+    try {
+      const res = await fetch(`/api/abandoned/${id}/recover-email`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message ?? "Failed to send email");
+      toast.success("Recovery email sent");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send email");
+    } finally {
+      setActionId(null);
+    }
+  }
 
   async function handleDelete(id: string) {
     if (!confirm("Remove this abandoned checkout?")) return;
@@ -186,7 +191,6 @@ export function AbandonedClient({
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const mailto = recoveryMailto(row);
                   return (
                     <tr
                       key={row.id}
@@ -220,11 +224,15 @@ export function AbandonedClient({
                             <FilePlus2 className="h-4 w-4 mr-1" />
                             Draft
                           </Button>
-                          {mailto && (
-                            <Button variant="ghost" size="icon" asChild>
-                              <a href={mailto} aria-label="Send recovery email">
-                                <Mail className="h-4 w-4" />
-                              </a>
+                          {row.email && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={actionId === row.id}
+                              onClick={() => handleRecover(row.id)}
+                              aria-label="Send recovery email"
+                            >
+                              <Mail className="h-4 w-4" />
                             </Button>
                           )}
                           <Button

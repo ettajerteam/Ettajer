@@ -9,7 +9,7 @@ export function SocialProofBar() {
   const { copy, content } = useLandingLocale();
 
   return (
-    <FadeIn className="mx-auto mt-10 max-w-4xl md:mt-10">
+    <FadeIn className="mx-auto max-w-4xl">
       <LandingMobileCard className="text-center md:hidden">
         <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-[#8E8E93]">
           {copy.socialProof.eyebrow}

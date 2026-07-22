@@ -7,6 +7,7 @@ import {
   getEmailCopy,
 } from "@/lib/email/email-i18n";
 import { buildModernEmailHtml, escapeHtml, getAppUrl } from "@/lib/email/base-template";
+import { getStoreUrl } from "@/lib/storefront-urls";
 
 function emailOpts(locale: LandingLocale = "en") {
   const copy = getEmailCopy(locale);
@@ -206,6 +207,198 @@ export function buildFounderWelcomeEmailHtml(
   });
 }
 
+export function buildFounderLaunchAnnounceEmailHtml(
+  name: string | null,
+  founderNumber: number,
+  launchDateLabel = "Thursday 23 July 2026",
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.founderLaunchAnnounce;
+  const displayName = emailGreetingName(
+    name,
+    locale === "ar" ? "مؤسس" : locale === "fr" ? "Fondateur" : "Founder",
+  );
+  const founderLabel = escapeHtml(formatFounderNumber(founderNumber));
+  const earlyAccessUrl = `${getAppUrl()}/early-access`;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText,
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#eff6ff",
+    greeting: t.greeting(displayName),
+    body: t.body(founderLabel, escapeHtml(launchDateLabel)),
+    cta: { label: t.cta, url: earlyAccessUrl },
+    steps: t.steps,
+    highlight: {
+      title: t.highlightTitle,
+      body: t.highlightBody,
+    },
+    footerNote: t.footerNote,
+  });
+}
+
+export function buildFounderBetaTestingEmailHtml(
+  name: string | null,
+  founderNumber: number,
+  launchDateLabel = "Thursday 23 July 2026",
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.founderBetaTesting;
+  const displayName = emailGreetingName(
+    name,
+    locale === "ar" ? "مؤسس" : locale === "fr" ? "Fondateur" : "Founder",
+  );
+  const founderLabel = escapeHtml(formatFounderNumber(founderNumber));
+  const earlyAccessUrl = `${getAppUrl()}/early-access`;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText,
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#ecfdf5",
+    greeting: t.greeting(displayName),
+    body: t.body(founderLabel, escapeHtml(launchDateLabel)),
+    cta: { label: t.cta, url: earlyAccessUrl },
+    steps: t.steps,
+    highlight: {
+      title: t.highlightTitle,
+      body: t.highlightBody,
+    },
+    footerNote: t.footerNote,
+  });
+}
+
+export function buildFounderAccessUnlockedEmailHtml(
+  name: string | null,
+  founderNumber: number,
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.founderAccessUnlocked;
+  const displayName = emailGreetingName(
+    name,
+    locale === "ar" ? "مؤسس" : locale === "fr" ? "Fondateur" : "Founder",
+  );
+  const founderLabel = escapeHtml(formatFounderNumber(founderNumber));
+  const dashboardUrl = `${getAppUrl()}/onboarding`;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText,
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#ecfdf5",
+    greeting: t.greeting(displayName),
+    body: t.body(founderLabel),
+    cta: { label: t.cta, url: dashboardUrl },
+    steps: t.steps,
+    highlight: { title: t.highlightTitle, body: t.highlightBody },
+    footerNote: t.footerNote,
+  });
+}
+
+export function buildVerifyEmailReminderEmailHtml(
+  name: string | null,
+  email: string,
+  launchDateLabel = "Thursday 23 July 2026",
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.verifyEmailReminder;
+  const displayName = emailGreetingName(
+    name,
+    locale === "ar" ? "مؤسس" : locale === "fr" ? "Fondateur" : "Founder",
+  );
+  const activateUrl = `${getAppUrl()}/activate?email=${encodeURIComponent(email)}`;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText,
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#fef3c7",
+    greeting: t.greeting(displayName),
+    body: t.body(escapeHtml(launchDateLabel)),
+    cta: { label: t.cta, url: activateUrl },
+    steps: t.steps,
+    footerNote: t.footerNote,
+  });
+}
+
+export function buildMerchantNewOrderEmailHtml(
+  params: {
+    merchantName: string;
+    orderNumber: string;
+    customerName: string;
+    total: number;
+    currency: string;
+    orderId: string;
+  },
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.merchantNewOrder;
+  const totalFormatted = formatCurrency(params.total, params.currency);
+  const ordersUrl = `${getAppUrl()}/dashboard/orders/${params.orderId}`;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText(params.orderNumber, params.customerName),
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#eff6ff",
+    greeting: t.greeting(params.merchantName),
+    body: t.body(
+      escapeHtml(params.orderNumber),
+      escapeHtml(params.customerName),
+      escapeHtml(totalFormatted),
+    ),
+    cta: { label: t.cta, url: ordersUrl },
+    keyValues: [
+      { label: t.orderLabel, value: params.orderNumber, highlight: true },
+      { label: t.customerLabel, value: params.customerName },
+      { label: t.totalLabel, value: totalFormatted, highlight: true },
+    ],
+    footerNote: t.footerNote,
+  });
+}
+
+export function buildStoreLiveEmailHtml(
+  merchantName: string,
+  storeName: string,
+  storeSlug: string,
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.storeLive;
+  const storeUrl = getStoreUrl(storeSlug);
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText(storeName),
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#ecfdf5",
+    greeting: t.greeting(merchantName),
+    body: t.body(escapeHtml(storeName), storeUrl),
+    cta: { label: t.cta, url: storeUrl },
+    steps: t.steps,
+    highlight: { title: t.highlightTitle, body: t.highlightBody },
+    footerNote: t.footerNote,
+  });
+}
+
 const STATUS_COLORS: Record<OrderStatus, string> = {
   draft: "#f5f5f5",
   pending: "#eff6ff",
@@ -334,6 +527,51 @@ export function buildOrderConfirmationEmailHtml(
   });
 }
 
+export function buildAbandonedCartEmailHtml(
+  params: {
+    customerName: string;
+    storeName: string;
+    storeUrl: string;
+    currency: string;
+    subtotal: number;
+    items: { title: string; quantity: number; price: number }[];
+  },
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.abandonedCart;
+  const greetingName = emailGreetingName(params.customerName, loc === "ar" ? "عميلنا" : loc === "fr" ? "vous" : "there");
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText,
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#eff6ff",
+    greeting: t.greeting(greetingName),
+    body: t.body(escapeHtml(params.storeName)),
+    cta: { label: t.cta, url: params.storeUrl },
+    table: {
+      headers: [t.itemsHeader, t.totalHeader],
+      rows: [
+        ...params.items.map((item) => ({
+          left: `${item.title} × ${item.quantity}`,
+          right: formatCurrency(item.price * item.quantity, params.currency),
+        })),
+        {
+          left: t.totalHeader,
+          right: formatCurrency(params.subtotal, params.currency),
+        },
+      ],
+    },
+    footerNote: t.footerNote(params.storeName),
+    showHelpLink: false,
+    accentFrom: "#007AFF",
+    accentTo: "#5856D6",
+  });
+}
+
 export function buildSupportConfirmationEmailHtml(
   name: string,
   topic: string,
@@ -385,5 +623,60 @@ export function buildSupportTicketEmailHtml(
     ],
     footerNote: t.footerNote,
     showHelpLink: false,
+  });
+}
+
+export function buildNameChangeInviteEmailHtml(
+  params: {
+    name: string;
+    currentName: string;
+    url: string;
+  },
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.nameChangeInvite;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText,
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#eff6ff",
+    greeting: t.greeting(params.name),
+    body: t.body(escapeHtml(params.currentName)),
+    cta: { label: t.cta, url: params.url },
+    expiryNote: t.expiryNote,
+    steps: t.steps,
+    footerNote: t.footerNote,
+    accentFrom: "#0a0a0a",
+    accentTo: "#404040",
+  });
+}
+
+export function buildNameChangeConfirmedEmailHtml(
+  params: {
+    name: string;
+    previousName: string;
+    newName: string;
+  },
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.nameChangeConfirmed;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText,
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#ecfdf5",
+    greeting: t.greeting(params.name),
+    body: t.body(escapeHtml(params.previousName), escapeHtml(params.newName)),
+    footerNote: t.footerNote,
+    accentFrom: "#0a0a0a",
+    accentTo: "#404040",
   });
 }

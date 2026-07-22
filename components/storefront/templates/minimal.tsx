@@ -21,24 +21,24 @@ export function MinimalProductCard({ store, product }: ProductCardProps) {
       href={getStoreProductUrl(store.slug, product.slug)}
       className="group block"
     >
-      <div className="aspect-square rounded-2xl overflow-hidden bg-gray-50 mb-4 relative">
+      <div className="relative mb-3.5 aspect-[3/4] overflow-hidden rounded-xl bg-neutral-100">
         <Image
           src={imageSrc}
           alt={product.title}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
           sizes="(max-width: 768px) 50vw, 33vw"
         />
       </div>
-      <h3 className="font-medium text-sm tracking-tight group-hover:opacity-70 transition-opacity">
+      <h3 className="text-[15px] font-medium tracking-tight text-neutral-900 transition-opacity group-hover:opacity-70">
         {product.title}
       </h3>
-      <div className="flex items-center gap-2 mt-1">
-        <span className="text-sm" style={{ color: "var(--store-primary)" }}>
+      <div className="mt-1.5 flex items-center gap-2">
+        <span className="text-sm tabular-nums text-neutral-600">
           {formatCurrency(product.price, store.currency)}
         </span>
         {product.comparePrice && product.comparePrice > product.price && (
-          <span className="text-xs text-gray-400 line-through">
+          <span className="text-xs text-neutral-400 line-through tabular-nums">
             {formatCurrency(product.comparePrice, store.currency)}
           </span>
         )}
@@ -68,7 +68,7 @@ export function MinimalTemplate({
         <div className="relative h-48 sm:h-64 rounded-3xl overflow-hidden mb-10">
           <Image
             src={assets.hero}
-            alt=""
+            alt={store.name}
             fill
             className="object-cover"
             priority

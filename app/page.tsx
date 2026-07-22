@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Outfit } from "next/font/google";
 import { EttajerHomePage } from "@/components/landing/ettajer-home-page";
 import { LandingLocaleProvider } from "@/components/landing/landing-locale-context";
 import { LandingLocaleShell } from "@/components/landing/landing-locale-shell";
@@ -6,6 +7,12 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { getLandingSeo } from "@/lib/landing/landing-seo";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
 import { buildHomeGraph } from "@/lib/seo/structured-data";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-landing",
+  display: "swap",
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -24,7 +31,9 @@ export default async function HomePage() {
       <JsonLd graph={buildHomeGraph(locale)} />
       <LandingLocaleProvider>
         <LandingLocaleShell>
-          <main className="min-h-screen w-full max-w-full overflow-x-hidden">
+          <main
+            className={`${outfit.variable} min-h-screen w-full max-w-full overflow-x-hidden font-[family-name:var(--font-landing)]`}
+          >
             <EttajerHomePage />
           </main>
         </LandingLocaleShell>

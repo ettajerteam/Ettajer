@@ -71,8 +71,8 @@ export const COOKIES_SECTIONS_AR = [
         type: "وظيفي",
       },
       {
-        name: "cookie consent state",
-        purpose: "يتذكّر إغلاق إشعار الكوكيز أو خيارات التفضيل عند العرض",
+        name: "ettajer_cookie_consent",
+        purpose: "يخزّن تفضيل ملفات الارتباط (أساسية فقط أو قبول الكل)",
         duration: "حتى 12 شهراً",
         type: "وظيفي",
       },

@@ -8,7 +8,6 @@ import {
 import {
   normalizeSectionSettings,
   sectionVisibilityClassName,
-  isSectionVisibleOnDevice,
 } from "./responsive-styles";
 
 export {
@@ -16,6 +15,7 @@ export {
   normalizeSectionSettings,
   getDeviceStyles,
   isSectionVisibleOnDevice,
+  shouldMountSectionForDevice,
 } from "./responsive-styles";
 
 export function parseSectionVisualSettings(

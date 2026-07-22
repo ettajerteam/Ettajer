@@ -104,7 +104,7 @@ export const HELP_TRANSLATIONS: Record<
       title: "Connecter un domaine personnalisé",
       excerpt: "Votre domaine avec SSL et CDN automatiques.",
       body: [
-        "Paramètres → Domaines → Ajouter un domaine. Suivez les instructions DNS.",
+        "Boutique en ligne → Domaines. Entrez votre nom de domaine et suivez les instructions DNS.",
         "Le SSL est provisionné automatiquement après propagation DNS.",
         "Domaines personnalisés sur tous les plans payants.",
       ],

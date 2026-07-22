@@ -3,10 +3,11 @@
 import { SHADOW_OPTIONS } from "@/lib/builder/style-system";
 import { InspectorFieldGroup, InspectorSelectField } from "../inspector/inspector-fields";
 import { OverrideIndicator } from "./override-indicator";
-import { readString, type StyleEditorProps } from "./style-editor-props";
+import { readString, type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
 export function ShadowEditor({
   device,
+  idPrefix,
   values,
   onPatch,
   hasOverride,
@@ -24,7 +25,7 @@ export function ShadowEditor({
         />
       </div>
       <InspectorSelectField
-        id={`box-shadow-${device}`}
+        id={styleFieldId(idPrefix, "box-shadow", device)}
         label="Box shadow"
         value={readString(values, "boxShadow")}
         options={SHADOW_OPTIONS}

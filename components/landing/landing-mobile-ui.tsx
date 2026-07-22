@@ -1,13 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { LandingChevronForward } from "@/components/landing/landing-direction-icon";
 import { cn } from "@/lib/utils";
-import { getFooterNavGroups } from "@/lib/landing/landing-i18n";
-import { useLandingLocale } from "@/components/landing/landing-locale-context";
-import { LandingLanguageSwitcher } from "@/components/shared/language-switcher";
-const NAV_LOGO = "/brand/Ettajer-logo-black-text-Next-to-the-icon.png";
 
 export const LANDING_MOBILE_SECTION_SCROLL =
   "scroll-mt-[calc(3.25rem+env(safe-area-inset-top))] md:scroll-mt-24";
@@ -199,116 +194,6 @@ export function LandingMobileListRow({
     <Link href={href} className={className} onClick={onClick}>
       {inner}
     </Link>
-  );
-}
-
-const MOBILE_FOOTER_EXPLORE_KEYS = [
-  { key: "features" as const, href: "#why-ettajer", group: "platform" as const },
-  { key: "codSuite" as const, href: "#cod-suite", group: "features" as const },
-  { key: "templates" as const, href: "#showcase", group: "platform" as const },
-  { key: "pricing" as const, href: "#pricing", group: "platform" as const },
-  { key: "faq" as const, href: "#faq", group: "resources" as const },
-] as const;
-
-const MOBILE_FOOTER_SUPPORT_LINKS = [
-  { key: "getHelp" as const, href: "/help", group: "support" as const },
-  { key: "contact" as const, href: "/contact", group: "support" as const },
-  { key: "emailSupport" as const, href: "mailto:support@ettajer.com", group: "support" as const },
-] as const;
-
-export function LandingMobileFooter() {
-  const { copy, locale } = useLandingLocale();
-  const footerNav = getFooterNavGroups(locale);
-  const legalGroup = footerNav.find((group) => group.title === copy.footer.nav.legal.title);
-  const nav = copy.footer.nav;
-
-  return (    <footer
-      id="about"
-      className="bg-[#F2F2F7] py-10 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:hidden"
-    >
-      <div className="mx-auto max-w-6xl space-y-6 px-3 md:px-6">
-        <div className="space-y-3">
-          <Link href="/" className="inline-flex active:opacity-70">
-            <Image
-              src={NAV_LOGO}
-              alt="Ettajer"
-              width={88}
-              height={22}
-              className="h-5 max-h-5 w-auto max-w-[5.5rem] object-contain object-left"
-              style={{ width: "auto" }}
-            />
-          </Link>
-          <p className="max-w-sm text-[15px] leading-relaxed text-[#8E8E93]">
-            {copy.footer.tagline}
-          </p>
-        </div>
-
-        <div>
-          <p className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-[#8E8E93]">
-            {copy.footer.mobile.getStarted}
-          </p>
-          <LandingMobileGroup>
-            <LandingMobileListRow
-              href="/signup"
-              title={copy.footer.mobile.startForFree}
-              subtitle={copy.footer.mobile.firstMonthSubtitle}
-            />
-            <LandingMobileListRow
-              href="/login"
-              title={copy.nav.signIn}
-              subtitle={copy.footer.mobile.signInSubtitle}
-            />
-          </LandingMobileGroup>
-        </div>
-
-        <div>
-          <p className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-[#8E8E93]">
-            {copy.footer.mobile.explore}
-          </p>
-          <LandingMobileGroup>
-            {MOBILE_FOOTER_EXPLORE_KEYS.map((link) => (
-              <LandingMobileListRow
-                key={link.href}
-                href={link.href}
-                title={nav[link.group].links[link.key]}
-              />
-            ))}
-          </LandingMobileGroup>
-        </div>
-
-        <div>
-          <p className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-[#8E8E93]">
-            {copy.footer.mobile.support}
-          </p>
-          <LandingMobileGroup>
-            {MOBILE_FOOTER_SUPPORT_LINKS.map((link) => (
-              <LandingMobileListRow
-                key={link.href}
-                href={link.href}
-                title={nav[link.group].links[link.key]}
-                external={link.href.startsWith("mailto:")}
-              />
-            ))}
-          </LandingMobileGroup>
-        </div>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-2 px-1 text-[13px] text-[#8E8E93]">
-          {legalGroup?.links.map((link) => (
-            <a key={link.label} href={link.href} className="active:text-neutral-900">
-              {link.label}
-            </a>
-          ))}
-        </div>
-
-        <div className="px-1">
-          <LandingLanguageSwitcher variant="footer" />
-        </div>
-
-        <p className="px-1 text-[12px] text-[#C7C7CC]">
-          {copy.footer.copyright(new Date().getFullYear())}
-        </p>
-      </div>
-    </footer>
   );
 }
 

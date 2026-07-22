@@ -24,7 +24,26 @@ export function captureSectionsAsComponentRoot(
   };
 }
 
-export function getComponentRootSections(root: ComponentRoot): StoreSection[] {
-  if (root.kind === "sections") return root.sections;
+export function getComponentRootSections(root: ComponentRoot | null | undefined): StoreSection[] {
+  if (!root || typeof root !== "object") return [];
+  if (root.kind === "sections" && Array.isArray(root.sections)) {
+    return root.sections.filter(
+      (section): section is StoreSection =>
+        !!section &&
+        typeof section === "object" &&
+        typeof section.id === "string" &&
+        typeof section.type === "string"
+    );
+  }
+  // Legacy / corrupt payloads sometimes stored a bare sections array
+  if (Array.isArray((root as { sections?: unknown }).sections)) {
+    return ((root as { sections: unknown[] }).sections).filter(
+      (section): section is StoreSection =>
+        !!section &&
+        typeof section === "object" &&
+        typeof (section as StoreSection).id === "string" &&
+        typeof (section as StoreSection).type === "string"
+    );
+  }
   return [];
 }

@@ -74,6 +74,7 @@ export function elementStyleToCss(values: ElementStyleValues): CSSProperties {
 function cssRuleDeclarations(values: ElementStyleValues): string[] {
   const rules: string[] = [];
   if (values.visible === false) rules.push("display: none !important");
+  else if (values.visible === true) rules.push("display: revert !important");
   if (values.fontFamily) rules.push(`font-family: ${values.fontFamily}`);
   if (values.fontSize) rules.push(`font-size: ${values.fontSize}`);
   if (values.fontWeight) rules.push(`font-weight: ${values.fontWeight}`);

@@ -1,6 +1,7 @@
 "use client";
 
 import { Cookie } from "lucide-react";
+import { CookiePreferences } from "@/components/cookies/cookie-preferences";
 import { LegalDocumentPage } from "@/components/legal/legal-document-page";
 import { LegalPageRoot } from "@/components/legal/legal-page-root";
 
@@ -14,6 +15,7 @@ export function CookiesPage() {
         ctaPrimaryClassName="bg-amber-500 hover:bg-amber-600"
         relatedLinks={{ privacy: true, terms: true, contact: true }}
         ctaSecondaryHref="/privacy"
+        articlePrefix={<CookiePreferences />}
       />
     </LegalPageRoot>
   );

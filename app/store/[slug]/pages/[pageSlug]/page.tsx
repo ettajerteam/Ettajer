@@ -12,12 +12,14 @@ import { parsePageContent } from "@/lib/page-content";
 import { applyPreviewOverrides } from "@/lib/preview-engine";
 import { parseHomeLayout, decodeLayoutFromPreview } from "@/lib/sections/parse";
 import { parsePreviewDevice } from "@/lib/builder/responsive-styles";
-import { getStoreUrl } from "@/lib/storefront-urls";
+import { getStoreUrl, getStorePageUrl } from "@/lib/storefront-urls";
+import { resolveStorefrontCatalog } from "@/lib/storefront-demo-products";
 import Link from "next/link";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import type { ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
+import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
 
 interface PageProps {
   params: { slug: string; pageSlug: string };
@@ -48,10 +50,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     parsed.body.slice(0, 160) ||
     `Read ${page.title} at ${storeData.name}`;
 
-  return {
-    title: `${metaTitle} · ${storeData.name}`,
+  return buildStorefrontMetadata({
+    storeName: storeData.name,
+    path: getStorePageUrl(storeData.slug, page.slug),
+    title: metaTitle,
     description: metaDescription,
-  };
+    image: storeData.logo,
+  });
 }
 
 export default async function StoreCustomPage({ params, searchParams }: PageProps) {
@@ -67,7 +72,10 @@ export default async function StoreCustomPage({ params, searchParams }: PageProp
     serializePublicStore(storeData, storeData.settings),
     searchParams
   );
-  const products = storeData.products.map(serializePublicProduct);
+  const products = resolveStorefrontCatalog(
+    storeData.products.map(serializePublicProduct),
+    { preview: isPreview, theme: store.theme }
+  );
   const categories = storeData.categories.map(serializePublicCategory);
   const featuredCollections = storeData.collections.map(serializePublicCollection);
   const themeId = (store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal") as ThemeId;

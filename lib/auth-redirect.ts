@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { USER_STATUS } from "@/lib/founder";
+import { isPlatformAdmin } from "@/lib/admin/roles";
 
 /**
  * After sign-in, route merchants based on account status and store setup.
@@ -13,14 +14,22 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { status: true, founderNumber: true, email: true, emailVerified: true },
+    select: {
+      status: true,
+      founderNumber: true,
+      email: true,
+      emailVerified: true,
+      role: true,
+    },
   });
 
   if (user && !user.emailVerified) {
     return `/activate?email=${encodeURIComponent(user.email)}`;
   }
 
-  if (user?.status === USER_STATUS.WAITING && user.founderNumber) {
+  const isAdmin = isPlatformAdmin({ role: user?.role, email: user?.email });
+
+  if (!isAdmin && user?.status === USER_STATUS.WAITING && user.founderNumber) {
     return "/early-access";
   }
 

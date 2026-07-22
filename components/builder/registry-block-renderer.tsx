@@ -53,6 +53,8 @@ export function RegistryBlockRenderer({
     featuredCollections,
     product,
     collection,
+    builderMode,
+    sectionId: section.id,
     ...(previewDevice ? { previewDevice } : {}),
   };
 

@@ -7,27 +7,28 @@ import {
   InspectorSelectField,
   InspectorTextField,
 } from "../inspector/inspector-fields";
-import { readString, type StyleEditorProps } from "./style-editor-props";
+import { readString, type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
-export function BorderEditor({ device, values, onPatch }: StyleEditorProps) {
+export function BorderEditor({ device,
+  idPrefix, values, onPatch }: StyleEditorProps) {
   return (
     <InspectorFieldGroup title="Borders" description="Width, style, and color">
       <InspectorTextField
-        id={`border-width-${device}`}
+        id={styleFieldId(idPrefix, "border-width", device)}
         label="Border width"
         value={readString(values, "borderWidth")}
         placeholder="1px"
         onChange={(v) => onPatch({ borderWidth: v || undefined })}
       />
       <InspectorSelectField
-        id={`border-style-${device}`}
+        id={styleFieldId(idPrefix, "border-style", device)}
         label="Border style"
         value={readString(values, "borderStyle")}
         options={BORDER_STYLE_OPTIONS}
         onChange={(v) => onPatch({ borderStyle: v || undefined })}
       />
       <InspectorColorField
-        id={`border-color-${device}`}
+        id={styleFieldId(idPrefix, "border-color", device)}
         label="Border color"
         value={readString(values, "borderColor")}
         onChange={(v) => onPatch({ borderColor: v || undefined })}

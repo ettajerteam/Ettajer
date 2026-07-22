@@ -7,7 +7,7 @@ import {
   InspectorSpacingField,
 } from "../inspector/inspector-fields";
 import { OverrideIndicator } from "./override-indicator";
-import { readString, type StyleEditorProps } from "./style-editor-props";
+import { readString, type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
 interface SpacingEditorProps extends StyleEditorProps {
   mode: "padding" | "margin" | "both";
@@ -16,6 +16,7 @@ interface SpacingEditorProps extends StyleEditorProps {
 
 export function SpacingEditor({
   device,
+  idPrefix,
   values,
   onPatch,
   mode,
@@ -45,7 +46,7 @@ export function SpacingEditor({
             />
           </div>
           <InspectorSelectField
-            id={`padding-preset-${device}`}
+            id={styleFieldId(idPrefix, "padding-preset", device)}
             label="Padding preset"
             value=""
             options={SPACING_PRESETS}
@@ -71,7 +72,7 @@ export function SpacingEditor({
             />
           </div>
           <InspectorSelectField
-            id={`margin-preset-${device}`}
+            id={styleFieldId(idPrefix, "margin-preset", device)}
             label="Margin preset"
             value=""
             options={SPACING_PRESETS}

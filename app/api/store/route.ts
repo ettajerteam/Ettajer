@@ -7,6 +7,18 @@ import { slugify } from "@/lib/utils";
 import { serializeStoreWithSettings } from "@/lib/store-settings";
 import { updateStoreSchema } from "@/lib/validations/store";
 import { DEFAULT_SHIPPING_ZONES, DEFAULT_PAYMENT_GATEWAYS, DEFAULT_TICKET_PRINTERS, DEFAULT_MARKETING_INTEGRATIONS } from "@/lib/store-settings";
+import { isBusinessModel } from "@/lib/onboarding/business-models";
+import {
+  installWebsiteTemplateOnStore,
+  parseWebsiteTemplateId,
+} from "@/lib/website-templates/install-to-store";
+import { isPlatformHost, normalizeCustomDomain } from "@/lib/storefront-urls";
+import { isApexHostname, isValidHostname } from "@/lib/domains/hostname";
+import {
+  addVercelDomain,
+  addVercelWwwRedirect,
+  removeVercelDomain,
+} from "@/lib/domains/vercel";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +31,26 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, category, currency } = body;
+    const { name, category, currency, businessModel, websiteTemplateId } = body;
 
     if (!name || !category || !currency) {
       return NextResponse.json(
         { message: "Name, category, and currency are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!businessModel || !isBusinessModel(businessModel)) {
+      return NextResponse.json(
+        { message: "A valid business model is required" },
+        { status: 400 }
+      );
+    }
+
+    const templateId = parseWebsiteTemplateId(websiteTemplateId);
+    if (!templateId) {
+      return NextResponse.json(
+        { message: "A valid website template is required" },
         { status: 400 }
       );
     }
@@ -51,6 +78,8 @@ export async function POST(request: Request) {
         slug,
         category,
         currency,
+        businessModel,
+        websiteTemplateId: templateId,
         userId: session.user.id,
         settings: {
           create: {
@@ -64,8 +93,15 @@ export async function POST(request: Request) {
       include: { settings: true },
     });
 
+    await installWebsiteTemplateOnStore(store.id, templateId);
+
+    const storeWithTemplate = await prisma.store.findFirst({
+      where: { id: store.id },
+      include: { settings: true },
+    });
+
     return NextResponse.json(
-      { store: serializeStoreWithSettings(store) },
+      { store: serializeStoreWithSettings(storeWithTemplate!) },
       { status: 201 }
     );
   } catch (error) {
@@ -147,6 +183,17 @@ export async function PUT(request: Request) {
     if (data.secondaryColor !== undefined) storeUpdate.secondaryColor = data.secondaryColor;
     if (data.font !== undefined) storeUpdate.font = data.font;
 
+    if (data.slug !== undefined && data.slug !== existing.slug) {
+      const slugTaken = await prisma.store.findFirst({
+        where: { slug: data.slug, NOT: { id: existing.id } },
+        select: { id: true },
+      });
+      if (slugTaken) {
+        return NextResponse.json({ message: "That store URL is already taken" }, { status: 409 });
+      }
+      storeUpdate.slug = data.slug;
+    }
+
     const settingsUpdate: Record<string, unknown> = {};
     if (data.shippingZones !== undefined) {
       settingsUpdate.shippingZones = data.shippingZones;
@@ -159,6 +206,55 @@ export async function PUT(request: Request) {
     }
     if (data.marketingIntegrations !== undefined) {
       settingsUpdate.marketingIntegrations = data.marketingIntegrations as unknown as Prisma.InputJsonValue;
+    }
+    if (data.customDomain !== undefined) {
+      const previous = normalizeCustomDomain(existing.settings?.customDomain);
+      const normalized = normalizeCustomDomain(data.customDomain);
+      if (normalized && !isValidHostname(normalized)) {
+        return NextResponse.json(
+          { message: "Enter a valid domain like shop.yourbrand.com" },
+          { status: 400 }
+        );
+      }
+      if (normalized && isPlatformHost(normalized)) {
+        return NextResponse.json(
+          { message: "That domain belongs to Ettajer and cannot be used" },
+          { status: 400 }
+        );
+      }
+      if (normalized) {
+        const domainTaken = await prisma.storeSettings.findFirst({
+          where: {
+            OR: [{ customDomain: normalized }, { customDomain: `www.${normalized}` }],
+            NOT: { storeId: existing.id },
+          },
+          select: { storeId: true },
+        });
+        if (domainTaken) {
+          return NextResponse.json(
+            { message: "That custom domain is already connected to another store" },
+            { status: 409 }
+          );
+        }
+        const added = await addVercelDomain(normalized);
+        if (!added.ok) {
+          return NextResponse.json(
+            { message: added.error ?? "Could not provision domain" },
+            { status: 502 }
+          );
+        }
+        if (isApexHostname(normalized)) {
+          await addVercelWwwRedirect(normalized);
+        }
+        if (previous && previous !== normalized) {
+          await removeVercelDomain(previous);
+          if (isApexHostname(previous)) await removeVercelDomain(`www.${previous}`);
+        }
+      } else if (previous) {
+        await removeVercelDomain(previous);
+        if (isApexHostname(previous)) await removeVercelDomain(`www.${previous}`);
+      }
+      settingsUpdate.customDomain = normalized;
     }
 
     await prisma.$transaction(async (tx) => {
@@ -183,6 +279,10 @@ export async function PUT(request: Request) {
               paymentGateways: data.paymentGateways ?? DEFAULT_PAYMENT_GATEWAYS,
               ticketPrinters: (data.ticketPrinters ?? DEFAULT_TICKET_PRINTERS) as unknown as Prisma.InputJsonValue,
               marketingIntegrations: (data.marketingIntegrations ?? DEFAULT_MARKETING_INTEGRATIONS) as unknown as Prisma.InputJsonValue,
+              customDomain:
+                data.customDomain !== undefined
+                  ? normalizeCustomDomain(data.customDomain)
+                  : null,
             },
           });
         }
@@ -194,9 +294,19 @@ export async function PUT(request: Request) {
       include: { settings: true },
     });
 
-    if (data.marketingIntegrations !== undefined) {
+    if (
+      data.marketingIntegrations !== undefined ||
+      data.slug !== undefined ||
+      data.customDomain !== undefined
+    ) {
       revalidatePath("/dashboard/marketing");
       revalidatePath("/dashboard/marketing/[platform]", "page");
+      revalidatePath("/dashboard/settings");
+      revalidatePath("/dashboard/domains");
+      if (existing.slug) {
+        revalidatePath(`/store/${existing.slug}`);
+        revalidatePath(`/store/${existing.slug}`, "layout");
+      }
       if (updated?.slug) {
         revalidatePath(`/store/${updated.slug}`);
         revalidatePath(`/store/${updated.slug}`, "layout");

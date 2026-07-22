@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProductList } from "@/components/products/product-list";
 import { ProductTableSkeleton } from "@/components/products/product-table-skeleton";
-import { ProductSheet } from "@/components/products/product-sheet";
 import { ProductsSectionNav } from "@/components/products/products-section-nav";
 import { OrdersStatGrid } from "@/components/orders/orders-stat-grid";
 import { formatCurrency } from "@/lib/utils";
@@ -17,12 +16,10 @@ import {
   EMPTY_PRODUCTS_SECTION_COUNTS,
 } from "@/types/products-stats";
 import type { Product } from "@/types";
-import type { TicketPrinter } from "@/lib/ticket-printers";
 
 interface ProductsClientProps {
   initialProducts: Product[];
   currency: string;
-  ticketPrinters?: TicketPrinter[];
   counts?: ProductsSectionCounts;
   stats?: ProductsListStats;
 }
@@ -52,7 +49,6 @@ function computeProductStats(products: Product[]): ProductsListStats {
 export function ProductsClient({
   initialProducts,
   currency,
-  ticketPrinters = [],
   counts = EMPTY_PRODUCTS_SECTION_COUNTS,
   stats = EMPTY_PRODUCTS_LIST_STATS,
 }: ProductsClientProps) {
@@ -60,15 +56,17 @@ export function ProductsClient({
   const searchParams = useSearchParams();
   const [products, setProducts] = useState(initialProducts);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "draft">("all");
   const [loading, setLoading] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const fetchProducts = useCallback(async (query?: string) => {
+  const fetchProducts = useCallback(async (query?: string, status?: "all" | "active" | "draft") => {
     setLoading(true);
     try {
-      const params = query ? `?search=${encodeURIComponent(query)}` : "";
-      const res = await fetch(`/api/products${params}`);
+      const params = new URLSearchParams();
+      if (query) params.set("search", query);
+      if (status && status !== "all") params.set("status", status);
+      const qs = params.toString();
+      const res = await fetch(`/api/products${qs ? `?${qs}` : ""}`);
       const data = await res.json();
       if (res.ok) setProducts(data.products);
     } finally {
@@ -78,39 +76,41 @@ export function ProductsClient({
 
   useEffect(() => {
     if (searchParams.get("new") === "true") {
-      setEditingProduct(null);
-      setSheetOpen(true);
-      router.replace("/dashboard/products", { scroll: false });
+      router.replace("/dashboard/products/new");
     }
   }, [searchParams, router]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (search) fetchProducts(search);
-      else setProducts(initialProducts);
+      if (search || statusFilter !== "all") {
+        void fetchProducts(search || undefined, statusFilter);
+      } else {
+        setProducts(initialProducts);
+      }
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, fetchProducts, initialProducts]);
+  }, [search, statusFilter, fetchProducts, initialProducts]);
+
+  const filteredProducts = useMemo(() => products, [products]);
 
   const displayStats = useMemo(() => {
-    if (search) return computeProductStats(products);
+    if (search || statusFilter !== "all") return computeProductStats(filteredProducts);
     return stats;
-  }, [search, products, stats]);
+  }, [search, statusFilter, filteredProducts, stats]);
 
-  const openAddSheet = () => {
-    setEditingProduct(null);
-    setSheetOpen(true);
+  const openAdd = () => {
+    router.push("/dashboard/products/new");
   };
 
-  const openEditSheet = (product: Product) => {
-    setEditingProduct(product);
-    setSheetOpen(true);
+  const openEdit = (product: Product) => {
+    router.push(`/dashboard/products/${product.id}/edit`);
   };
 
-  const handleSheetClose = (open: boolean) => {
-    setSheetOpen(open);
-    if (!open) setEditingProduct(null);
-  };
+  const statusChips: { id: "all" | "active" | "draft"; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "active", label: "Active" },
+    { id: "draft", label: "Drafts" },
+  ];
 
   const statItems = [
     { icon: Package, label: "Total products", value: displayStats.total.toLocaleString() },
@@ -133,13 +133,29 @@ export function ProductsClient({
         <ProductTableSkeleton />
       ) : (
         <ProductList
-          products={products}
+          products={filteredProducts}
           currency={currency}
-          onEdit={openEditSheet}
-          onAdd={openAddSheet}
-          onRefresh={() => fetchProducts(search || undefined)}
+          onEdit={openEdit}
+          onAdd={openAdd}
+          onRefresh={() => fetchProducts(search || undefined, statusFilter)}
           toolbar={
             <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-lg border border-border p-0.5">
+                {statusChips.map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setStatusFilter(chip.id)}
+                    className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+                      statusFilter === chip.id
+                        ? "bg-neutral-900 text-white"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -150,7 +166,7 @@ export function ProductsClient({
                 />
               </div>
               <Button
-                onClick={openAddSheet}
+                onClick={openAdd}
                 size="sm"
                 className="h-9 rounded-lg bg-[#007AFF] hover:bg-[#007AFF]/90"
               >
@@ -161,15 +177,6 @@ export function ProductsClient({
           }
         />
       )}
-
-      <ProductSheet
-        open={sheetOpen}
-        onOpenChange={handleSheetClose}
-        currency={currency}
-        ticketPrinters={ticketPrinters}
-        product={editingProduct}
-        onSuccess={() => fetchProducts(search || undefined)}
-      />
     </div>
   );
 }

@@ -3,39 +3,53 @@ import type { BlockDefinition } from "../types";
 import { withBlockComponent } from "./components";
 import { CORE_BLOCK_DEFINITIONS } from "./core-blocks";
 import { imageBlock } from "./image.block";
+import { galleryBlock } from "./gallery.block";
+import { videoBlock } from "./video.block";
+import { contactFormBlock } from "./contact-form.block";
 import {
-  featuresBlock,
   testimonialsBlock,
   faqBlock,
-  ctaBlock,
   newsletterBlock,
 } from "./marketing-blocks";
 import { featuredProductsBlock } from "./product-grid.block";
 import { PRODUCT_PAGE_BLOCKS } from "./product-page-blocks";
 import { COLLECTION_PAGE_BLOCKS } from "./collection-page-blocks";
 import {
-  layoutStubBlocks,
-  commerceStubBlocks,
-  mediaStubBlocks,
-  formsStubBlocks,
-  advancedStubBlocks,
-} from "./stub-blocks";
+  spacerBlock,
+  dividerBlock,
+  columnsBlock,
+  logoWallBlock,
+} from "./layout-blocks";
+import {
+  productCardBlock,
+  countdownBlock,
+  ctaBannerBlock,
+  featuresGridBlock,
+  searchBarBlock,
+  embedBlock,
+} from "./extension-blocks";
 
 const EXTENSION_DEFINITIONS: Omit<BlockDefinition, "component">[] = [
-  ...layoutStubBlocks,
   imageBlock,
-  featuresBlock,
+  galleryBlock,
+  videoBlock,
+  contactFormBlock,
+  featuresGridBlock,
   testimonialsBlock,
   faqBlock,
-  ctaBlock,
+  ctaBannerBlock,
   newsletterBlock,
   featuredProductsBlock,
+  productCardBlock,
+  spacerBlock,
+  dividerBlock,
+  columnsBlock,
+  logoWallBlock,
+  countdownBlock,
+  searchBarBlock,
+  embedBlock,
   ...PRODUCT_PAGE_BLOCKS,
   ...COLLECTION_PAGE_BLOCKS,
-  ...commerceStubBlocks,
-  ...mediaStubBlocks,
-  ...formsStubBlocks,
-  ...advancedStubBlocks,
 ];
 
 /** All block definitions in registration order (core blocks first). */

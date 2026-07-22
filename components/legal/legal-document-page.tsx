@@ -28,6 +28,7 @@ type LegalDocumentPageProps = {
     contact?: boolean;
   };
   ctaSecondaryHref: string;
+  articlePrefix?: React.ReactNode;
 };
 
 export function LegalDocumentPage({
@@ -37,6 +38,7 @@ export function LegalDocumentPage({
   ctaPrimaryClassName,
   relatedLinks,
   ctaSecondaryHref,
+  articlePrefix,
 }: LegalDocumentPageProps) {
   const { locale } = useLandingLocale();
   const doc = getLegalDocCopy(locale, kind);
@@ -133,6 +135,8 @@ export function LegalDocumentPage({
                 ) : null}
               </p>
             </div>
+
+            {articlePrefix ? <div className="mb-8">{articlePrefix}</div> : null}
 
             <div className="space-y-10 md:space-y-12">
               {sections.map((section) => (

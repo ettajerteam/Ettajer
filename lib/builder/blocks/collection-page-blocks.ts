@@ -1,10 +1,10 @@
 import type { BlockDefinition } from "../types";
+import type { SettingFieldSchema } from "../block-schema";
 import {
   BASIC_BACKGROUND_STYLE,
   BASIC_SPACING_STYLES,
   BASIC_TYPOGRAPHY_STYLES,
   PRODUCT_GRID_LAYOUT_FIELDS,
-  RICH_TEXT_CONTENT_FIELDS,
   STANDARD_ADVANCED_FIELDS,
   TITLE_CONTENT_FIELD,
 } from "./shared-schemas";
@@ -18,7 +18,7 @@ function collectionBlock(
   gradient: string,
   defaultContent: Record<string, unknown> = {},
   contentFields = [] as BlockDefinition["settingsSchema"]["content"],
-  layoutFields = BASIC_SPACING_STYLES
+  layoutFields: SettingFieldSchema[] = BASIC_SPACING_STYLES
 ): Omit<BlockDefinition, "component"> {
   return {
     id,
@@ -51,8 +51,21 @@ export const collectionPageBannerBlock = collectionBlock(
   "Collection hero image banner",
   "image",
   "from-indigo-50 to-blue-100",
-  { showBreadcrumb: true },
+  { showBreadcrumb: true, showTitle: true, layout: "hero", minHeight: "42vh" },
   [
+    {
+      key: "layout",
+      type: "select",
+      label: "Design layout",
+      group: "layout",
+      focus: "section",
+      options: [
+        { value: "hero", label: "Full-bleed hero" },
+        { value: "contained", label: "Contained banner" },
+        { value: "split", label: "Split image + title" },
+        { value: "minimal", label: "Thin strip" },
+      ],
+    },
     {
       key: "imageUrl",
       type: "image",
@@ -68,6 +81,13 @@ export const collectionPageBannerBlock = collectionBlock(
       group: "text",
       focus: ["text", "section"],
     },
+    {
+      key: "showTitle",
+      type: "toggle",
+      label: "Show title on banner",
+      group: "text",
+      focus: ["text", "section"],
+    },
   ]
 );
 
@@ -78,8 +98,27 @@ export const collectionDescriptionBlock = collectionBlock(
   "Collection title and description",
   "type",
   "from-slate-50 to-gray-100",
-  { showDescription: true },
+  { showDescription: true, showTitle: false, layout: "centered" },
   [
+    {
+      key: "layout",
+      type: "select",
+      label: "Design layout",
+      group: "layout",
+      focus: "section",
+      options: [
+        { value: "stacked", label: "Stacked" },
+        { value: "centered", label: "Centered" },
+        { value: "inline", label: "Title + description row" },
+      ],
+    },
+    {
+      key: "showTitle",
+      type: "toggle",
+      label: "Show title",
+      group: "text",
+      focus: ["text", "section"],
+    },
     {
       key: "showDescription",
       type: "toggle",
@@ -97,8 +136,22 @@ export const collectionFiltersBlock = collectionBlock(
   "Category and tag filters",
   "filter",
   "from-violet-50 to-purple-50",
-  { title: "Filter" },
-  [TITLE_CONTENT_FIELD]
+  { title: "Browse", layout: "minimal" },
+  [
+    TITLE_CONTENT_FIELD,
+    {
+      key: "layout",
+      type: "select",
+      label: "Design layout",
+      group: "layout",
+      focus: "section",
+      options: [
+        { value: "chips", label: "Chips" },
+        { value: "pills", label: "Pills" },
+        { value: "minimal", label: "Text tabs" },
+      ],
+    },
+  ]
 );
 
 export const collectionProductGridBlock = collectionBlock(
@@ -108,8 +161,31 @@ export const collectionProductGridBlock = collectionBlock(
   "Products in this collection",
   "shopping-bag",
   "from-blue-50 to-slate-100",
-  {},
-  [],
+  { columns: 3, density: "comfortable", layout: "grid" },
+  [
+    {
+      key: "layout",
+      type: "select",
+      label: "Design layout",
+      group: "layout",
+      focus: "section",
+      options: [
+        { value: "grid", label: "Standard grid" },
+        { value: "dense", label: "Dense showcase" },
+      ],
+    },
+    {
+      key: "density",
+      type: "select",
+      label: "Density",
+      group: "layout",
+      focus: "section",
+      options: [
+        { value: "comfortable", label: "Comfortable" },
+        { value: "dense", label: "Dense" },
+      ],
+    },
+  ],
   PRODUCT_GRID_LAYOUT_FIELDS
 );
 
@@ -121,11 +197,24 @@ export const collectionNewsletterBlock = collectionBlock(
   "mail",
   "from-emerald-50 to-teal-50",
   {
-    title: "Stay in the loop",
-    description: "Get updates on new arrivals and offers.",
+    title: "Stay in the edit",
+    description: "New arrivals and restocks — quiet updates only.",
     buttonText: "Subscribe",
+    layout: "strip",
   },
   [
+    {
+      key: "layout",
+      type: "select",
+      label: "Design layout",
+      group: "layout",
+      focus: "section",
+      options: [
+        { value: "card", label: "Contained card" },
+        { value: "banner", label: "Full banner" },
+        { value: "strip", label: "Compact strip" },
+      ],
+    },
     TITLE_CONTENT_FIELD,
     {
       key: "description",
@@ -152,8 +241,20 @@ export const collectionPaginationBlock = collectionBlock(
   "Navigate between product pages",
   "list",
   "from-neutral-50 to-stone-100",
-  { pageSize: 12 },
+  { pageSize: 12, layout: "simple" },
   [
+    {
+      key: "layout",
+      type: "select",
+      label: "Design layout",
+      group: "layout",
+      focus: "section",
+      options: [
+        { value: "numbered", label: "Numbered pages" },
+        { value: "simple", label: "Previous / Next" },
+        { value: "load-more", label: "Load more" },
+      ],
+    },
     {
       key: "pageSize",
       type: "number",

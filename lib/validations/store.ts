@@ -55,6 +55,12 @@ export const marketingIntegrationsSchema = z.object({
 
 export const updateStoreSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  slug: z
+    .string()
+    .min(2)
+    .max(60)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, and hyphens")
+    .optional(),
   description: z.string().max(2000).optional().nullable(),
   logo: z.string().nullable().optional(),
   contactEmail: z.string().email().optional().nullable(),
@@ -70,6 +76,7 @@ export const updateStoreSchema = z.object({
   paymentGateways: paymentGatewaysSchema.optional(),
   ticketPrinters: z.array(ticketPrinterSchema).optional(),
   marketingIntegrations: marketingIntegrationsSchema.optional(),
+  customDomain: z.string().max(253).nullable().optional(),
 });
 
 export type UpdateStoreInput = z.infer<typeof updateStoreSchema>;

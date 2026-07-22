@@ -86,7 +86,7 @@ export function CurrentThemeCard({
           <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
             <Button
               asChild
-              className="rounded-xl premium-glow-blue transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              className="hidden rounded-xl premium-glow-blue transition-transform hover:scale-[1.02] active:scale-[0.98] md:inline-flex"
               style={{ backgroundColor: template.defaultPrimary }}
             >
               <Link href="/dashboard/themes/editor">
@@ -94,10 +94,13 @@ export function CurrentThemeCard({
                 Open website editor
               </Link>
             </Button>
+            <p className="w-full text-xs text-muted-foreground md:hidden">
+              Website editor is available on desktop only.
+            </p>
             <Button variant="outline" className="rounded-xl" asChild>
               <Link href={`/store/${storeSlug}`} target="_blank">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                View store
+                View live site
               </Link>
             </Button>
           </div>

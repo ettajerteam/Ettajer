@@ -3,7 +3,7 @@ import { getInspectorProfile } from "./inspector-config";
 import { getBlock, getBlockBySectionType } from "./block-registry";
 import { getSchemaInspectorFocuses, hasSchemaFields } from "./schema-inspector-utils";
 import { sectionToBlockId } from "./legacy-adapter";
-import { SECTION_REGISTRY } from "@/lib/sections/registry";
+import { getSectionLabel } from "@/lib/sections/registry";
 import type { StoreSection } from "@/lib/sections/types";
 import { getComponentRef, isComponentInstance } from "@/lib/builder/components";
 
@@ -86,7 +86,7 @@ function sectionDisplayName(section: StoreSection, componentNames?: Record<strin
   }
   const block = getBlockBySectionType(section.type) ?? getBlock(sectionToBlockId(section));
   if (block?.name) return block.name;
-  return SECTION_REGISTRY[section.type].label;
+  return getSectionLabel(section.type);
 }
 
 export function sectionElementFocuses(section: StoreSection): InspectorElementFocus[] {

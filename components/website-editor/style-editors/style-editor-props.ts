@@ -8,10 +8,20 @@ export interface StyleEditorProps {
   onPatch: (patch: Partial<ElementStyleValues>, options?: { responsive?: boolean }) => void;
   emphasized?: boolean;
   clearOverride?: (key: keyof ElementStyleValues) => void;
+  /** Unique prefix so Style + Layout tabs (or dual inspectors) never collide. */
+  idPrefix?: string;
 }
 
 export interface StyleEditorGroupProps extends StyleEditorProps {
   hasOverride?: (key: keyof ElementStyleValues) => boolean;
+}
+
+export function styleFieldId(
+  idPrefix: string | undefined,
+  name: string,
+  device: DeviceMode
+): string {
+  return idPrefix ? `${idPrefix}-${name}-${device}` : `${name}-${device}`;
 }
 
 export function readString(values: ElementStyleValues, key: keyof ElementStyleValues): string {

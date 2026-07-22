@@ -57,7 +57,7 @@ export function CatalogPage({
 
           <FadeInSection className="mb-10">
             <div className="relative h-48 sm:h-64 rounded-2xl overflow-hidden mb-6">
-              <Image src={coverImage} alt="" fill className="object-cover" sizes="(max-width: 768px) 100vw, 1152px" />
+              <Image src={coverImage} alt={title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 1152px" />
             </div>
             <h1
               className={cn(

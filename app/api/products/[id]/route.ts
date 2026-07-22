@@ -4,6 +4,8 @@ import { slugify } from "@/lib/utils";
 import { productSchema } from "@/lib/validations/product";
 import { getAuthenticatedStore, serializeProduct, productInclude } from "@/lib/products";
 import { validateProductIds } from "@/lib/catalog";
+import { serializeProductImagesForDb } from "@/lib/product-images";
+import type { ProductType } from "@/lib/product-types";
 
 interface RouteParams {
   params: { id: string };
@@ -34,6 +36,23 @@ async function updateProduct(request: Request, productId: string) {
   }
 
   const data = parsed.data;
+  const reviews = data.reviews
+    .filter((r) => r.author.trim() && r.text.trim())
+    .map((r) => ({
+      id: r.id,
+      author: r.author.trim(),
+      location: r.location?.trim() || undefined,
+      rating: r.rating,
+      text: r.text.trim(),
+      createdAt: r.createdAt || new Date().toISOString(),
+    }));
+  const details = data.details
+    .filter((d) => d.label.trim() && d.value.trim())
+    .map((d) => ({
+      id: d.id,
+      label: d.label.trim(),
+      value: d.value.trim(),
+    }));
 
   if (data.categoryId) {
     const category = await prisma.category.findFirst({
@@ -48,7 +67,7 @@ async function updateProduct(request: Request, productId: string) {
     return NextResponse.json({ message: "Invalid collection assignment" }, { status: 400 });
   }
 
-  let slug = slugify(data.title);
+  let slug = slugify(data.title) || existing.slug;
   if (slug !== existing.slug) {
     const slugExists = await prisma.product.findFirst({
       where: { storeId: store.id, slug },
@@ -58,6 +77,8 @@ async function updateProduct(request: Request, productId: string) {
     }
   }
 
+  const productType = data.productType as ProductType;
+
   const product = await prisma.product.update({
     where: { id: existing.id },
     data: {
@@ -66,10 +87,18 @@ async function updateProduct(request: Request, productId: string) {
       description: data.description || null,
       price: data.price,
       comparePrice: data.comparePrice ?? null,
+      costPrice: data.costPrice ?? null,
       inventory: data.inventory,
       sku: data.sku || null,
-      images: data.images,
+      barcode: data.barcode || null,
+      status: data.status,
+      productType,
+      copyrightOwner: data.copyrightOwner,
+      copyrightNotice: data.copyrightNotice,
+      images: serializeProductImagesForDb(data.images),
       variants: data.variants,
+      details,
+      reviews,
       tags: data.tags,
       ticketPrinterId: data.ticketPrinterId ?? null,
       categoryId: data.categoryId ?? null,

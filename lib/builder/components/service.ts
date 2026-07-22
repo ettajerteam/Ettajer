@@ -1,5 +1,22 @@
 import { prisma } from "@/lib/db";
 import type { BuilderComponent, ComponentRoot } from "@/lib/builder/components";
+import type { StoreSection } from "@/lib/sections/types";
+
+function normalizeComponentRoot(raw: unknown): ComponentRoot {
+  if (Array.isArray(raw)) {
+    return { kind: "sections", sections: raw as StoreSection[] };
+  }
+  if (raw && typeof raw === "object") {
+    const obj = raw as { kind?: string; sections?: unknown };
+    if (Array.isArray(obj.sections)) {
+      return { kind: "sections", sections: obj.sections as StoreSection[] };
+    }
+    if (obj.kind === "element") {
+      return raw as ComponentRoot;
+    }
+  }
+  return { kind: "sections", sections: [] };
+}
 
 function rowToComponent(row: {
   id: string;
@@ -21,7 +38,7 @@ function rowToComponent(row: {
     description: row.description ?? undefined,
     category: row.category ?? undefined,
     thumbnail: row.thumbnail ?? undefined,
-    root: row.root as ComponentRoot,
+    root: normalizeComponentRoot(row.root),
     version: row.version,
     metadata: (row.metadata as BuilderComponent["metadata"]) ?? undefined,
     createdAt: row.createdAt.toISOString(),

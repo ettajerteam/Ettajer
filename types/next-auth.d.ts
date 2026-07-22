@@ -9,6 +9,7 @@ declare module "next-auth" {
       image?: string | null;
       status?: string;
       founderNumber?: number | null;
+      role?: string;
     };
   }
 }
@@ -18,6 +19,7 @@ declare module "next-auth/jwt" {
     id?: string;
     status?: string;
     founderNumber?: number | null;
+    role?: string;
     remember?: boolean;
     name?: string | null;
   }

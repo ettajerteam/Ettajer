@@ -23,6 +23,7 @@ interface EditorCollapsiblePanelProps {
   children: ReactNode;
   className?: string;
   expandedWidth?: string;
+  "aria-label"?: string;
 }
 
 export function EditorPanelCloseButton({
@@ -65,22 +66,25 @@ export function EditorCollapsiblePanel({
   children,
   className,
   expandedWidth = side === "left" ? "280px" : "300px",
+  "aria-label": ariaLabel,
 }: EditorCollapsiblePanelProps) {
   const isLeft = side === "left";
 
   return (
     <aside
       className={cn(
-        "relative flex shrink-0 flex-col border-neutral-200 bg-white transition-[width] duration-300 ease-in-out",
+        "relative flex min-h-0 shrink-0 flex-col overflow-hidden border-neutral-200 bg-white transition-[width] duration-300 ease-in-out",
         isLeft ? "border-r" : "border-l",
         className
       )}
       style={{ width: open ? expandedWidth : COLLAPSED_WIDTH }}
+      aria-label={ariaLabel ?? (isLeft ? "Editor tools" : "Section inspector")}
+      data-editor-panel
     >
       {open ? (
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
       ) : (
-        <div className="flex h-full flex-col items-center py-3">
+        <div className="flex h-full min-h-0 flex-col items-center overflow-hidden py-3">
           <Button
             type="button"
             variant="ghost"
@@ -96,7 +100,9 @@ export function EditorCollapsiblePanel({
               <PanelRightOpen className="h-4 w-4" />
             )}
           </Button>
-          <div className="flex flex-1 flex-col items-center gap-1">{collapsedContent}</div>
+          <div className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
+            {collapsedContent}
+          </div>
         </div>
       )}
     </aside>

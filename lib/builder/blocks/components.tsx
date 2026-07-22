@@ -6,6 +6,25 @@ import { HeroBlock } from "./hero-block";
 import { ImageBlock } from "./image-block";
 import { ProductGridBlock } from "./product-grid-block";
 import { RichTextBlock } from "./rich-text-block";
+import { GalleryBlock } from "./gallery-block";
+import { VideoBlock } from "./video-block";
+import { ContactFormBlock } from "./contact-form-block";
+import { FaqBlock } from "./faq-block";
+import { TestimonialsBlock } from "./testimonials-block";
+import {
+  SpacerBlock,
+  DividerBlock,
+  ColumnsBlock,
+  LogoWallBlock,
+} from "./layout-block-components";
+import {
+  ProductCardBlock,
+  CountdownBlock,
+  CtaBlock,
+  FeaturesBlock,
+  SearchBlock,
+  EmbedBlock,
+} from "./extension-block-components";
 import { PRODUCT_PAGE_COMPONENTS } from "./product-page-components";
 import { COLLECTION_PAGE_COMPONENTS } from "./collection-page-components";
 import type { BlockComponent, BlockDefinition as FullBlockDefinition, BlockId } from "../types";
@@ -20,16 +39,27 @@ export { ImageBlock } from "./image-block";
 export const BLOCK_COMPONENTS: Partial<Record<BlockId, BlockComponent>> = {
   hero: HeroBlock,
   "rich-text": RichTextBlock,
-  features: RichTextBlock,
-  testimonials: RichTextBlock,
-  faq: RichTextBlock,
-  cta: RichTextBlock,
   newsletter: RichTextBlock,
+  testimonials: TestimonialsBlock,
+  faq: FaqBlock,
+  cta: CtaBlock,
+  features: FeaturesBlock,
   "product-grid": ProductGridBlock,
   "featured-products": ProductGridBlock,
+  "product-card": ProductCardBlock,
   "collection-banner": FeaturedCollectionsBlock,
   footer: FooterBlock,
   image: ImageBlock,
+  gallery: GalleryBlock,
+  video: VideoBlock,
+  "contact-form": ContactFormBlock,
+  spacer: SpacerBlock,
+  divider: DividerBlock,
+  columns: ColumnsBlock,
+  "logo-wall": LogoWallBlock,
+  countdown: CountdownBlock,
+  search: SearchBlock,
+  embed: EmbedBlock,
   ...PRODUCT_PAGE_COMPONENTS,
   ...COLLECTION_PAGE_COMPONENTS,
 };

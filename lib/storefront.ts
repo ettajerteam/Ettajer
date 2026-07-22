@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db";
-import { parseProductImages, parseProductVariants } from "@/lib/products";
+import { parseProductImages } from "@/lib/product-images";
+import { parseProductVariants } from "@/lib/product-variants";
+import { parseProductReviews } from "@/lib/product-reviews";
+import { parseProductDetails } from "@/lib/product-details";
 import {
   parsePaymentGateways,
   parseShippingZones,
@@ -12,6 +15,7 @@ import {
   serializePublicCategory,
   serializePublicCollection,
 } from "@/lib/catalog";
+import { parseDesignTokens, resolveDesignTokens } from "@/lib/design-tokens";
 import type { PublicProduct, PublicStore } from "@/types/storefront";
 
 export function serializePublicStore(
@@ -22,6 +26,7 @@ export function serializePublicStore(
     logo: string | null;
     description: string | null;
     currency: string;
+    language?: string | null;
     primaryColor: string;
     secondaryColor: string;
     font: string;
@@ -32,6 +37,7 @@ export function serializePublicStore(
     paymentGateways?: unknown;
     marketingIntegrations?: unknown;
     navigation?: unknown;
+    seo?: unknown;
   } | null
 ): PublicStore {
   const zones = parseShippingZones(settings?.shippingZones);
@@ -41,6 +47,8 @@ export function serializePublicStore(
   );
   const freeShippingThreshold =
     zones[0]?.freeShippingThreshold ?? FREE_SHIPPING_THRESHOLD;
+  const tokens = resolveDesignTokens(store.theme, parseDesignTokens(settings?.seo));
+  const language = store.language?.trim() || "en";
 
   return {
     id: store.id,
@@ -49,17 +57,22 @@ export function serializePublicStore(
     logo: store.logo,
     description: store.description,
     currency: store.currency,
+    language,
     primaryColor: store.primaryColor,
     secondaryColor: store.secondaryColor,
     font: store.font,
     theme: store.theme,
+    textColor: tokens.textColor,
+    mutedColor: tokens.mutedColor,
+    borderColor: tokens.borderColor,
+    buttonRadius: tokens.buttonRadius,
     checkout: {
       cashOnDelivery: gateways.cashOnDelivery,
       stripe: gateways.stripe,
       freeShippingThreshold,
     },
     marketing,
-    navigation: parseNavigation(settings?.navigation),
+    navigation: parseNavigation(settings?.navigation, language),
   };
 }
 
@@ -73,7 +86,12 @@ export function serializePublicProduct(product: {
   inventory: number;
   images: unknown;
   variants: unknown;
+  reviews?: unknown;
+  details?: unknown;
   tags: string[];
+  productType?: string | null;
+  copyrightOwner?: string | null;
+  copyrightNotice?: string | null;
 }): PublicProduct {
   return {
     id: product.id,
@@ -86,6 +104,11 @@ export function serializePublicProduct(product: {
     images: parseProductImages(product.images),
     variants: parseProductVariants(product.variants),
     tags: product.tags,
+    details: parseProductDetails(product.details),
+    reviews: parseProductReviews(product.reviews),
+    productType: product.productType ?? "physical",
+    copyrightOwner: product.copyrightOwner ?? null,
+    copyrightNotice: product.copyrightNotice ?? null,
   };
 }
 
@@ -103,6 +126,7 @@ export async function getStoreBySlug(slug: string) {
         orderBy: { name: "asc" },
       },
       products: {
+        where: { status: "active" },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -126,7 +150,7 @@ export async function getStoreCategory(storeSlug: string, categorySlug: string) 
   const category = await prisma.category.findFirst({
     where: { storeId: store.id, slug: categorySlug, status: "active" },
     include: {
-      products: { orderBy: { createdAt: "desc" } },
+      products: { where: { status: "active" }, orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -152,7 +176,7 @@ export async function getStoreCollection(storeSlug: string, collectionSlug: stri
   const collection = await prisma.collection.findFirst({
     where: { storeId: store.id, slug: collectionSlug },
     include: {
-      products: { orderBy: { createdAt: "desc" } },
+      products: { where: { status: "active" }, orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -167,7 +191,7 @@ export async function getStoreProduct(storeSlug: string, productSlug: string) {
     include: {
       settings: true,
       products: {
-        where: { slug: productSlug },
+        where: { slug: productSlug, status: "active" },
         take: 1,
       },
     },
@@ -178,13 +202,4 @@ export async function getStoreProduct(storeSlug: string, productSlug: string) {
   return { store, product: store.products[0] };
 }
 
-export function getFontFamily(font: string): string {
-  const families: Record<string, string> = {
-    Inter: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif",
-    Poppins: "var(--font-poppins), sans-serif",
-    Outfit: "var(--font-outfit), sans-serif",
-    "Space Grotesk": "var(--font-space), sans-serif",
-    "Playfair Display": "var(--font-playfair), serif",
-  };
-  return families[font] ?? families.Inter;
-}
+export { getFontFamily } from "@/lib/storefront-fonts";

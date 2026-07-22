@@ -1,10 +1,6 @@
 import type { SettingFieldSchema } from "../block-schema";
 import type { StyleGroupId } from "../style-system";
-import {
-  ANIMATION_OPTIONS,
-  FONT_SIZE_OPTIONS,
-  FONT_WEIGHT_OPTIONS,
-} from "../inspector-config";
+import { ANIMATION_OPTIONS } from "../inspector-config";
 import { COLUMN_OPTIONS } from "../responsive-styles";
 
 /** Creates a schema field that renders a shared style editor group */
@@ -35,6 +31,20 @@ export const SECTION_STYLE_GROUPS: SettingFieldSchema[] = [
   styleGroupField("radius", "section"),
 ];
 
+/** Prefer visual spacing editor over raw CSS shorthand fields. */
+export const STANDARD_SPACING_LAYOUT: SettingFieldSchema[] = [
+  styleGroupField("spacing", ["section", "text", "image", "button"], "layout"),
+];
+
+export const STANDARD_TYPOGRAPHY_STYLE: SettingFieldSchema[] = [
+  styleGroupField("typography", ["text", "section", "button"], "style"),
+];
+
+export const STANDARD_SECTION_STYLES: SettingFieldSchema[] = [
+  ...STANDARD_TYPOGRAPHY_STYLE,
+  styleGroupField("background", "section", "style"),
+];
+
 export const HERO_LAYOUT_GROUPS: SettingFieldSchema[] = [
   styleGroupField("spacing", ["section", "text", "image", "button"]),
   styleGroupField("alignment", ["text", "section"]),
@@ -60,11 +70,28 @@ export const RICH_TEXT_CONTENT_FIELDS: SettingFieldSchema[] = [
   TITLE_CONTENT_FIELD,
   {
     key: "content",
-    type: "textarea",
+    type: "richtext",
     label: "Content",
     group: "text",
     focus: ["text", "section"],
-    placeholder: "Tell your brand story here.",
+    placeholder: "Write your story here…",
+    description: "Write normally — use Bold for emphasis. No HTML needed.",
+  },
+  {
+    key: "layout",
+    type: "variant",
+    label: "Layout style",
+    group: "layout",
+    focus: "section",
+    tab: "layout",
+    options: [
+      { value: "default", label: "Default" },
+      { value: "intro", label: "Intro" },
+      { value: "strip", label: "Strip" },
+      { value: "testimonials", label: "Quotes" },
+      { value: "newsletter", label: "Newsletter" },
+      { value: "stats", label: "Stats" },
+    ],
   },
 ];
 
@@ -78,69 +105,17 @@ export const BASIC_ALIGNMENT_STYLE: SettingFieldSchema = {
   tab: "layout",
 };
 
-export const BASIC_SPACING_STYLES: SettingFieldSchema[] = [
-  {
-    key: "padding",
-    type: "spacing",
-    label: "Padding",
-    group: "spacing",
-    focus: ["section", "text", "image", "button"],
-    responsive: true,
-    placeholder: "3rem 1.5rem",
-    tab: "layout",
-  },
-  {
-    key: "margin",
-    type: "spacing",
-    label: "Margin",
-    group: "spacing",
-    focus: ["section", "text", "image", "button"],
-    responsive: true,
-    tab: "layout",
-  },
-];
+/** @deprecated Prefer STANDARD_SPACING_LAYOUT — aliases to visual spacing editor. */
+export const BASIC_SPACING_STYLES: SettingFieldSchema[] = STANDARD_SPACING_LAYOUT;
 
-export const BASIC_BACKGROUND_STYLE: SettingFieldSchema = {
-  key: "backgroundColor",
-  type: "color",
-  label: "Background",
-  group: "background",
-  focus: "section",
-  responsive: true,
-  tab: "style",
-};
+export const BASIC_BACKGROUND_STYLE: SettingFieldSchema = styleGroupField(
+  "background",
+  "section",
+  "style"
+);
 
-export const BASIC_TYPOGRAPHY_STYLES: SettingFieldSchema[] = [
-  {
-    key: "textColor",
-    type: "color",
-    label: "Text color",
-    group: "typography",
-    focus: ["text", "section", "button"],
-    responsive: true,
-    tab: "style",
-  },
-  {
-    key: "fontSize",
-    type: "select",
-    label: "Font size",
-    group: "typography",
-    focus: ["text", "section", "button"],
-    options: FONT_SIZE_OPTIONS,
-    responsive: true,
-    tab: "style",
-  },
-  {
-    key: "fontWeight",
-    type: "select",
-    label: "Font weight",
-    group: "typography",
-    focus: ["text", "section", "button"],
-    options: FONT_WEIGHT_OPTIONS,
-    responsive: true,
-    tab: "style",
-  },
-];
+/** @deprecated Prefer STANDARD_TYPOGRAPHY_STYLE — aliases to visual typography editor. */
+export const BASIC_TYPOGRAPHY_STYLES: SettingFieldSchema[] = STANDARD_TYPOGRAPHY_STYLE;
 
 export const BASIC_SIZE_LAYOUT_STYLES: SettingFieldSchema[] = [
   {
@@ -199,7 +174,7 @@ export const IMAGE_STYLE_FIELDS: SettingFieldSchema[] = [
 ];
 
 export const IMAGE_LAYOUT_FIELDS: SettingFieldSchema[] = [
-  ...BASIC_SPACING_STYLES,
+  ...STANDARD_SPACING_LAYOUT,
   BASIC_ALIGNMENT_STYLE,
   ...BASIC_SIZE_LAYOUT_STYLES,
   {
@@ -218,7 +193,7 @@ export const IMAGE_LAYOUT_FIELDS: SettingFieldSchema[] = [
 ];
 
 export const PRODUCT_GRID_LAYOUT_FIELDS: SettingFieldSchema[] = [
-  ...BASIC_SPACING_STYLES,
+  ...STANDARD_SPACING_LAYOUT,
   {
     key: "columns",
     type: "columns",
@@ -281,12 +256,27 @@ export const STANDARD_ADVANCED_FIELDS: SettingFieldSchema[] = [
 export const GALLERY_CONTENT_FIELDS: SettingFieldSchema[] = [
   {
     key: "images",
-    type: "textarea",
-    label: "Image URLs",
+    type: "itemList",
+    label: "Images",
+    itemLabel: "Image",
+    maxItems: 24,
     group: "images",
     focus: ["image", "section"],
-    placeholder: "One URL per line",
-    description: "Paste image URLs or use the media library per slot in a future release",
+    description: "Pick from your media library or paste a URL per slot",
+    itemFields: [
+      {
+        key: "url",
+        type: "media",
+        label: "Image",
+        altKey: "alt",
+      },
+      {
+        key: "alt",
+        type: "text",
+        label: "Alt text",
+        placeholder: "Describe the image",
+      },
+    ],
   },
 ];
 
@@ -312,7 +302,7 @@ export const GALLERY_LAYOUT_FIELDS: SettingFieldSchema[] = [
   },
   {
     key: "layout",
-    type: "select",
+    type: "variant",
     label: "Layout",
     group: "layout",
     focus: "section",
@@ -320,6 +310,7 @@ export const GALLERY_LAYOUT_FIELDS: SettingFieldSchema[] = [
     options: [
       { value: "grid", label: "Grid" },
       { value: "masonry", label: "Masonry" },
+      { value: "lookbook", label: "Lookbook" },
       { value: "carousel", label: "Carousel" },
     ],
   },

@@ -61,18 +61,39 @@ export interface WaitingIntelligence {
   }[];
 }
 
-function getLaunchTargetDate(): Date {
+/** Platform public open — July 23, 2026 (Casablanca / UTC+1 midnight). Override via ETTAJER_LAUNCH_TARGET. */
+export function getLaunchTargetDate(): Date {
   const raw = process.env.ETTAJER_LAUNCH_TARGET?.trim();
   if (raw) {
     const parsed = new Date(raw);
     if (!Number.isNaN(parsed.getTime())) return parsed;
   }
-  return new Date("2026-08-01T00:00:00.000Z");
+  return new Date("2026-07-23T00:00:00.000+01:00");
+}
+
+export function isPlatformLaunched(now = new Date()): boolean {
+  return now.getTime() >= getLaunchTargetDate().getTime();
+}
+
+export function getMsUntilLaunch(now = new Date()): number {
+  return Math.max(0, getLaunchTargetDate().getTime() - now.getTime());
 }
 
 function getBaseLaunchProgress(): number {
-  const raw = Number(process.env.ETTAJER_LAUNCH_PROGRESS ?? 75);
-  return Number.isFinite(raw) ? Math.min(95, Math.max(50, raw)) : 75;
+  // Beta testing is live — never show the old "Platform development / 75%" state.
+  // NEXT_PUBLIC_ so the client early-access UI cannot fall back to a stale default.
+  const raw = Number(
+    process.env.NEXT_PUBLIC_ETTAJER_LAUNCH_PROGRESS ??
+      process.env.ETTAJER_LAUNCH_PROGRESS ??
+      90,
+  );
+  if (!Number.isFinite(raw)) return 90;
+  return Math.min(94, Math.max(90, raw));
+}
+
+/** Always ≥90 so roadmap shows development Done + Beta testing Now. */
+export function computeLaunchProgress(_founderCount: number): number {
+  return getBaseLaunchProgress();
 }
 
 export function getFounderTier(
@@ -80,23 +101,6 @@ export function getFounderTier(
   locale: LandingLocale = "en",
 ): WaitingIntelligence["founderTier"] {
   return getWaitingIntelligenceCopy(locale).getFounderTier(founderNumber);
-}
-
-export function computeLaunchProgress(founderCount: number): number {
-  const base = getBaseLaunchProgress();
-  const target = getLaunchTargetDate();
-  const programStart = new Date("2026-01-01T00:00:00.000Z");
-  const now = new Date();
-
-  const timelineSpan = target.getTime() - programStart.getTime();
-  const elapsed = now.getTime() - programStart.getTime();
-  const timeProgress =
-    timelineSpan > 0 ? Math.round((elapsed / timelineSpan) * 100) : base;
-
-  const communityBoost = Math.round((founderCount / MAX_FOUNDERS) * 8);
-  const blended = Math.round((base + timeProgress + communityBoost) / 3);
-
-  return Math.min(94, Math.max(base, blended));
 }
 
 export function formatEstimatedLaunch(locale: LandingLocale = "en"): string {

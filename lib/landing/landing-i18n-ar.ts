@@ -10,6 +10,11 @@ export const AR_COPY: LandingCopy = {
   },
   hero: {
     eyebrow: "مصمم للتجار المغاربة",
+    brandName: "Ettajer",
+    brandNative: "التاجر",
+    headline: "بِع بالدفع عند الاستلام، بتصميم أنيق.",
+    support:
+      "أطلق متجراً مغربياً، تحقق من طلبات الدفع عند الاستلام، واستلم ثمن طلبك عند التوصيل.",
     ctaPrimary: "ابدأ مجاناً",
     ctaSecondary: "اكتشف حلول الدفع عند الاستلام",
     disclaimer: "بدون بطاقة بنكية · 0 درهم الشهر الأول على كل باقة",
@@ -440,6 +445,7 @@ export const AR_COPY: LandingCopy = {
   },
   footer: {
     tagline: "تجارة COD للتجار المغاربة — أطلق، تحقق وسلّم من منصة واحدة.",
+    aka: "Ettajer (التاجر) — يُبحث عنها أيضاً كتاجير، اتاجر، ايتاجر، Etajer أو Tajir.",
     copyright: (year) => `© ${year} Ettajer. جميع الحقوق محفوظة.`,
     mobile: {
       getStarted: "ابدأ",

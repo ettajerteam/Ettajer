@@ -2,10 +2,11 @@
 
 import { InspectorColorField, InspectorFieldGroup, InspectorTextField } from "../inspector/inspector-fields";
 import { OverrideIndicator } from "./override-indicator";
-import { readString, type StyleEditorProps } from "./style-editor-props";
+import { readString, type StyleEditorProps, styleFieldId } from "./style-editor-props";
 
 export function BackgroundEditor({
   device,
+  idPrefix,
   values,
   onPatch,
   hasOverride,
@@ -23,27 +24,27 @@ export function BackgroundEditor({
         />
       </div>
       <InspectorColorField
-        id={`bg-color-${device}`}
+        id={styleFieldId(idPrefix, "bg-color", device)}
         label="Background color"
         value={readString(values, "backgroundColor")}
         onChange={(v) => onPatch({ backgroundColor: v || undefined }, { responsive: true })}
       />
       <InspectorTextField
-        id={`bg-image-${device}`}
+        id={styleFieldId(idPrefix, "bg-image", device)}
         label="Background image"
         value={readString(values, "backgroundImage")}
         placeholder="url(...) or linear-gradient(...)"
         onChange={(v) => onPatch({ backgroundImage: v || undefined }, { responsive: true })}
       />
       <InspectorTextField
-        id={`bg-size-${device}`}
+        id={styleFieldId(idPrefix, "bg-size", device)}
         label="Background size"
         value={readString(values, "backgroundSize")}
         placeholder="cover"
         onChange={(v) => onPatch({ backgroundSize: v || undefined }, { responsive: true })}
       />
       <InspectorTextField
-        id={`bg-position-${device}`}
+        id={styleFieldId(idPrefix, "bg-position", device)}
         label="Background position"
         value={readString(values, "backgroundPosition")}
         placeholder="center"

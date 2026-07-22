@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, BadgeCheck } from "lucide-react";
+import { Sparkles, BadgeCheck, FlaskConical } from "lucide-react";
 import { formatFounderNumber } from "@/lib/founder/constants";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +29,7 @@ function GlassPill({
 export function FounderGlassBadges({
   founderNumber,
   tierLabel,
-  statusLabel: _statusLabel,
+  statusLabel,
   className,
 }: FounderGlassBadgesProps) {
   return (
@@ -37,6 +37,7 @@ export function FounderGlassBadges({
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] md:mx-0 md:justify-center md:overflow-visible md:px-0">
         <div className="inline-flex gap-2 md:rounded-full md:border md:border-white/70 md:bg-white/40 md:p-1.5 md:shadow-[0_4px_20px_rgba(0,0,0,0.05)] md:backdrop-blur-xl">
           <GlassPill icon={Sparkles}>{formatFounderNumber(founderNumber)}</GlassPill>
+          <GlassPill icon={FlaskConical}>{statusLabel}</GlassPill>
           <GlassPill icon={BadgeCheck}>{tierLabel}</GlassPill>
         </div>
       </div>

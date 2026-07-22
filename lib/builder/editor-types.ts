@@ -6,6 +6,8 @@ export type EditorPageTarget =
   | { type: "home" }
   | { type: "product" }
   | { type: "collection" }
+  | { type: "blog-post" }
+  | { type: "route"; route: import("@/lib/editor-pages-config").EditorRoutePageId }
   | { type: "custom"; page: StorePageRow };
 
 export interface BuilderSettings {

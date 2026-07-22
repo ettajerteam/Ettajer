@@ -1,33 +1,14 @@
-import { auth } from "@/lib/auth-session";
-import { prisma } from "@/lib/db";
-import { parseProductImages } from "@/lib/product-images";
-import type { Product, ProductVariant } from "@/types";
+import { parseProductImages, parseProductImageAssets } from "@/lib/product-images";
+import { parseProductVariants } from "@/lib/product-variants";
+import { parseProductReviews } from "@/lib/product-reviews";
+import { parseProductDetails } from "@/lib/product-details";
+import { isProductStatus, isProductType } from "@/lib/product-types";
+import type { Product } from "@/types";
 
-export async function getAuthenticatedStore() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
-
-  const store = await prisma.store.findFirst({
-    where: { userId: session.user.id },
-  });
-
-  return store;
-}
-
-export { parseProductImages } from "@/lib/product-images";
-
-export function parseProductVariants(variants: unknown): ProductVariant[] {
-  if (!Array.isArray(variants)) return [];
-  return variants.filter(
-    (v): v is ProductVariant =>
-      typeof v === "object" &&
-      v !== null &&
-      "id" in v &&
-      "name" in v &&
-      "options" in v &&
-      Array.isArray((v as ProductVariant).options)
-  );
-}
+export { parseProductImages, parseProductImageAssets } from "@/lib/product-images";
+export { parseProductVariants } from "@/lib/product-variants";
+export { parseProductReviews } from "@/lib/product-reviews";
+export { parseProductDetails } from "@/lib/product-details";
 
 export function serializeProduct(product: {
   id: string;
@@ -36,10 +17,18 @@ export function serializeProduct(product: {
   description: string | null;
   price: number;
   comparePrice: number | null;
+  costPrice?: number | null;
   inventory: number;
   sku: string | null;
+  barcode?: string | null;
+  status?: string | null;
+  productType?: string | null;
+  copyrightOwner?: string | null;
+  copyrightNotice?: string | null;
   images: unknown;
   variants: unknown;
+  reviews?: unknown;
+  details?: unknown;
   tags: string[];
   ticketPrinterId?: string | null;
   storeId: string;
@@ -49,6 +38,7 @@ export function serializeProduct(product: {
   category?: { id: string; name: string } | null;
   collections?: { id: string; name: string }[];
 }): Product {
+  const imageAssets = parseProductImageAssets(product.images);
   return {
     id: product.id,
     title: product.title,
@@ -56,10 +46,19 @@ export function serializeProduct(product: {
     description: product.description,
     price: product.price,
     comparePrice: product.comparePrice,
+    costPrice: product.costPrice ?? null,
     inventory: product.inventory,
     sku: product.sku,
-    images: parseProductImages(product.images),
+    barcode: product.barcode ?? null,
+    status: isProductStatus(product.status) ? product.status : "active",
+    productType: isProductType(product.productType) ? product.productType : "physical",
+    copyrightOwner: product.copyrightOwner ?? null,
+    copyrightNotice: product.copyrightNotice ?? null,
+    images: imageAssets.map((asset) => asset.url),
+    imageAssets,
     variants: parseProductVariants(product.variants),
+    details: parseProductDetails(product.details),
+    reviews: parseProductReviews(product.reviews),
     tags: product.tags,
     ticketPrinterId: product.ticketPrinterId ?? null,
     storeId: product.storeId,
@@ -76,3 +75,6 @@ export const productInclude = {
   category: { select: { id: true, name: true } },
   collections: { select: { id: true, name: true } },
 };
+
+/** Server-only helper — prefer importing from `@/lib/get-authenticated-store`. */
+export { getAuthenticatedStore } from "@/lib/get-authenticated-store";

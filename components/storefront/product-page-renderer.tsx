@@ -1,6 +1,6 @@
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { ProductViewTracker } from "@/components/storefront/product-view-tracker";
-import { SectionRenderer } from "@/components/storefront/section-renderer";
+import { ProductPageSectionRenderer } from "@/components/storefront/product-page-section-renderer";
 import { BuilderPreviewSections } from "@/components/storefront/builder-preview-sections";
 import { MinimalProductPage } from "@/components/storefront/templates/minimal";
 import { ModernProductPage } from "@/components/storefront/templates/modern";
@@ -78,7 +78,13 @@ export function ProductPageRenderer({
       {builderMode ? (
         <BuilderPreviewSections {...sectionProps} />
       ) : (
-        <SectionRenderer {...sectionProps} />
+        <ProductPageSectionRenderer
+          store={store}
+          layout={layout}
+          product={product}
+          products={relatedProducts}
+          previewDevice={previewDevice}
+        />
       )}
     </StorefrontShell>
   );

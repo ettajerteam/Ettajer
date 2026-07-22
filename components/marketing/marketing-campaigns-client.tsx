@@ -21,23 +21,11 @@ import type { AbandonedCheckoutRow } from "@/lib/abandoned";
 interface MarketingCampaignsClientProps {
   initial: AbandonedCheckoutRow[];
   currency: string;
-  storeSlug: string;
-}
-
-function recoveryMailto(row: AbandonedCheckoutRow, storeSlug: string): string | null {
-  if (!row.email) return null;
-  const storeUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/store/${storeSlug}`;
-  const subject = encodeURIComponent("You left something behind");
-  const body = encodeURIComponent(
-    `Hi${row.customerName ? ` ${row.customerName}` : ""},\n\nYou left items in your cart at our store. Complete your order here:\n${storeUrl}\n\nThank you!`
-  );
-  return `mailto:${row.email}?subject=${subject}&body=${body}`;
 }
 
 export function MarketingCampaignsClient({
   initial,
   currency,
-  storeSlug,
 }: MarketingCampaignsClientProps) {
   const router = useRouter();
   const [rows, setRows] = useState(initial);
@@ -52,6 +40,20 @@ export function MarketingCampaignsClient({
       withEmail: rows.filter((r) => r.email).length,
     };
   }, [rows]);
+
+  const handleRecover = useCallback(async (id: string) => {
+    setActionId(id);
+    try {
+      const res = await fetch(`/api/abandoned/${id}/recover-email`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message ?? "Failed to send email");
+      toast.success("Recovery email sent");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send email");
+    } finally {
+      setActionId(null);
+    }
+  }, []);
 
   const handleDraft = useCallback(
     async (id: string) => {
@@ -144,54 +146,55 @@ export function MarketingCampaignsClient({
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => {
-                  const mailto = recoveryMailto(row, storeSlug);
-                  return (
-                    <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
-                      <td className="px-5 py-3.5">
-                        <p className="font-medium">{row.customerName ?? "Guest"}</p>
-                        <p className="text-xs text-muted-foreground">{row.email ?? "No email"}</p>
-                      </td>
-                      <td className="px-5 py-3.5 text-muted-foreground">{row.items.length} items</td>
-                      <td className="px-5 py-3.5 font-medium">
-                        {formatCurrency(row.subtotal, currency)}
-                      </td>
-                      <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                        {new Date(row.createdAt).toLocaleString()}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex justify-end gap-1">
-                          {mailto && (
-                            <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" asChild>
-                              <a href={mailto}>
-                                <Send className="h-3.5 w-3.5 mr-1" />
-                                Recover
-                              </a>
-                            </Button>
-                          )}
+                rows.map((row) => (
+                  <tr key={row.id} className="border-b last:border-0 hover:bg-muted/20">
+                    <td className="px-5 py-3.5">
+                      <p className="font-medium">{row.customerName ?? "Guest"}</p>
+                      <p className="text-xs text-muted-foreground">{row.email ?? "No email"}</p>
+                    </td>
+                    <td className="px-5 py-3.5 text-muted-foreground">{row.items.length} items</td>
+                    <td className="px-5 py-3.5 font-medium">
+                      {formatCurrency(row.subtotal, currency)}
+                    </td>
+                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                      {new Date(row.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex justify-end gap-1">
+                        {row.email && (
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 rounded-lg text-xs"
                             disabled={actionId === row.id}
-                            onClick={() => handleDraft(row.id)}
+                            onClick={() => handleRecover(row.id)}
                           >
-                            <FilePlus2 className="h-4 w-4" />
+                            <Send className="h-3.5 w-3.5 mr-1" />
+                            Recover
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={actionId === row.id}
-                            onClick={() => handleDelete(row.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={actionId === row.id}
+                          onClick={() => handleDraft(row.id)}
+                        >
+                          <FilePlus2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={actionId === row.id}
+                          onClick={() => handleDelete(row.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

@@ -1,5 +1,10 @@
 import { sendEmail } from "@/lib/resend";
 import { SUPPORT_EMAIL } from "@/lib/constants/support";
+import { recordOutboundSupportMessage } from "@/lib/admin/record-outbound-support-message";
+import {
+  nameChangeConfirmedInboxMessage,
+  nameChangeInviteInboxMessage,
+} from "@/lib/admin/support-outbound-messages";
 import {
   generateFounderCardAssets,
   getFounderAttachmentNames,
@@ -8,17 +13,27 @@ import {
   buildMagicLinkEmailHtml,
   buildOrderConfirmationEmailHtml,
   buildOrderStatusEmailHtml,
+  buildAbandonedCartEmailHtml,
   buildPasswordChangedEmailHtml,
   buildPasswordResetEmailHtml,
   buildSupportConfirmationEmailHtml,
   buildSupportTicketEmailHtml,
   buildWelcomeEmailHtml,
   buildFounderWelcomeEmailHtml,
+  buildFounderLaunchAnnounceEmailHtml,
+  buildFounderBetaTestingEmailHtml,
+  buildFounderAccessUnlockedEmailHtml,
+  buildVerifyEmailReminderEmailHtml,
+  buildMerchantNewOrderEmailHtml,
+  buildStoreLiveEmailHtml,
   buildActivationCodeEmailHtml,
+  buildNameChangeInviteEmailHtml,
+  buildNameChangeConfirmedEmailHtml,
   FOUNDER_CARD_INLINE_CID,
 } from "@/lib/email/templates";
 import { getEmailCopy } from "@/lib/email/email-i18n";
 import { parseEmailLocale } from "@/lib/email/email-locale";
+import { getStoreUrl } from "@/lib/storefront-urls";
 import type { LandingLocale } from "@/lib/landing/landing-i18n";
 import type { OrderStatus } from "@/types";
 
@@ -29,10 +44,19 @@ export const EMAIL_AUTOMATIONS = {
   AUTH_WELCOME: "auth.welcome",
   AUTH_FOUNDER_WELCOME: "auth.founder_welcome",
   AUTH_ACTIVATION: "auth.activation",
+  FOUNDER_LAUNCH_ANNOUNCE: "founder.launch_announce",
+  FOUNDER_BETA_TESTING: "founder.beta_testing",
+  FOUNDER_ACCESS_UNLOCKED: "founder.access_unlocked",
+  FOUNDER_VERIFY_REMINDER: "founder.verify_reminder",
+  MERCHANT_NEW_ORDER: "merchant.new_order",
+  MERCHANT_STORE_LIVE: "merchant.store_live",
   SUPPORT_RECEIVED: "support.received",
   SUPPORT_TICKET: "support.ticket",
+  NAME_CHANGE_INVITE: "account.name_change_invite",
+  NAME_CHANGE_CONFIRMED: "account.name_change_confirmed",
   ORDER_CONFIRMED: "order.confirmed",
   ORDER_STATUS: "order.status",
+  MARKETING_ABANDONED_CART: "marketing.abandoned_cart",
 } as const;
 
 export type EmailAutomationId =
@@ -203,6 +227,143 @@ export async function sendFounderWelcomeEmail(
   }
 }
 
+const LAUNCH_DATE_LABEL: Record<LandingLocale, string> = {
+  en: "Thursday 23 July 2026",
+  fr: "jeudi 23 juillet 2026",
+  ar: "الخميس 23 يوليو 2026",
+};
+
+export async function sendFounderLaunchAnnounceEmail(
+  email: string,
+  name: string | null,
+  founderNumber: number,
+  locale?: string | null,
+): Promise<boolean> {
+  const loc = emailLocale(locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.FOUNDER_LAUNCH_ANNOUNCE, {
+    to: email,
+    subject: copy.founderLaunchAnnounce.subject,
+    html: buildFounderLaunchAnnounceEmailHtml(
+      name,
+      founderNumber,
+      LAUNCH_DATE_LABEL[loc],
+      loc,
+    ),
+  });
+  return result.success;
+}
+
+export async function sendFounderBetaTestingEmail(
+  email: string,
+  name: string | null,
+  founderNumber: number,
+  locale?: string | null,
+): Promise<boolean> {
+  const loc = emailLocale(locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.FOUNDER_BETA_TESTING, {
+    to: email,
+    subject: copy.founderBetaTesting.subject,
+    html: buildFounderBetaTestingEmailHtml(
+      name,
+      founderNumber,
+      LAUNCH_DATE_LABEL[loc],
+      loc,
+    ),
+    replyTo: SUPPORT_EMAIL,
+  });
+  return result.success;
+}
+
+export async function sendFounderAccessUnlockedEmail(
+  email: string,
+  name: string | null,
+  founderNumber: number,
+  locale?: string | null,
+): Promise<boolean> {
+  const loc = emailLocale(locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.FOUNDER_ACCESS_UNLOCKED, {
+    to: email,
+    subject: copy.founderAccessUnlocked.subject,
+    html: buildFounderAccessUnlockedEmailHtml(name, founderNumber, loc),
+  });
+  return result.success;
+}
+
+export async function sendVerifyEmailReminderEmail(
+  email: string,
+  name: string | null,
+  locale?: string | null,
+): Promise<boolean> {
+  const loc = emailLocale(locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.FOUNDER_VERIFY_REMINDER, {
+    to: email,
+    subject: copy.verifyEmailReminder.subject,
+    html: buildVerifyEmailReminderEmailHtml(
+      name,
+      email,
+      LAUNCH_DATE_LABEL[loc],
+      loc,
+    ),
+  });
+  return result.success;
+}
+
+export async function sendMerchantNewOrderEmail(params: {
+  to: string;
+  merchantName: string;
+  orderNumber: string;
+  customerName: string;
+  total: number;
+  currency: string;
+  orderId: string;
+  locale?: string | null;
+}): Promise<boolean> {
+  const loc = emailLocale(params.locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.MERCHANT_NEW_ORDER, {
+    to: params.to,
+    subject: copy.merchantNewOrder.subject(params.orderNumber),
+    html: buildMerchantNewOrderEmailHtml(
+      {
+        merchantName: params.merchantName,
+        orderNumber: params.orderNumber,
+        customerName: params.customerName,
+        total: params.total,
+        currency: params.currency,
+        orderId: params.orderId,
+      },
+      loc,
+    ),
+  });
+  return result.success;
+}
+
+export async function sendStoreLiveEmail(params: {
+  to: string;
+  merchantName: string;
+  storeName: string;
+  storeSlug: string;
+  locale?: string | null;
+}): Promise<boolean> {
+  const loc = emailLocale(params.locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.MERCHANT_STORE_LIVE, {
+    to: params.to,
+    subject: copy.storeLive.subject(params.storeName),
+    html: buildStoreLiveEmailHtml(
+      params.merchantName,
+      params.storeName,
+      params.storeSlug,
+      loc,
+    ),
+  });
+  return result.success;
+}
+
 export async function sendSupportConfirmationEmail(
   email: string,
   name: string,
@@ -236,6 +397,74 @@ export async function sendSupportTicketEmail(params: {
     html: buildSupportTicketEmailHtml(params, loc),
     replyTo: params.email,
   });
+  return result.success;
+}
+
+export async function sendNameChangeInviteEmail(params: {
+  email: string;
+  name: string;
+  currentName: string;
+  url: string;
+  locale?: string | null;
+}): Promise<boolean> {
+  const loc = emailLocale(params.locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.NAME_CHANGE_INVITE, {
+    to: params.email,
+    subject: copy.nameChangeInvite.subject,
+    html: buildNameChangeInviteEmailHtml(
+      {
+        name: params.name,
+        currentName: params.currentName,
+        url: params.url,
+      },
+      loc,
+    ),
+    replyTo: SUPPORT_EMAIL,
+  });
+
+  if (result.success) {
+    await recordOutboundSupportMessage({
+      email: params.email,
+      topic: copy.nameChangeInvite.subject,
+      message: nameChangeInviteInboxMessage(params.currentName, loc),
+    });
+  }
+
+  return result.success;
+}
+
+export async function sendNameChangeConfirmedEmail(params: {
+  email: string;
+  name: string;
+  previousName: string | null;
+  locale?: string | null;
+}): Promise<boolean> {
+  const loc = emailLocale(params.locale);
+  const copy = getEmailCopy(loc);
+  const previous = params.previousName?.trim() || "—";
+  const result = await dispatch(EMAIL_AUTOMATIONS.NAME_CHANGE_CONFIRMED, {
+    to: params.email,
+    subject: copy.nameChangeConfirmed.subject,
+    html: buildNameChangeConfirmedEmailHtml(
+      {
+        name: params.name,
+        previousName: previous,
+        newName: params.name,
+      },
+      loc,
+    ),
+    replyTo: SUPPORT_EMAIL,
+  });
+
+  if (result.success) {
+    await recordOutboundSupportMessage({
+      email: params.email,
+      topic: copy.nameChangeConfirmed.subject,
+      message: nameChangeConfirmedInboxMessage(previous, params.name, loc),
+    });
+  }
+
   return result.success;
 }
 
@@ -285,6 +514,37 @@ export async function sendOrderStatusEmail(params: {
     to: params.to,
     subject: copy.orderStatus.subject(params.orderNumber, statusLabel),
     html: buildOrderStatusEmailHtml(params, loc),
+  });
+  return result.success;
+}
+
+export async function sendAbandonedCartEmail(params: {
+  to: string;
+  customerName: string;
+  storeName: string;
+  storeSlug: string;
+  currency: string;
+  subtotal: number;
+  items: { title: string; quantity: number; price: number }[];
+  locale?: string | null;
+}): Promise<boolean> {
+  const loc = emailLocale(params.locale);
+  const copy = getEmailCopy(loc);
+  const storeUrl = getStoreUrl(params.storeSlug);
+  const result = await dispatch(EMAIL_AUTOMATIONS.MARKETING_ABANDONED_CART, {
+    to: params.to,
+    subject: copy.abandonedCart.subject(params.storeName),
+    html: buildAbandonedCartEmailHtml(
+      {
+        customerName: params.customerName,
+        storeName: params.storeName,
+        storeUrl,
+        currency: params.currency,
+        subtotal: params.subtotal,
+        items: params.items,
+      },
+      loc,
+    ),
   });
   return result.success;
 }

@@ -32,6 +32,10 @@ export type LandingCopy = {
   };
   hero: {
     eyebrow: string;
+    brandName: string;
+    brandNative: string;
+    headline: string;
+    support: string;
     ctaPrimary: string;
     ctaSecondary: string;
     disclaimer: string;
@@ -156,6 +160,7 @@ export type LandingCopy = {
   };
   footer: {
     tagline: string;
+    aka: string;
     copyright: (year: number) => string;
     mobile: {
       getStarted: string;
@@ -202,6 +207,11 @@ const EN_COPY: LandingCopy = {
   },
   hero: {
     eyebrow: "Built for Moroccan merchants",
+    brandName: "Ettajer",
+    brandNative: "التاجر",
+    headline: "Sell cash on delivery, beautifully.",
+    support:
+      "Launch a Moroccan storefront, verify COD orders, and get paid when the package arrives.",
     ctaPrimary: "Start for free",
     ctaSecondary: "See COD suite",
     disclaimer: "No credit card required · 0 DH first month on every plan",
@@ -601,6 +611,7 @@ const EN_COPY: LandingCopy = {
   footer: {
     tagline:
       "COD-first ecommerce for Moroccan merchants — launch, verify, and fulfill from one platform.",
+    aka: "Ettajer (التاجر) — also searched as Etajer, Tajir, Atajir, Etajir, or Itajir.",
     copyright: (year) => `© ${year} Ettajer. All rights reserved.`,
     mobile: {
       getStarted: "Get started",
@@ -706,6 +717,11 @@ const FR_COPY: LandingCopy = {
   },
   hero: {
     eyebrow: "Conçu pour les marchands marocains",
+    brandName: "Ettajer",
+    brandNative: "التاجر",
+    headline: "Vendez en paiement à la livraison, avec élégance.",
+    support:
+      "Lancez une boutique marocaine, vérifiez les commandes COD, et encaissez à la livraison.",
     ctaPrimary: "Commencer gratuitement",
     ctaSecondary: "Voir la suite COD",
     disclaimer: "Sans carte bancaire · 0 DH le premier mois sur chaque forfait",
@@ -1158,6 +1174,7 @@ const FR_COPY: LandingCopy = {
   footer: {
     tagline:
       "E-commerce COD pour marchands marocains — lancez, vérifiez et livrez depuis une seule plateforme.",
+    aka: "Ettajer (التاجر) — aussi recherché sous Etajer, Tajir, Atajir, Etajir ou Itajir.",
     copyright: (year) => `© ${year} Ettajer. Tous droits réservés.`,
     mobile: {
       getStarted: "Commencer",

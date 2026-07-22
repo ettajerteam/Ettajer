@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import {
   FONT_SIZE_OPTIONS,
   FONT_WEIGHT_OPTIONS,
@@ -27,6 +28,12 @@ import {
   InspectorTextareaField,
   InspectorToggleField,
 } from "./inspector-fields";
+import { InspectorRichTextField } from "./inspector-rich-text-field";
+import { InspectorProductPicker } from "./inspector-product-picker";
+import { InspectorCollectionPicker } from "./inspector-collection-picker";
+import { InspectorLinkField } from "./inspector-link-field";
+import { InspectorItemListField } from "./inspector-item-list-field";
+import { InspectorVariantPicker } from "./inspector-variant-picker";
 
 function enrichFieldOptions(field: SettingFieldSchema): SettingFieldSchema {
   if (field.options) return field;
@@ -79,7 +86,8 @@ export interface SchemaFieldProps {
 
 export function SchemaField({ field, settings, device, onChange }: SchemaFieldProps) {
   const enriched = enrichFieldOptions(field);
-  const id = `${field.key}-${device}`;
+  const uid = useId().replace(/:/g, "");
+  const id = `${uid}-${field.key}-${device}`;
   const value = readFieldValue(settings, field, device);
   const patch = (next: unknown) => onChange(writeFieldValue(settings, field, device, next));
   const styleKey = field.key as keyof ElementStyleValues;
@@ -105,8 +113,6 @@ export function SchemaField({ field, settings, device, onChange }: SchemaFieldPr
 
   switch (enriched.type) {
     case "text":
-    case "url":
-    case "link":
     case "radius":
       return (
         <div>
@@ -116,6 +122,21 @@ export function SchemaField({ field, settings, device, onChange }: SchemaFieldPr
             label={enriched.label}
             value={typeof value === "string" ? value : ""}
             placeholder={enriched.placeholder}
+            onChange={(v) => patch(v)}
+          />
+        </div>
+      );
+    case "url":
+    case "link":
+      return (
+        <div>
+          {deviceAware ? fieldLabel : null}
+          <InspectorLinkField
+            id={id}
+            label={enriched.label}
+            value={typeof value === "string" ? value : ""}
+            placeholder={enriched.placeholder}
+            description={enriched.description}
             onChange={(v) => patch(v)}
           />
         </div>
@@ -131,9 +152,10 @@ export function SchemaField({ field, settings, device, onChange }: SchemaFieldPr
           value={typeof value === "string" ? value : ""}
           altValue={altValue}
           description={enriched.description}
+          kind={enriched.mediaKind ?? "image"}
           onChange={(url) => patch(url)}
           onAltChange={
-            altKey
+            altKey && enriched.mediaKind !== "video"
               ? (alt) => {
                   const next = { ...settings, [altKey]: alt || undefined };
                   if (!alt) delete next[altKey];
@@ -152,6 +174,17 @@ export function SchemaField({ field, settings, device, onChange }: SchemaFieldPr
           value={typeof value === "string" ? value : ""}
           placeholder={enriched.placeholder}
           rows={4}
+          onChange={(v) => patch(v)}
+        />
+      );
+    case "richtext":
+      return (
+        <InspectorRichTextField
+          id={id}
+          label={enriched.label}
+          value={typeof value === "string" ? value : ""}
+          placeholder={enriched.placeholder}
+          description={enriched.description}
           onChange={(v) => patch(v)}
         />
       );
@@ -202,19 +235,12 @@ export function SchemaField({ field, settings, device, onChange }: SchemaFieldPr
           label={enriched.label}
           description={enriched.description}
           checked={checked}
-          onChange={(v) => {
-            if (field.key === "visible" && deviceAware) {
-              patch(v ? undefined : false);
-            } else {
-              patch(v);
-            }
-          }}
+          onChange={(v) => patch(v)}
         />
       );
     }
     case "select":
     case "columns":
-    case "variant":
       return (
         <div>
           {deviceAware ? fieldLabel : null}
@@ -235,6 +261,17 @@ export function SchemaField({ field, settings, device, onChange }: SchemaFieldPr
           />
         </div>
       );
+    case "variant":
+      return (
+        <InspectorVariantPicker
+          id={id}
+          label={enriched.label}
+          value={value != null ? String(value) : ""}
+          options={enriched.options ?? []}
+          onChange={(v) => patch(v || undefined)}
+          visual={enriched.key === "ctaVariant" || enriched.key.includes("Variant") ? "plain" : "layout"}
+        />
+      );
     case "number":
       return (
         <InspectorTextField
@@ -246,6 +283,75 @@ export function SchemaField({ field, settings, device, onChange }: SchemaFieldPr
             const n = Number.parseInt(v, 10);
             patch(Number.isFinite(n) ? n : undefined);
           }}
+        />
+      );
+    case "productPicker": {
+      const ids = Array.isArray(value)
+        ? value.filter((v): v is string => typeof v === "string")
+        : [];
+      return (
+        <InspectorProductPicker
+          label={enriched.label}
+          description={enriched.description}
+          value={ids}
+          onChange={(nextIds) => {
+            onChange({
+              ...settings,
+              productSource: "manual",
+              productIds: nextIds,
+            });
+          }}
+        />
+      );
+    }
+    case "collectionPicker": {
+      const ids = Array.isArray(value)
+        ? value.filter((v): v is string => typeof v === "string")
+        : [];
+      return (
+        <InspectorCollectionPicker
+          label={enriched.label}
+          description={enriched.description}
+          value={ids}
+          onChange={(nextIds) => {
+            onChange({
+              ...settings,
+              collectionSource: "manual",
+              collectionIds: nextIds,
+            });
+          }}
+        />
+      );
+    }
+    case "datetime": {
+      const raw = typeof value === "string" ? value : "";
+      const localValue = raw.length >= 16 ? raw.slice(0, 16) : raw;
+      return (
+        <div className="space-y-1.5">
+          <p className="text-xs text-neutral-600">{enriched.label}</p>
+          {enriched.description ? (
+            <p className="text-[11px] text-neutral-400">{enriched.description}</p>
+          ) : null}
+          <input
+            id={id}
+            type="datetime-local"
+            className="h-8 w-full rounded-lg border border-neutral-200 bg-white px-2 text-xs text-neutral-800"
+            value={localValue}
+            onChange={(e) => patch(e.target.value || undefined)}
+          />
+        </div>
+      );
+    }
+    case "itemList":
+      return (
+        <InspectorItemListField
+          label={enriched.label}
+          description={enriched.description}
+          itemLabel={enriched.itemLabel}
+          maxItems={enriched.maxItems}
+          itemFields={enriched.itemFields ?? []}
+          value={value}
+          onChange={(next) => patch(next)}
         />
       );
     case "styleGroup":

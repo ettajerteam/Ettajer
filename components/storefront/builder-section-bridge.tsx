@@ -10,6 +10,13 @@ import {
   computeSnapGuides,
   type SnapLine,
 } from "@/lib/builder/canvas-interactions";
+import {
+  inferFocusFromTarget,
+  inferInlineSettingKey,
+} from "@/lib/builder/builder-focus";
+import { isTrustedBridgeEvent, postToEditor } from "@/lib/builder/events";
+import { layerIdForFocus } from "@/lib/builder/layer-tree";
+import type { InspectorElementFocus } from "@/lib/builder/inspector-config";
 
 interface BuilderSectionBridgeProps {
   enabled?: boolean;
@@ -22,6 +29,16 @@ const HOVER_CLASS = "ettajer-builder-section-hover";
 const OVERLAY_ID = "ettajer-builder-selection-overlay";
 const SNAP_CONTAINER_ID = "ettajer-builder-snap-guides";
 const PLACEHOLDER_ID = "ettajer-builder-drag-placeholder";
+
+function looksLikeHtml(value: string): boolean {
+  return /<\/?[a-z][\s\S]*>/i.test(value);
+}
+
+function isTypingTargetLocal(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return true;
+  return target.isContentEditable;
+}
 
 function clearClasses() {
   document.querySelectorAll<HTMLElement>("[data-section-id]").forEach((el) => {
@@ -76,9 +93,13 @@ function hideSnapGuides() {
   document.getElementById(SNAP_CONTAINER_ID)?.remove();
 }
 
-function updateSelectionOverlay(sectionEl: HTMLElement | null, variant: "active" | "hover") {
+function updateSelectionOverlay(
+  targetEl: HTMLElement | null,
+  variant: "active" | "hover",
+  options?: { showReorderHandle?: boolean }
+) {
   let overlay = document.getElementById(OVERLAY_ID) as HTMLElement | null;
-  if (!sectionEl) {
+  if (!targetEl) {
     overlay?.remove();
     return;
   }
@@ -92,14 +113,19 @@ function updateSelectionOverlay(sectionEl: HTMLElement | null, variant: "active"
       <span class="ettajer-builder-handle ettajer-builder-handle-tr"></span>
       <span class="ettajer-builder-handle ettajer-builder-handle-bl"></span>
       <span class="ettajer-builder-handle ettajer-builder-handle-br"></span>
+      <button type="button" class="ettajer-builder-reorder-handle" aria-label="Drag to reorder" data-builder-reorder="true">⋮⋮</button>
     `;
     document.body.appendChild(overlay);
   }
 
   overlay.classList.toggle("ettajer-builder-selection-overlay-active", variant === "active");
   overlay.classList.toggle("ettajer-builder-selection-overlay-hover", variant === "hover");
+  const reorder = overlay.querySelector<HTMLElement>("[data-builder-reorder]");
+  if (reorder) {
+    reorder.style.display = options?.showReorderHandle && variant === "active" ? "flex" : "none";
+  }
 
-  const rect = sectionEl.getBoundingClientRect();
+  const rect = targetEl.getBoundingClientRect();
   overlay.style.top = `${rect.top}px`;
   overlay.style.left = `${rect.left}px`;
   overlay.style.width = `${rect.width}px`;
@@ -208,8 +234,11 @@ function spacingAtInsertIndex(index: number): { gap: number; y: number; x: numbe
 /** Syncs section selection, hover, and drag-drop with the website editor parent. */
 export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSectionBridgeProps) {
   const [focusedId, setFocusedId] = useState<string | null>(initialSectionId ?? null);
+  const [focusedLayerId, setFocusedLayerId] = useState<string | null>(initialSectionId ?? null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const dragActive = useRef(false);
+  const sectionReorderId = useRef<string | null>(null);
+  const inlineEditing = useRef(false);
   const dragBlockName = useRef<string | null>(null);
   const autoScrollRaf = useRef<number | null>(null);
   const pointerRef = useRef({ x: 0, y: 0 });
@@ -220,8 +249,14 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
     if (initialSectionId) {
       lastScrolledFocusRef.current = null;
       setFocusedId(initialSectionId);
+      setFocusedLayerId(initialSectionId);
     }
   }, [initialSectionId]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    postToEditor({ type: "ettajer:preview-ready" });
+  }, [enabled]);
 
   const lastScrolledFocusRef = useRef<string | null>(null);
 
@@ -238,31 +273,63 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
       else el.removeAttribute("aria-current");
     });
 
-    const activeEl = focusedId
-      ? document.querySelector<HTMLElement>(`[data-section-id="${focusedId}"]`)
-      : null;
+    const focusEl =
+      focusedLayerId && focusedLayerId.includes(":")
+        ? document.querySelector<HTMLElement>(`[data-builder-focus="${focusedLayerId}"]`)
+        : null;
+    const activeEl =
+      focusEl ??
+      (focusedId
+        ? document.querySelector<HTMLElement>(`[data-section-id="${focusedId}"]`)
+        : null);
     const hoverEl =
       hoveredId && hoveredId !== focusedId
         ? document.querySelector<HTMLElement>(`[data-section-id="${hoveredId}"]`)
         : null;
 
     if (activeEl) {
-      updateSelectionOverlay(activeEl, "active");
+      updateSelectionOverlay(activeEl, "active", { showReorderHandle: Boolean(focusedId) });
     } else if (hoverEl) {
       updateSelectionOverlay(hoverEl, "hover");
     } else {
       updateSelectionOverlay(null, "hover");
     }
-  }, [enabled, focusedId, hoveredId]);
+  }, [enabled, focusedId, focusedLayerId, hoveredId]);
 
   useEffect(() => {
     if (!enabled || !focusedId) return;
     if (lastScrolledFocusRef.current === focusedId) return;
     lastScrolledFocusRef.current = focusedId;
 
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const target = document.querySelector<HTMLElement>(`[data-section-id="${focusedId}"]`);
-    target?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    target?.scrollIntoView({
+      behavior: prefersReduced ? "auto" : "smooth",
+      block: "nearest",
+    });
   }, [enabled, focusedId]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const focusEl =
+      focusedLayerId && focusedLayerId.includes(":")
+        ? document.querySelector<HTMLElement>(`[data-builder-focus="${focusedLayerId}"]`)
+        : null;
+    const activeEl =
+      focusEl ??
+      (focusedId
+        ? document.querySelector<HTMLElement>(`[data-section-id="${focusedId}"]`)
+        : null);
+    if (!activeEl || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      updateSelectionOverlay(activeEl, "active", { showReorderHandle: Boolean(focusedId) });
+    });
+    observer.observe(activeEl);
+    return () => observer.disconnect();
+  }, [enabled, focusedId, focusedLayerId]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -270,15 +337,17 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
     const onMiddlePanDown = (event: MouseEvent) => {
       if (event.button !== 1) return;
       event.preventDefault();
-      window.parent.postMessage(
-        { type: "ettajer:middle-pan", active: true, clientX: event.clientX, clientY: event.clientY },
-        "*"
-      );
+      postToEditor({
+        type: "ettajer:middle-pan",
+        active: true,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      });
     };
 
     const onMiddlePanUp = (event: MouseEvent) => {
       if (event.button !== 1) return;
-      window.parent.postMessage({ type: "ettajer:middle-pan", active: false }, "*");
+      postToEditor({ type: "ettajer:middle-pan", active: false });
     };
 
     document.addEventListener("mousedown", onMiddlePanDown, true);
@@ -297,14 +366,20 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
       if (overlayRaf) return;
       overlayRaf = requestAnimationFrame(() => {
         overlayRaf = 0;
-        const activeEl = focusedId
-          ? document.querySelector<HTMLElement>(`[data-section-id="${focusedId}"]`)
-          : null;
+        const focusEl =
+          focusedLayerId && focusedLayerId.includes(":")
+            ? document.querySelector<HTMLElement>(`[data-builder-focus="${focusedLayerId}"]`)
+            : null;
+        const activeEl =
+          focusEl ??
+          (focusedId
+            ? document.querySelector<HTMLElement>(`[data-section-id="${focusedId}"]`)
+            : null);
         const hoverEl =
           hoveredId && hoveredId !== focusedId
             ? document.querySelector<HTMLElement>(`[data-section-id="${hoveredId}"]`)
             : null;
-        if (activeEl) updateSelectionOverlay(activeEl, "active");
+        if (activeEl) updateSelectionOverlay(activeEl, "active", { showReorderHandle: Boolean(focusedId) });
         else if (hoverEl) updateSelectionOverlay(hoverEl, "hover");
       });
     };
@@ -316,35 +391,220 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
       window.removeEventListener("resize", scheduleOverlay);
       if (overlayRaf) cancelAnimationFrame(overlayRaf);
     };
-  }, [enabled, focusedId, hoveredId]);
+  }, [enabled, focusedId, focusedLayerId, hoveredId]);
 
   useEffect(() => {
     if (!enabled) return;
 
     const onMessage = (event: MessageEvent) => {
+      if (!isTrustedBridgeEvent(event)) return;
       if (event.data?.type === "ettajer:focus-section" && typeof event.data.sectionId === "string") {
         lastScrolledFocusRef.current = null;
         setFocusedId(event.data.sectionId);
+        setFocusedLayerId(event.data.sectionId);
+      }
+      if (event.data?.type === "ettajer:focus-element" && typeof event.data.layerId === "string") {
+        const layerId = event.data.layerId as string;
+        const sectionId = layerId.includes(":") ? layerId.split(":")[0]! : layerId;
+        lastScrolledFocusRef.current = null;
+        setFocusedId(sectionId);
+        setFocusedLayerId(layerId);
       }
       if (event.data?.type === "ettajer:drag-block") {
         dragBlockName.current = event.data.blockName ?? null;
       }
     };
 
+    const resolveLayerSelection = (
+      target: HTMLElement,
+      section: HTMLElement
+    ): { layerId: string; sectionId: string; focus: InspectorElementFocus; settingKey: string | null } | null => {
+      const sectionId = section.getAttribute("data-section-id");
+      if (!sectionId) return null;
+      const focusEl = target.closest<HTMLElement>("[data-builder-focus]");
+      const focusAttr = focusEl?.getAttribute("data-builder-focus");
+      const settingKey =
+        focusEl?.getAttribute("data-builder-setting") ??
+        inferInlineSettingKey(
+          section.getAttribute("data-section-type"),
+          focusAttr?.includes(":")
+            ? (focusAttr.split(":")[1] as InspectorElementFocus)
+            : inferFocusFromTarget(target)
+        );
+      if (focusAttr) {
+        const focus = focusAttr.includes(":")
+          ? (focusAttr.split(":")[1] as InspectorElementFocus)
+          : "section";
+        return { layerId: focusAttr, sectionId, focus, settingKey };
+      }
+      const focus = inferFocusFromTarget(target);
+      return {
+        layerId: layerIdForFocus(sectionId, focus),
+        sectionId,
+        focus,
+        settingKey:
+          settingKey ??
+          inferInlineSettingKey(section.getAttribute("data-section-type"), focus),
+      };
+    };
+
     const onClick = (event: MouseEvent) => {
       if (dragActive.current) return;
       const target = event.target as HTMLElement | null;
-      const section = target?.closest<HTMLElement>("[data-section-id]");
+      if (!target || target.isContentEditable) return;
+      const section = target.closest<HTMLElement>("[data-section-id]");
       if (!section) return;
 
       event.preventDefault();
       event.stopPropagation();
 
-      const sectionId = section.getAttribute("data-section-id");
-      if (!sectionId) return;
+      const selection = resolveLayerSelection(target, section);
+      if (!selection) return;
 
-      setFocusedId(sectionId);
-      window.parent.postMessage({ type: "ettajer:select-section", sectionId }, "*");
+      setFocusedId(selection.sectionId);
+      setFocusedLayerId(selection.layerId);
+      if (selection.focus === "section") {
+        postToEditor({ type: "ettajer:select-section", sectionId: selection.sectionId });
+      } else {
+        postToEditor({ type: "ettajer:select-element", layerId: selection.layerId });
+      }
+    };
+
+    const onDblClick = (event: MouseEvent) => {
+      if (dragActive.current || inlineEditing.current) return;
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest("a, input, textarea, select, button")) return;
+      const section = target.closest<HTMLElement>("[data-section-id]");
+      if (!section) return;
+      const selection = resolveLayerSelection(target, section);
+      if (!selection?.settingKey || selection.focus === "image") return;
+
+      const editTarget =
+        target.closest<HTMLElement>("[data-builder-setting], h1, h2, h3, p, span") ?? target;
+      if (editTarget.querySelector("img, video, iframe")) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const isRich =
+        selection.settingKey === "content" ||
+        looksLikeHtml(editTarget.innerHTML || "");
+      const originalText = isRich
+        ? editTarget.innerHTML
+        : (editTarget.innerText || editTarget.textContent || "");
+      let aborted = false;
+
+      postToEditor({ type: "ettajer:select-element", layerId: selection.layerId });
+      inlineEditing.current = true;
+      editTarget.contentEditable = "true";
+      editTarget.focus();
+
+      const finish = () => {
+        editTarget.contentEditable = "false";
+        editTarget.removeEventListener("blur", finish);
+        editTarget.removeEventListener("keydown", onKey);
+        inlineEditing.current = false;
+        if (aborted) {
+          if (isRich) editTarget.innerHTML = originalText;
+          else editTarget.textContent = originalText;
+          postToEditor({
+            type: "ettajer:update-setting",
+            sectionId: selection.sectionId,
+            key: selection.settingKey!,
+            value: isRich ? originalText : originalText.trim(),
+            aborted: true,
+          });
+          return;
+        }
+        const value = isRich
+          ? editTarget.innerHTML
+          : (editTarget.innerText || editTarget.textContent || "").trim();
+        postToEditor({
+          type: "ettajer:update-setting",
+          sectionId: selection.sectionId,
+          key: selection.settingKey!,
+          value,
+        });
+      };
+
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          aborted = true;
+          editTarget.blur();
+          return;
+        }
+        if (e.key === "Enter" && !e.shiftKey && !isRich) {
+          e.preventDefault();
+          editTarget.blur();
+        }
+      };
+
+      editTarget.addEventListener("blur", finish);
+      editTarget.addEventListener("keydown", onKey);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (inlineEditing.current || isTypingTargetLocal(event.target)) return;
+      const key = event.key;
+      if (
+        !event.metaKey &&
+        !event.ctrlKey &&
+        key.length === 1 &&
+        !["?", "/"].includes(key)
+      ) {
+        // Let plain typing bubble; only forward editor shortcuts
+        return;
+      }
+      const isShortcut =
+        event.metaKey ||
+        event.ctrlKey ||
+        ["Delete", "Backspace", "Escape", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "[", "]", "?"].includes(
+          key
+        ) ||
+        (event.shiftKey && key === "/");
+      if (!isShortcut) return;
+      event.preventDefault();
+      postToEditor({
+        type: "ettajer:key",
+        key: event.key,
+        code: event.code,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+      });
+    };
+
+    const onReorderPointerDown = (event: PointerEvent) => {
+      const handle = (event.target as HTMLElement | null)?.closest?.("[data-builder-reorder]");
+      if (!handle || !focusedId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      sectionReorderId.current = focusedId;
+      dragActive.current = true;
+      postToEditor({ type: "ettajer:drag-active", active: true });
+    };
+
+    const onReorderPointerMove = (event: PointerEvent) => {
+      if (!sectionReorderId.current) return;
+      pointerRef.current = { x: event.clientX, y: event.clientY };
+      const insertIndex = getInsertIndexFromY(event.clientY);
+      const spacing = spacingAtInsertIndex(insertIndex);
+      if (spacing) showDropLine(spacing.y);
+      postToEditor({ type: "ettajer:drag-insert", insertIndex });
+    };
+
+    const onReorderPointerUp = (event: PointerEvent) => {
+      if (!sectionReorderId.current) return;
+      const sectionId = sectionReorderId.current;
+      const insertIndex = getInsertIndexFromY(event.clientY);
+      sectionReorderId.current = null;
+      dragActive.current = false;
+      hideDropLine();
+      postToEditor({ type: "ettajer:reorder-section", sectionId, insertIndex });
+      postToEditor({ type: "ettajer:drag-active", active: false });
     };
 
     const flushSpacing = () => {
@@ -364,8 +624,11 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
       const target = event.target as HTMLElement | null;
       const section = target?.closest<HTMLElement>("[data-section-id]");
       const sectionId = section?.getAttribute("data-section-id") ?? null;
-      setHoveredId(sectionId);
-      window.parent.postMessage({ type: "ettajer:hover-section", sectionId }, "*");
+      setHoveredId((prev) => {
+        if (prev === sectionId) return prev;
+        postToEditor({ type: "ettajer:hover-section", sectionId });
+        return sectionId;
+      });
 
       if (section && sectionId !== focusedId) {
         const next = section.nextElementSibling as HTMLElement | null;
@@ -411,7 +674,7 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
     const onDragEnter = (event: DragEvent) => {
       if (!event.dataTransfer || !isBuilderDrag(event.dataTransfer.types)) return;
       dragActive.current = true;
-      window.parent.postMessage({ type: "ettajer:drag-active", active: true }, "*");
+      postToEditor({ type: "ettajer:drag-active", active: true });
       startAutoScroll();
     };
 
@@ -450,7 +713,7 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
       const guides = computeSnapGuides(event.clientX, event.clientY, rects);
       renderSnapGuides(guides);
 
-      window.parent.postMessage({ type: "ettajer:drag-insert", insertIndex: index }, "*");
+      postToEditor({ type: "ettajer:drag-insert", insertIndex: index });
     };
 
     const onDragLeave = (event: DragEvent) => {
@@ -477,12 +740,12 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
 
       if (event.dataTransfer.types.includes(COMPONENT_DRAG_MIME)) {
         const componentId = event.dataTransfer.getData(COMPONENT_DRAG_MIME);
-        window.parent.postMessage({ type: "ettajer:drop-component", componentId, insertIndex }, "*");
+        postToEditor({ type: "ettajer:drop-component", componentId, insertIndex });
       } else {
         const blockId = event.dataTransfer.getData(BUILDER_DRAG_MIME);
-        window.parent.postMessage({ type: "ettajer:drop-block", blockId, insertIndex }, "*");
+        postToEditor({ type: "ettajer:drop-block", blockId, insertIndex });
       }
-      window.parent.postMessage({ type: "ettajer:drag-active", active: false }, "*");
+      postToEditor({ type: "ettajer:drag-active", active: false });
     };
 
     const onDragEnd = () => {
@@ -493,11 +756,16 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
       scheduleSpacing(null);
       hideSnapGuides();
       clearClasses();
-      window.parent.postMessage({ type: "ettajer:drag-active", active: false }, "*");
+      postToEditor({ type: "ettajer:drag-active", active: false });
     };
 
     window.addEventListener("message", onMessage);
     document.addEventListener("click", onClick, true);
+    document.addEventListener("dblclick", onDblClick, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("pointerdown", onReorderPointerDown, true);
+    document.addEventListener("pointermove", onReorderPointerMove, true);
+    document.addEventListener("pointerup", onReorderPointerUp, true);
     document.addEventListener("mouseover", onMouseOver, true);
     document.addEventListener("mouseout", onMouseOut, true);
     document.addEventListener("dragenter", onDragEnter);
@@ -509,6 +777,11 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
     return () => {
       window.removeEventListener("message", onMessage);
       document.removeEventListener("click", onClick, true);
+      document.removeEventListener("dblclick", onDblClick, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("pointerdown", onReorderPointerDown, true);
+      document.removeEventListener("pointermove", onReorderPointerMove, true);
+      document.removeEventListener("pointerup", onReorderPointerUp, true);
       document.removeEventListener("mouseover", onMouseOver, true);
       document.removeEventListener("mouseout", onMouseOut, true);
       document.removeEventListener("dragenter", onDragEnter);
@@ -522,7 +795,7 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
       hideDropLine();
       hideSpacingLabel();
     };
-  }, [enabled, focusedId]);
+  }, [enabled, focusedId, focusedLayerId]);
 
   const actionSectionId = hoveredId && hoveredId !== focusedId ? hoveredId : null;
 
@@ -550,7 +823,7 @@ export function BuilderSectionBridge({ enabled, initialSectionId }: BuilderSecti
 
   const handleEdit = () => {
     setFocusedId(actionSectionId);
-    window.parent.postMessage({ type: "ettajer:select-section", sectionId: actionSectionId }, "*");
+    postToEditor({ type: "ettajer:select-section", sectionId: actionSectionId });
   };
 
   return (
