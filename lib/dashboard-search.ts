@@ -116,6 +116,48 @@ const PAGE_LINKS: DashboardSearchResult[] = [
     subtitle: "Store configuration",
     href: "/dashboard/settings",
   },
+  {
+    id: "page-settings-payment",
+    type: "page",
+    title: "Payments",
+    subtitle: "COD and card checkout",
+    href: "/dashboard/settings?tab=payment",
+  },
+  {
+    id: "page-settings-checkout",
+    type: "page",
+    title: "Checkout settings",
+    subtitle: "Minimum order, COD message, announce bar",
+    href: "/dashboard/settings?tab=checkout",
+  },
+  {
+    id: "page-settings-seo",
+    type: "page",
+    title: "SEO settings",
+    subtitle: "Search title and meta description",
+    href: "/dashboard/settings?tab=seo",
+  },
+  {
+    id: "page-settings-contact",
+    type: "page",
+    title: "Storefront contact",
+    subtitle: "WhatsApp and footer contact",
+    href: "/dashboard/settings?tab=contact",
+  },
+  {
+    id: "page-settings-shipping",
+    type: "page",
+    title: "Shipping settings",
+    subtitle: "Zones, rates, free shipping",
+    href: "/dashboard/settings?tab=shipping",
+  },
+  {
+    id: "page-settings-website",
+    type: "page",
+    title: "Website URL",
+    subtitle: "Store slug and live link",
+    href: "/dashboard/settings?tab=website",
+  },
 ];
 
 export function filterPageLinks(query: string): DashboardSearchResult[] {

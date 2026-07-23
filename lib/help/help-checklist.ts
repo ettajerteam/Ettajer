@@ -31,15 +31,15 @@ export const GETTING_STARTED_CHECKLIST: HelpChecklistItem[] = [
   {
     step: 4,
     title: "Enable COD checkout",
-    description: "Turn on cash on delivery and verification.",
-    href: "/dashboard/settings",
-    articleSlug: "set-up-whatsapp-cod-verification",
+    description: "Turn on cash on delivery in Payments.",
+    href: "/dashboard/settings?tab=payment",
+    articleSlug: "how-cod-checkout-works",
   },
   {
     step: 5,
     title: "Connect your domain",
     description: "Use your own domain with free SSL.",
-    href: "/dashboard/settings",
+    href: "/dashboard/domains",
     articleSlug: "connect-a-custom-domain",
   },
 ];

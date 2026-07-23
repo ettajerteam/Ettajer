@@ -16,6 +16,7 @@ import {
   serializePublicCollection,
 } from "@/lib/catalog";
 import { parseDesignTokens, resolveDesignTokens } from "@/lib/design-tokens";
+import { parseShopPreferences } from "@/lib/shop-preferences";
 import type { PublicProduct, PublicStore } from "@/types/storefront";
 
 export function serializePublicStore(
@@ -27,6 +28,9 @@ export function serializePublicStore(
     description: string | null;
     currency: string;
     language?: string | null;
+    contactEmail?: string | null;
+    phone?: string | null;
+    address?: string | null;
     primaryColor: string;
     secondaryColor: string;
     font: string;
@@ -45,6 +49,7 @@ export function serializePublicStore(
   const marketing = toPublicMarketingIntegrations(
     parseMarketingIntegrations(settings?.marketingIntegrations)
   );
+  const shop = parseShopPreferences(settings?.seo);
   const freeShippingThreshold =
     zones[0]?.freeShippingThreshold ?? FREE_SHIPPING_THRESHOLD;
   const tokens = resolveDesignTokens(store.theme, parseDesignTokens(settings?.seo));
@@ -70,7 +75,19 @@ export function serializePublicStore(
       cashOnDelivery: gateways.cashOnDelivery,
       stripe: gateways.stripe,
       freeShippingThreshold,
+      minOrderAmount: shop.minOrderAmount,
+      checkoutNote: shop.checkoutNote,
+      codMessage: shop.codMessage,
     },
+    contact: {
+      email: store.contactEmail ?? null,
+      phone: store.phone ?? null,
+      address: store.address ?? null,
+      whatsapp: shop.whatsapp,
+      showOnStorefront: shop.showContactOnStorefront,
+    },
+    announceBarEnabled: shop.announceBarEnabled,
+    announceBarText: shop.announceBarText,
     marketing,
     navigation: parseNavigation(settings?.navigation, language),
   };

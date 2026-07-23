@@ -18,6 +18,7 @@ interface CurrencyLanguageSettingsProps {
   onChange: (updates: Partial<StoreWithSettings>) => void;
   onSave: () => Promise<void>;
   saving: boolean;
+  dirty?: boolean;
 }
 
 export function CurrencyLanguageSettings({
@@ -25,6 +26,7 @@ export function CurrencyLanguageSettings({
   onChange,
   onSave,
   saving,
+  dirty,
 }: CurrencyLanguageSettingsProps) {
   return (
     <SettingsPanel
@@ -33,6 +35,7 @@ export function CurrencyLanguageSettings({
       description="How prices are shown and which language your store defaults to."
       onSave={onSave}
       saving={saving}
+      dirty={dirty}
       saveLabel="Save locale"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -106,7 +106,13 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
   });
 
   const freeThreshold = store.checkout.freeShippingThreshold;
+  const minOrder = store.checkout.minOrderAmount ?? 0;
+  const belowMinOrder = minOrder > 0 && subtotal < minOrder;
   const primary = "var(--store-primary)";
+  const codBlurb =
+    store.checkout.codMessage?.trim() ||
+    "Pay the courier when your package arrives. No card needed.";
+  const checkoutNote = store.checkout.checkoutNote?.trim() || "";
 
   useEffect(() => {
     setStore(store.slug, store.currency);
@@ -229,6 +235,13 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
   async function handleSubmit() {
     if (items.length === 0) {
       setError(t.checkout.emptyCart);
+      return;
+    }
+
+    if (belowMinOrder) {
+      setError(
+        `Minimum order is ${formatCurrency(minOrder, store.currency)}. Add more items to continue.`
+      );
       return;
     }
 
@@ -401,6 +414,22 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
 
       <div className="min-w-0">
         <CheckoutProgress currentStep={step} language={store.language} />
+
+        {checkoutNote ? (
+          <div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+            {checkoutNote}
+          </div>
+        ) : null}
+
+        {belowMinOrder ? (
+          <div
+            role="status"
+            className="mb-6 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          >
+            Minimum order is {formatCurrency(minOrder, store.currency)}. Your bag is{" "}
+            {formatCurrency(subtotal, store.currency)}.
+          </div>
+        ) : null}
 
         {error ? (
           <div
@@ -635,7 +664,7 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
                     <span>
                       <span className="font-medium text-neutral-900">Cash on delivery</span>
                       <span className="mt-0.5 block text-sm text-neutral-500">
-                        Pay the courier when your package arrives. No card needed.
+                        {codBlurb}
                       </span>
                     </span>
                   </button>
@@ -753,7 +782,7 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={loading}
+                disabled={loading || belowMinOrder}
                 className="h-12 flex-[1.4] rounded-full text-white"
                 style={{ backgroundColor: primary }}
               >
@@ -781,7 +810,7 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
         {store.checkout.cashOnDelivery ? (
           <p className="mt-4 flex items-start gap-2 text-[12px] leading-relaxed text-neutral-500">
             <Banknote className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Cash on delivery available — pay when your order arrives.
+            {codBlurb}
           </p>
         ) : null}
       </aside>

@@ -12,9 +12,10 @@ interface PrinterSettingsProps {
   onChange: (updates: Partial<StoreWithSettings>) => void;
   onSave: () => Promise<void>;
   saving: boolean;
+  dirty?: boolean;
 }
 
-export function PrinterSettings({ store, onChange, onSave, saving }: PrinterSettingsProps) {
+export function PrinterSettings({ store, onChange, onSave, saving, dirty }: PrinterSettingsProps) {
   const printers = store.settings.ticketPrinters;
 
   const updatePrinters = (next: TicketPrinter[]) => {
@@ -50,6 +51,7 @@ export function PrinterSettings({ store, onChange, onSave, saving }: PrinterSett
       description="Route order tickets to kitchen, bar, or packing stations. Assign printers on each product."
       onSave={onSave}
       saving={saving}
+      dirty={dirty}
       saveLabel="Save printers"
       action={
         <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={addPrinter}>

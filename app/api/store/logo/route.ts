@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { getAuthenticatedStore } from "@/lib/products";
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
       where: { id: store.id },
       data: { logo: logoUrl },
     });
+
+    revalidatePath("/dashboard/settings");
+    revalidatePath(`/store/${store.slug}`);
+    revalidatePath(`/store/${store.slug}`, "layout");
 
     return NextResponse.json({ logo: logoUrl, store: { logo: updated.logo } });
   } catch (error) {

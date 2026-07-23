@@ -15,9 +15,10 @@ interface WebsiteSettingsProps {
   onChange: (updates: Partial<StoreWithSettings>) => void;
   onSave: () => Promise<void>;
   saving: boolean;
+  dirty?: boolean;
 }
 
-export function WebsiteSettings({ store, onChange, onSave, saving }: WebsiteSettingsProps) {
+export function WebsiteSettings({ store, onChange, onSave, saving, dirty }: WebsiteSettingsProps) {
   const liveUrl = getAbsoluteStoreUrl(store.slug);
   const customDomain = store.settings.customDomain;
 
@@ -28,6 +29,7 @@ export function WebsiteSettings({ store, onChange, onSave, saving }: WebsiteSett
       description="Control the link customers use to reach your storefront."
       onSave={onSave}
       saving={saving}
+      dirty={dirty}
       saveLabel="Save website"
     >
       <div className="space-y-2">
@@ -46,21 +48,30 @@ export function WebsiteSettings({ store, onChange, onSave, saving }: WebsiteSett
             id="storeSlug"
             value={store.slug}
             onChange={(e) => {
-              const next = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "");
+              const next = e.target.value
+                .toLowerCase()
+                .replace(/[^a-z0-9-]/g, "")
+                .replace(/-+/g, "-")
+                .replace(/^-+/, "");
               onChange({ slug: next });
+            }}
+            onBlur={() => {
+              const cleaned = store.slug.replace(/-+$/g, "");
+              if (cleaned !== store.slug) onChange({ slug: cleaned });
             }}
             placeholder="my-store"
             className="h-11 rounded-xl font-mono"
           />
         </div>
         <p className="text-[12px] text-neutral-500">
-          Changing the slug updates your public link. Old links will stop working.
+          Lowercase letters, numbers, and hyphens only. Changing the slug updates your public
+          link — old links will stop working.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-neutral-200/80 bg-gradient-to-br from-neutral-50 to-white p-5">
+      <div className="rounded-2xl border border-neutral-200/80 bg-gradient-to-br from-[#007AFF]/[0.04] via-neutral-50 to-white p-5 dark:from-[#007AFF]/10 dark:via-transparent dark:to-transparent">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-[#007AFF]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#007AFF] text-white shadow-[0_4px_12px_-4px_rgba(0,122,255,0.65)]">
             <Link2 className="h-4 w-4" />
           </span>
           <div className="min-w-0 flex-1">

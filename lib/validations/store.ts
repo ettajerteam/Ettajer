@@ -63,9 +63,18 @@ export const updateStoreSchema = z.object({
     .optional(),
   description: z.string().max(2000).optional().nullable(),
   logo: z.string().nullable().optional(),
-  contactEmail: z.string().email().optional().nullable(),
-  phone: z.string().max(30).optional().nullable(),
-  address: z.string().max(500).optional().nullable(),
+  contactEmail: z.preprocess(
+    (v) => (typeof v === "string" ? v.trim() || null : v),
+    z.string().email().nullable().optional()
+  ),
+  phone: z.preprocess(
+    (v) => (typeof v === "string" ? v.trim() || null : v),
+    z.string().max(30).nullable().optional()
+  ),
+  address: z.preprocess(
+    (v) => (typeof v === "string" ? v.trim() || null : v),
+    z.string().max(500).nullable().optional()
+  ),
   currency: z.enum(currencyValues).optional(),
   language: z.enum(languageValues).optional(),
   theme: z.enum(themeValues).optional(),
@@ -77,6 +86,25 @@ export const updateStoreSchema = z.object({
   ticketPrinters: z.array(ticketPrinterSchema).optional(),
   marketingIntegrations: marketingIntegrationsSchema.optional(),
   customDomain: z.string().max(253).nullable().optional(),
+  seo: z
+    .object({
+      title: z.string().max(70).optional().nullable(),
+      description: z.string().max(160).optional().nullable(),
+      keywords: z.array(z.string().max(40)).max(20).optional(),
+      noIndex: z.boolean().optional(),
+    })
+    .optional(),
+  shop: z
+    .object({
+      whatsapp: z.string().max(30).optional().nullable(),
+      showContactOnStorefront: z.boolean().optional(),
+      minOrderAmount: z.number().min(0).optional(),
+      checkoutNote: z.string().max(280).optional(),
+      codMessage: z.string().max(280).optional(),
+      announceBarEnabled: z.boolean().optional(),
+      announceBarText: z.string().max(120).optional(),
+    })
+    .optional(),
 });
 
 export type UpdateStoreInput = z.infer<typeof updateStoreSchema>;

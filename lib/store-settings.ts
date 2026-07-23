@@ -9,9 +9,21 @@ import {
   parseMarketingIntegrations,
   type MarketingIntegrations,
 } from "@/lib/marketing-integrations";
+import type { StoreSeoSettings } from "@/lib/seo/storefront-metadata";
+import {
+  DEFAULT_SHOP_PREFERENCES,
+  getSeoAndShopFromRaw,
+  type ShopPreferences,
+} from "@/lib/shop-preferences";
 
-export type { TicketPrinter, MarketingIntegrations };
-export { DEFAULT_TICKET_PRINTERS, parseTicketPrinters, DEFAULT_MARKETING_INTEGRATIONS, parseMarketingIntegrations };
+export type { TicketPrinter, MarketingIntegrations, ShopPreferences };
+export {
+  DEFAULT_TICKET_PRINTERS,
+  parseTicketPrinters,
+  DEFAULT_MARKETING_INTEGRATIONS,
+  parseMarketingIntegrations,
+  DEFAULT_SHOP_PREFERENCES,
+};
 
 export interface ShippingZone extends ShippingZoneInput {}
 
@@ -23,6 +35,8 @@ export interface StoreSettingsData {
   ticketPrinters: TicketPrinter[];
   marketingIntegrations: MarketingIntegrations;
   customDomain: string | null;
+  seo: StoreSeoSettings;
+  shop: ShopPreferences;
 }
 
 export interface StoreWithSettings {
@@ -116,8 +130,10 @@ export function serializeStoreWithSettings(store: {
     ticketPrinters?: unknown;
     marketingIntegrations?: unknown;
     customDomain: string | null;
+    seo?: unknown;
   } | null;
 }): StoreWithSettings {
+  const { seo, shop } = getSeoAndShopFromRaw(store.settings?.seo);
   return {
     id: store.id,
     name: store.name,
@@ -142,6 +158,8 @@ export function serializeStoreWithSettings(store: {
       ticketPrinters: parseTicketPrinters(store.settings?.ticketPrinters),
       marketingIntegrations: parseMarketingIntegrations(store.settings?.marketingIntegrations),
       customDomain: store.settings?.customDomain ?? null,
+      seo,
+      shop,
     },
   };
 }

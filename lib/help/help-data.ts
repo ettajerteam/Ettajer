@@ -261,34 +261,34 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: ["cod", "cash", "delivery", "checkout"],
     body: [
       "Ettajer includes native Cash on Delivery checkout. Buyers enter name, phone, city, and address — no card required.",
-      "Enable COD in Settings → Checkout. You can require phone verification to reduce fake orders.",
+      "Enable COD in Settings → Payments. Customize the COD message, minimum order, and checkout note under Settings → Checkout.",
       "Orders appear in Dashboard → Orders with full customer details ready for your courier.",
     ],
   },
   {
     slug: "set-up-whatsapp-cod-verification",
     title: "Set up WhatsApp COD verification",
-    excerpt: "Step-by-step guide to confirm orders before you ship.",
+    excerpt: "Confirm orders before you ship to cut fake deliveries.",
     categoryId: "orders-cod",
     popular: true,
     keywords: ["whatsapp", "sms", "verification", "cod"],
     body: [
-      "Go to Settings → Checkout → COD verification. Enable WhatsApp and/or SMS confirmation.",
-      "When a buyer places a COD order, they receive a message with a link to confirm or cancel.",
-      "Only confirmed orders should be packed and handed to your courier. This cuts fake and refused deliveries sharply.",
+      "Enable Cash on Delivery in Settings → Payments so shoppers can order without a card.",
+      "Add your WhatsApp number in Settings → Storefront contact so customers can reach you from the shop footer.",
+      "After an order arrives in Dashboard → Orders, confirm details with the customer on WhatsApp or phone before you pack and hand off to your courier.",
     ],
   },
   {
     slug: "reduce-fake-cod-orders",
     title: "Reduce fake COD orders",
-    excerpt: "Use SMS and WhatsApp verification before dispatch.",
+    excerpt: "Confirm buyers before you ship.",
     categoryId: "orders-cod",
     popular: true,
     keywords: ["fake", "fraud", "cod", "verification"],
     body: [
-      "Fake COD orders are a common problem in Morocco. Ettajer lets buyers confirm or cancel via SMS or WhatsApp before you ship.",
-      "Turn on verification in Settings → Checkout → COD verification.",
-      "Merchants typically see a significant drop in returned or refused deliveries after enabling verification.",
+      "Fake COD orders are a common problem in Morocco. Confirm name, phone, and address before you dispatch.",
+      "Enable COD in Settings → Payments, then review every new order in Dashboard → Orders and reach out on WhatsApp when something looks off.",
+      "Merchants typically see fewer returned or refused deliveries after confirming buyers before shipping.",
     ],
   },
   {
@@ -299,8 +299,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: ["address", "city", "morocco", "neighborhood"],
     body: [
       "COD checkout collects name, phone, city, neighborhood (quartier), and full address — fields Moroccan couriers expect.",
-      "Require a valid mobile number. Landlines make verification and delivery harder.",
-      "Review address format in Settings → Checkout if you deliver to specific zones only.",
+      "Require a valid mobile number. Landlines make delivery harder.",
+      "Limit where you deliver in Settings → Shipping by choosing cities for each zone.",
     ],
   },
   {
@@ -525,8 +525,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: ["seo", "google", "search", "sitemap"],
     body: [
       "Every store includes server-rendered pages, XML sitemaps, canonical URLs, and Open Graph previews.",
-      "Edit page titles and descriptions from the page editor or product settings.",
-      "Structured data helps search engines understand your products.",
+      "Set your shop title, meta description, and keywords in Settings → SEO. Leave fields blank to use your store name and description.",
+      "You can also refine titles on individual pages and products from the editor.",
     ],
   },
   // Analytics
@@ -573,13 +573,13 @@ export const HELP_ARTICLES: HelpArticle[] = [
   {
     slug: "configure-checkout-settings",
     title: "Configure checkout settings",
-    excerpt: "COD, verification, and order notifications.",
+    excerpt: "COD, minimum order, and storefront messaging.",
     categoryId: "getting-started",
-    keywords: ["checkout", "settings", "cod"],
+    keywords: ["checkout", "settings", "cod", "seo"],
     body: [
-      "Go to Dashboard → Settings → Checkout to enable COD, set verification rules, and customize fields.",
-      "Configure order confirmation emails and SMS notifications.",
-      "Test checkout yourself after any change — place a test order and walk through verification.",
+      "Open Dashboard → Settings. Use Payments to enable Cash on Delivery, and Checkout to set a minimum order, checkout note, COD message, and announcement bar.",
+      "Storefront contact controls WhatsApp and whether email/phone appear in the footer. SEO controls how your shop shows in Google.",
+      "After saving, open your live store and place a test order to confirm checkout looks right.",
     ],
   },
   {

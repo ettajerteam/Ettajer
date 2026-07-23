@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-session";
 import { getUserFounderProfile, getFounderCount, USER_STATUS } from "@/lib/founder";
 import { getRecentFounderCount, getLaunchTargetDate } from "@/lib/founder/waiting-intelligence";
+import { isPlatformLaunched } from "@/lib/founder/launch-date";
 import { FounderShell } from "@/components/founder/founder-shell";
 import { EarlyAccessContent } from "@/components/founder/early-access-content";
 import { FounderFlowRoot } from "@/components/founder/founder-flow-root";
@@ -34,10 +35,10 @@ export default async function EarlyAccessPage({
   if (!user.founderNumber) {
     redirect("/dashboard");
   }
-  if (user.status !== USER_STATUS.WAITING) {
-    // Refresh JWT before dashboard so middleware does not bounce waiting→early-access.
-    const next = "/dashboard";
-    redirect(`/opening?next=${encodeURIComponent(next)}`);
+
+  // Platform is live — leave the waiting room (JWT refresh via /opening).
+  if (isPlatformLaunched() || user.status !== USER_STATUS.WAITING) {
+    redirect(`/opening?next=${encodeURIComponent("/dashboard")}`);
   }
 
   const isReturning = searchParams.new !== "1";

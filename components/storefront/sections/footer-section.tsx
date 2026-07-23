@@ -144,6 +144,53 @@ export function FooterSection({ store, settings }: FooterSectionProps) {
               {store.name}
             </Link>
             {tagline ? <p className={taglineClass}>{tagline}</p> : null}
+            {store.contact.showOnStorefront ? (
+              <div
+                className={cn(
+                  "mt-5 space-y-1.5 text-[13px] leading-snug",
+                  dark ? "text-white/45" : "text-neutral-500"
+                )}
+              >
+                {store.contact.email ? (
+                  <a
+                    href={`mailto:${store.contact.email}`}
+                    className={cn(
+                      "block transition",
+                      dark ? "hover:text-white" : "hover:text-neutral-900"
+                    )}
+                  >
+                    {store.contact.email}
+                  </a>
+                ) : null}
+                {store.contact.phone ? (
+                  <a
+                    href={`tel:${store.contact.phone.replace(/\s+/g, "")}`}
+                    className={cn(
+                      "block transition",
+                      dark ? "hover:text-white" : "hover:text-neutral-900"
+                    )}
+                  >
+                    {store.contact.phone}
+                  </a>
+                ) : null}
+                {store.contact.whatsapp ? (
+                  <a
+                    href={`https://wa.me/${store.contact.whatsapp.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "block transition",
+                      dark ? "hover:text-white" : "hover:text-neutral-900"
+                    )}
+                  >
+                    WhatsApp
+                  </a>
+                ) : null}
+                {store.contact.address ? (
+                  <p className="pt-1">{store.contact.address}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           {showNav ? (

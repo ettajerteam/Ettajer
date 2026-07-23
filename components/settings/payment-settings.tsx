@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { SettingsPanel } from "@/components/settings/settings-panel";
+import {
+  SettingsRelatedCard,
+  SettingsRelatedLink,
+} from "@/components/settings/settings-related-link";
 import type { StoreWithSettings } from "@/lib/store-settings";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +17,10 @@ interface PaymentSettingsProps {
   onChange: (updates: Partial<StoreWithSettings>) => void;
   onSave: () => Promise<void>;
   saving: boolean;
+  dirty?: boolean;
 }
 
-export function PaymentSettings({ store, onChange, onSave, saving }: PaymentSettingsProps) {
+export function PaymentSettings({ store, onChange, onSave, saving, dirty }: PaymentSettingsProps) {
   const gateways = store.settings.paymentGateways;
 
   const updateGateways = (patch: Partial<typeof gateways>) => {
@@ -38,15 +43,16 @@ export function PaymentSettings({ store, onChange, onSave, saving }: PaymentSett
       description="Choose how customers pay — COD is the default for Moroccan shoppers."
       onSave={onSave}
       saving={saving}
+      dirty={dirty}
       saveLabel="Save payments"
     >
-      <div className="space-y-3">
+      <div className="space-y-5">
         <div
           className={cn(
-            "flex items-center justify-between gap-4 rounded-2xl border p-4 transition",
+            "flex items-center justify-between gap-4 rounded-2xl border p-4 transition-all duration-200",
             gateways.cashOnDelivery
-              ? "border-[#007AFF]/25 bg-[#007AFF]/[0.04]"
-              : "border-neutral-200/80 bg-white"
+              ? "border-[#007AFF]/30 bg-gradient-to-br from-[#007AFF]/[0.07] to-white shadow-[inset_0_0_0_1px_rgba(0,122,255,0.06)]"
+              : "border-neutral-200/80 bg-white hover:border-neutral-300"
           )}
         >
           <div className="flex items-center gap-3">
@@ -60,7 +66,13 @@ export function PaymentSettings({ store, onChange, onSave, saving }: PaymentSett
           </div>
           <Switch
             checked={gateways.cashOnDelivery}
-            onCheckedChange={(checked) => updateGateways({ cashOnDelivery: checked })}
+            onCheckedChange={(checked) => {
+              if (!checked && !gateways.stripe) {
+                toast.error("Keep at least one payment method enabled");
+                return;
+              }
+              updateGateways({ cashOnDelivery: checked });
+            }}
           />
         </div>
 
@@ -84,7 +96,13 @@ export function PaymentSettings({ store, onChange, onSave, saving }: PaymentSett
             </div>
             <Switch
               checked={gateways.stripe}
-              onCheckedChange={(checked) => updateGateways({ stripe: checked })}
+              onCheckedChange={(checked) => {
+                if (!checked && !gateways.cashOnDelivery) {
+                  toast.error("Keep at least one payment method enabled");
+                  return;
+                }
+                updateGateways({ stripe: checked });
+              }}
             />
           </div>
 
@@ -120,6 +138,11 @@ export function PaymentSettings({ store, onChange, onSave, saving }: PaymentSett
           Enable at least one payment method so customers can checkout.
         </p>
       ) : null}
+
+      <SettingsRelatedCard>
+        Customize the COD message, minimum order, and announcement bar in{" "}
+        <SettingsRelatedLink tab="checkout">Checkout settings</SettingsRelatedLink>.
+      </SettingsRelatedCard>
     </SettingsPanel>
   );
 }

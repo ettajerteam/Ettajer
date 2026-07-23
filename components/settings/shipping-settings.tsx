@@ -6,6 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MOROCCO_CITIES } from "@/lib/morocco-cities";
 import { SettingsPanel } from "@/components/settings/settings-panel";
+import {
+  SettingsRelatedCard,
+  SettingsRelatedLink,
+} from "@/components/settings/settings-related-link";
 import type { StoreWithSettings, ShippingZone } from "@/lib/store-settings";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +18,10 @@ interface ShippingSettingsProps {
   onChange: (updates: Partial<StoreWithSettings>) => void;
   onSave: () => Promise<void>;
   saving: boolean;
+  dirty?: boolean;
 }
 
-export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSettingsProps) {
+export function ShippingSettings({ store, onChange, onSave, saving, dirty }: ShippingSettingsProps) {
   const zones = store.settings.shippingZones;
 
   const updateZones = (newZones: ShippingZone[]) => {
@@ -63,6 +68,7 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
       description="Set rates and free-shipping thresholds for Moroccan cities."
       onSave={onSave}
       saving={saving}
+      dirty={dirty}
       saveLabel="Save shipping"
       action={
         <Button type="button" variant="outline" size="sm" className="rounded-xl" onClick={addZone}>
@@ -157,6 +163,13 @@ export function ShippingSettings({ store, onChange, onSave, saving }: ShippingSe
           </div>
         ))}
       </div>
+
+      <SettingsRelatedCard>
+        Set a free-shipping promo message on the storefront in{" "}
+        <SettingsRelatedLink tab="checkout">Checkout</SettingsRelatedLink>
+        , or enable COD under{" "}
+        <SettingsRelatedLink tab="payment">Payments</SettingsRelatedLink>.
+      </SettingsRelatedCard>
     </SettingsPanel>
   );
 }

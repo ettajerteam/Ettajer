@@ -7,6 +7,7 @@ import { slugify } from "@/lib/utils";
 import { serializeStoreWithSettings } from "@/lib/store-settings";
 import { updateStoreSchema } from "@/lib/validations/store";
 import { DEFAULT_SHIPPING_ZONES, DEFAULT_PAYMENT_GATEWAYS, DEFAULT_TICKET_PRINTERS, DEFAULT_MARKETING_INTEGRATIONS } from "@/lib/store-settings";
+import { mergeSeoSettings, mergeShopPreferences } from "@/lib/shop-preferences";
 import { isBusinessModel } from "@/lib/onboarding/business-models";
 import {
   installWebsiteTemplateOnStore,
@@ -19,6 +20,7 @@ import {
   addVercelWwwRedirect,
   removeVercelDomain,
 } from "@/lib/domains/vercel";
+import type { StoreSeoSettings } from "@/lib/seo/storefront-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -161,13 +163,32 @@ export async function PUT(request: Request) {
     const parsed = updateStoreSchema.safeParse(body);
 
     if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const firstField = Object.keys(fieldErrors)[0];
+      const firstMsg = firstField
+        ? fieldErrors[firstField as keyof typeof fieldErrors]?.[0]
+        : undefined;
       return NextResponse.json(
-        { message: "Validation failed", errors: parsed.error.flatten() },
+        {
+          message: firstMsg ?? "Validation failed",
+          errors: parsed.error.flatten(),
+        },
         { status: 400 }
       );
     }
 
     const data = parsed.data;
+
+    if (
+      data.paymentGateways !== undefined &&
+      !data.paymentGateways.cashOnDelivery &&
+      !data.paymentGateways.stripe
+    ) {
+      return NextResponse.json(
+        { message: "Enable at least one payment method (COD or Stripe)" },
+        { status: 400 }
+      );
+    }
     const storeUpdate: Record<string, unknown> = {};
 
     if (data.name !== undefined) storeUpdate.name = data.name;
@@ -257,6 +278,32 @@ export async function PUT(request: Request) {
       settingsUpdate.customDomain = normalized;
     }
 
+    if (data.seo !== undefined || data.shop !== undefined) {
+      let seoJson: unknown = existing.settings?.seo ?? {};
+      if (data.seo !== undefined) {
+        const seoPatch: StoreSeoSettings = {
+          title: data.seo.title?.trim() ? data.seo.title.trim() : undefined,
+          description: data.seo.description?.trim()
+            ? data.seo.description.trim()
+            : undefined,
+          keywords: data.seo.keywords,
+          noIndex: data.seo.noIndex,
+        };
+        // Explicit empty/null clears the field via mergeSeoSettings
+        if (data.seo.title !== undefined && !data.seo.title?.trim()) {
+          seoPatch.title = "";
+        }
+        if (data.seo.description !== undefined && !data.seo.description?.trim()) {
+          seoPatch.description = "";
+        }
+        seoJson = mergeSeoSettings(seoJson, seoPatch);
+      }
+      if (data.shop !== undefined) {
+        seoJson = mergeShopPreferences(seoJson, data.shop);
+      }
+      settingsUpdate.seo = seoJson as Prisma.InputJsonValue;
+    }
+
     await prisma.$transaction(async (tx) => {
       if (Object.keys(storeUpdate).length > 0) {
         await tx.store.update({
@@ -283,6 +330,9 @@ export async function PUT(request: Request) {
                 data.customDomain !== undefined
                   ? normalizeCustomDomain(data.customDomain)
                   : null,
+              seo:
+                (settingsUpdate.seo as Prisma.InputJsonValue | undefined) ??
+                undefined,
             },
           });
         }
@@ -297,7 +347,20 @@ export async function PUT(request: Request) {
     if (
       data.marketingIntegrations !== undefined ||
       data.slug !== undefined ||
-      data.customDomain !== undefined
+      data.customDomain !== undefined ||
+      data.seo !== undefined ||
+      data.shop !== undefined ||
+      data.contactEmail !== undefined ||
+      data.phone !== undefined ||
+      data.address !== undefined ||
+      data.name !== undefined ||
+      data.description !== undefined ||
+      data.logo !== undefined ||
+      data.currency !== undefined ||
+      data.language !== undefined ||
+      data.shippingZones !== undefined ||
+      data.paymentGateways !== undefined ||
+      data.ticketPrinters !== undefined
     ) {
       revalidatePath("/dashboard/marketing");
       revalidatePath("/dashboard/marketing/[platform]", "page");

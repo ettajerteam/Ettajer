@@ -3,9 +3,11 @@ import { prisma } from "@/lib/db";
 import { checkoutSchema } from "@/lib/validations/checkout";
 import { createStoreOrder, serializeOrderDetail } from "@/lib/orders";
 import { parsePaymentGateways } from "@/lib/store-settings";
+import { parseShopPreferences } from "@/lib/shop-preferences";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { clearServerCart } from "@/lib/cart-server";
 import { markAbandonedRecovered } from "@/lib/abandoned";
+import { formatCurrency } from "@/lib/utils";
 
 export async function POST(request: Request) {
   try {
@@ -31,6 +33,7 @@ export async function POST(request: Request) {
     }
 
     const gateways = parsePaymentGateways(store.settings?.paymentGateways);
+    const shop = parseShopPreferences(store.settings?.seo);
 
     if (input.paymentMethod === "cod" && !gateways.cashOnDelivery) {
       return NextResponse.json(
@@ -50,6 +53,27 @@ export async function POST(request: Request) {
         { message: "Stripe payments are coming soon. Please use Cash on Delivery." },
         { status: 400 }
       );
+    }
+
+    if (shop.minOrderAmount > 0) {
+      const productIds = input.items.map((item) => item.productId);
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds }, storeId: store.id },
+        select: { id: true, price: true },
+      });
+      const priceById = new Map(products.map((p) => [p.id, p.price]));
+      const subtotal = input.items.reduce((sum, item) => {
+        const price = priceById.get(item.productId) ?? 0;
+        return sum + price * item.quantity;
+      }, 0);
+      if (subtotal < shop.minOrderAmount) {
+        return NextResponse.json(
+          {
+            message: `Minimum order is ${formatCurrency(shop.minOrderAmount, store.currency)}`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const order = await createStoreOrder(

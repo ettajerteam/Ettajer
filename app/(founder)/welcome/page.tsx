@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-session";
 import { getUserFounderProfile, USER_STATUS } from "@/lib/founder";
+import { isPlatformLaunched } from "@/lib/founder/launch-date";
 import { FounderShell } from "@/components/founder/founder-shell";
 import { WelcomeContent } from "@/components/founder/welcome-content";
 import { FounderFlowRoot } from "@/components/founder/founder-flow-root";
@@ -25,8 +26,8 @@ export default async function WelcomePage() {
   if (!user?.emailVerified) {
     redirect(`/activate?email=${encodeURIComponent(user?.email ?? "")}`);
   }
-  if (!user?.founderNumber || user.status !== USER_STATUS.WAITING) {
-    redirect("/dashboard");
+  if (!user?.founderNumber || user.status !== USER_STATUS.WAITING || isPlatformLaunched()) {
+    redirect(`/opening?next=${encodeURIComponent("/dashboard")}`);
   }
 
   return (

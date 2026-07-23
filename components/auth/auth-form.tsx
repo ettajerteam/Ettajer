@@ -285,9 +285,9 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
         try {
           const targetRes = await fetch("/api/auth/redirect-target");
           const targetData = (await targetRes.json()) as { redirect?: string };
-          window.location.href = targetData.redirect ?? "/dashboard";
+          window.location.replace(targetData.redirect ?? "/dashboard");
         } catch {
-          window.location.href = "/dashboard";
+          window.location.replace("/dashboard");
         }
       }
     } catch {

@@ -23,10 +23,37 @@ const DASHBOARD_HELP_ROUTES: Record<string, string> = {
   "/dashboard/analytics/live": "understand-your-analytics-dashboard",
   "/dashboard/analytics/reports": "understand-your-analytics-dashboard",
   "/dashboard/settings": "configure-checkout-settings",
+  "/dashboard/domains": "connect-a-custom-domain",
   "/dashboard/gift-cards": "create-discounts-and-campaigns",
 };
 
-export function getHelpArticleForPath(pathname: string): string | undefined {
+/** Settings tab → help article (query `?tab=`). */
+const SETTINGS_TAB_HELP: Record<string, string> = {
+  general: "configure-checkout-settings",
+  website: "connect-a-custom-domain",
+  currency: "configure-checkout-settings",
+  shipping: "cod-address-fields-morocco",
+  payment: "how-cod-checkout-works",
+  checkout: "configure-checkout-settings",
+  seo: "built-in-seo",
+  contact: "configure-checkout-settings",
+  printers: "manage-orders-and-fulfillment",
+};
+
+export function getHelpArticleForPath(
+  pathname: string,
+  search = ""
+): string | undefined {
+  if (pathname === "/dashboard/settings" || pathname.startsWith("/dashboard/settings?")) {
+    const tab = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get(
+      "tab"
+    );
+    if (tab && SETTINGS_TAB_HELP[tab]) {
+      return SETTINGS_TAB_HELP[tab];
+    }
+    return DASHBOARD_HELP_ROUTES["/dashboard/settings"];
+  }
+
   if (DASHBOARD_HELP_ROUTES[pathname]) {
     return DASHBOARD_HELP_ROUTES[pathname];
   }

@@ -34,6 +34,8 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
   const copy = getStorefrontCopy(store.language);
   const dir = getStorefrontDir(store.language);
   const lang = getStorefrontLang(store.language);
+  const showAnnounce =
+    store.announceBarEnabled && Boolean(store.announceBarText?.trim());
 
   const inner = (
     <>
@@ -42,6 +44,15 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
           {copy.previewBanner}
         </div>
       )}
+      {showAnnounce ? (
+        <div
+          className="px-4 py-2 text-center text-[12px] font-medium tracking-wide text-white sm:text-[13px]"
+          style={{ backgroundColor: store.primaryColor }}
+          role="status"
+        >
+          {store.announceBarText}
+        </div>
+      ) : null}
       <StorefrontCartProvider store={store}>{children}</StorefrontCartProvider>
       <Suspense fallback={null}>
         <UtmCapture />

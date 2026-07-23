@@ -1,7 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { CircleHelp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getHelpArticleForPath } from "@/lib/help/dashboard-help-routes";
@@ -13,15 +14,33 @@ interface DashboardHeaderProps {
   className?: string;
 }
 
+function DashboardHelpLink({ helpArticle }: { helpArticle?: string }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const slug =
+    helpArticle ?? getHelpArticleForPath(pathname, searchParams.toString());
+
+  if (!slug) return null;
+
+  return (
+    <Link
+      href={`/help/${slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300 dark:hover:text-white"
+    >
+      <CircleHelp className="h-3.5 w-3.5" />
+      Help
+    </Link>
+  );
+}
+
 export function DashboardHeader({
   title,
   description,
   helpArticle,
   className,
 }: DashboardHeaderProps) {
-  const pathname = usePathname();
-  const slug = helpArticle ?? getHelpArticleForPath(pathname);
-
   return (
     <div
       className={cn(
@@ -41,17 +60,9 @@ export function DashboardHeader({
           ) : null}
         </div>
 
-        {slug ? (
-          <Link
-            href={`/help/${slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300 dark:hover:text-white"
-          >
-            <CircleHelp className="h-3.5 w-3.5" />
-            Help
-          </Link>
-        ) : null}
+        <Suspense fallback={null}>
+          <DashboardHelpLink helpArticle={helpArticle} />
+        </Suspense>
       </div>
     </div>
   );

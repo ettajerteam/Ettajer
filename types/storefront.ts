@@ -10,6 +10,17 @@ export interface PublicCheckoutSettings {
   cashOnDelivery: boolean;
   stripe: boolean;
   freeShippingThreshold: number;
+  minOrderAmount: number;
+  checkoutNote: string;
+  codMessage: string;
+}
+
+export interface PublicStoreContact {
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  whatsapp: string | null;
+  showOnStorefront: boolean;
 }
 
 export interface PublicStore {
@@ -30,6 +41,9 @@ export interface PublicStore {
   borderColor?: string;
   buttonRadius?: string;
   checkout: PublicCheckoutSettings;
+  contact: PublicStoreContact;
+  announceBarEnabled: boolean;
+  announceBarText: string;
   marketing: PublicMarketingIntegrations;
   navigation?: NavItem[];
 }

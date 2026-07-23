@@ -6,9 +6,16 @@ import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SettingsPanel } from "@/components/settings/settings-panel";
+import {
+  SettingsField,
+  SettingsSection,
+} from "@/components/settings/settings-section";
+import {
+  SettingsRelatedCard,
+  SettingsRelatedLink,
+} from "@/components/settings/settings-related-link";
 import type { StoreWithSettings } from "@/lib/store-settings";
 
 interface GeneralSettingsProps {
@@ -16,9 +23,16 @@ interface GeneralSettingsProps {
   onChange: (updates: Partial<StoreWithSettings>) => void;
   onSave: () => Promise<void>;
   saving: boolean;
+  dirty?: boolean;
 }
 
-export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSettingsProps) {
+export function GeneralSettings({
+  store,
+  onChange,
+  onSave,
+  saving,
+  dirty,
+}: GeneralSettingsProps) {
   const [uploading, setUploading] = useState(false);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,12 +64,15 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
       description="How your store appears to customers — name, logo, and how they can reach you."
       onSave={onSave}
       saving={saving}
+      dirty={dirty}
       saveLabel="Save profile"
     >
-      <div className="space-y-2">
-        <Label>Store logo</Label>
+      <SettingsSection
+        title="Brand"
+        description="Logo and name shown across your storefront and checkout."
+      >
         <div className="flex flex-wrap items-center gap-4">
-          <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+          <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-white/10">
             {store.logo ? (
               <Image src={store.logo} alt="Logo" fill className="object-cover" unoptimized />
             ) : uploading ? (
@@ -73,7 +90,7 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
                 onChange={handleLogoUpload}
                 disabled={uploading}
               />
-              <span className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium transition hover:bg-neutral-50">
+              <span className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium transition hover:bg-neutral-50 dark:border-white/10 dark:bg-white/5">
                 {uploading ? "Uploading…" : "Upload logo"}
               </span>
             </label>
@@ -91,65 +108,76 @@ export function GeneralSettings({ store, onChange, onSave, saving }: GeneralSett
             <p className="text-[12px] text-neutral-500">PNG or JPG, square works best.</p>
           </div>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="storeName">Store name</Label>
-        <Input
-          id="storeName"
-          value={store.name}
-          onChange={(e) => onChange({ name: e.target.value })}
-          className="h-11 rounded-xl"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Store description</Label>
-        <Textarea
-          id="description"
-          rows={4}
-          value={store.description ?? ""}
-          onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="Tell customers what makes your store special…"
-          className="rounded-xl"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="contactEmail">Contact email</Label>
+        <SettingsField label="Store name" htmlFor="storeName">
           <Input
-            id="contactEmail"
-            type="email"
-            value={store.contactEmail ?? ""}
-            onChange={(e) => onChange({ contactEmail: e.target.value })}
-            placeholder="hello@yourstore.com"
-            className="h-11 rounded-xl"
+            id="storeName"
+            value={store.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            className="h-11 rounded-xl bg-white dark:bg-transparent"
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone number</Label>
-          <Input
-            id="phone"
-            value={store.phone ?? ""}
-            onChange={(e) => onChange({ phone: e.target.value })}
-            placeholder="+212 6 00 00 00 00"
-            className="h-11 rounded-xl"
-          />
-        </div>
-      </div>
+        </SettingsField>
 
-      <div className="space-y-2">
-        <Label htmlFor="address">Store address</Label>
-        <Textarea
-          id="address"
-          rows={2}
-          value={store.address ?? ""}
-          onChange={(e) => onChange({ address: e.target.value })}
-          placeholder="Street, city, country"
-          className="rounded-xl"
-        />
-      </div>
+        <SettingsField
+          label="Store description"
+          htmlFor="description"
+          hint="Used in SEO fallbacks and your store footer tagline."
+        >
+          <Textarea
+            id="description"
+            rows={3}
+            value={store.description ?? ""}
+            onChange={(e) => onChange({ description: e.target.value })}
+            placeholder="Tell customers what makes your store special…"
+            className="rounded-xl bg-white dark:bg-transparent"
+          />
+        </SettingsField>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Business contact"
+        description="Shown on invoices and optionally on your storefront footer."
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SettingsField label="Contact email" htmlFor="contactEmail">
+            <Input
+              id="contactEmail"
+              type="email"
+              value={store.contactEmail ?? ""}
+              onChange={(e) => onChange({ contactEmail: e.target.value })}
+              placeholder="hello@yourstore.com"
+              className="h-11 rounded-xl bg-white dark:bg-transparent"
+            />
+          </SettingsField>
+          <SettingsField label="Phone number" htmlFor="phone">
+            <Input
+              id="phone"
+              value={store.phone ?? ""}
+              onChange={(e) => onChange({ phone: e.target.value })}
+              placeholder="+212 6 00 00 00 00"
+              className="h-11 rounded-xl bg-white dark:bg-transparent"
+            />
+          </SettingsField>
+        </div>
+
+        <SettingsField label="Store address" htmlFor="address">
+          <Textarea
+            id="address"
+            rows={2}
+            value={store.address ?? ""}
+            onChange={(e) => onChange({ address: e.target.value })}
+            placeholder="Street, city, country"
+            className="rounded-xl bg-white dark:bg-transparent"
+          />
+        </SettingsField>
+      </SettingsSection>
+
+      <SettingsRelatedCard>
+        Control WhatsApp and footer visibility in{" "}
+        <SettingsRelatedLink tab="contact">Storefront contact</SettingsRelatedLink>
+        . SEO titles live under{" "}
+        <SettingsRelatedLink tab="seo">SEO</SettingsRelatedLink>.
+      </SettingsRelatedCard>
     </SettingsPanel>
   );
 }
