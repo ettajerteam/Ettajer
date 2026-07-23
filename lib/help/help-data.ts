@@ -670,6 +670,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     keywords: ["image", "upload", "photo"],
     body: [
       "Use JPG, PNG, or WebP under 10 MB per file.",
+      "Product photos upload to cloud storage — if upload fails, wait a minute and try again.",
       "Check your internet connection — large files on slow mobile networks may timeout.",
       "Try a different browser. Disable VPN if uploads consistently fail.",
       "Contact support if a specific file fails repeatedly after resizing.",

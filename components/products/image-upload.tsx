@@ -122,14 +122,9 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
           <>
             <Upload className="h-8 w-8 text-muted-foreground mb-3" />
             <p className="text-sm font-medium mb-1">Drag & drop images here</p>
-            <p className="text-xs text-muted-foreground mb-1">
+            <p className="text-xs text-muted-foreground mb-3">
               PNG, JPG, WebP · recommended 1200×1500 or larger
             </p>
-            {!uploadthingEnabled && (
-              <p className="text-xs text-amber-600 mb-3">
-                Add UPLOADTHING_TOKEN to .env for cloud uploads
-              </p>
-            )}
             <label className="cursor-pointer">
               <input
                 type="file"

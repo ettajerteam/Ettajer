@@ -1,7 +1,7 @@
-import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { deletePersistedFile, persistUploadedFile, urlToLocalFilePath } from "@/lib/media/storage";
 import type {
   MediaFolderCreatePayload,
   MediaFolderUpdatePayload,
@@ -19,16 +19,14 @@ export const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image
 export const SVG_MIME_TYPES = ["image/svg+xml"];
 export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
+/** @deprecated Prefer persistUploadedFile from @/lib/media/storage */
 export function getUploadDir(storeId: string): string {
   return path.join(process.cwd(), "public", "uploads", storeId);
 }
 
+/** @deprecated Prefer urlToLocalFilePath from @/lib/media/storage */
 export function urlToFilePath(url: string, storeId: string): string | null {
-  const prefix = `/uploads/${storeId}/`;
-  if (!url.startsWith(prefix)) return null;
-  const filename = url.slice(prefix.length);
-  if (!filename || filename.includes("..") || filename.includes("/")) return null;
-  return path.join(getUploadDir(storeId), filename);
+  return urlToLocalFilePath(url, storeId);
 }
 
 function inferKind(mimeType: string, requestedKind?: MediaKind): MediaKind {
@@ -125,16 +123,7 @@ export function serializeMediaAsset(asset: {
 }
 
 async function writeFileToDisk(storeId: string, file: File): Promise<{ url: string; storedFilename: string }> {
-  const uploadDir = getUploadDir(storeId);
-  await mkdir(uploadDir, { recursive: true });
-
-  const ext = file.name.split(".").pop() ?? "bin";
-  const storedFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const filepath = path.join(uploadDir, storedFilename);
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(filepath, buffer);
-
-  return { url: `/uploads/${storeId}/${storedFilename}`, storedFilename };
+  return persistUploadedFile(storeId, file);
 }
 
 export async function saveUploadedFile(
@@ -202,12 +191,8 @@ export async function replaceMediaAssetFile(
   const oldPath = urlToFilePath(existing.url, storeId);
   const { url } = await writeFileToDisk(storeId, file);
 
-  if (oldPath) {
-    try {
-      await unlink(oldPath);
-    } catch {
-      // File may already be removed
-    }
+  if (oldPath || existing.url.startsWith("http")) {
+    await deletePersistedFile(existing.url, storeId);
   }
 
   const kind = inferKind(file.type, existing.kind as MediaKind);
@@ -369,14 +354,7 @@ export async function deleteMediaAsset(storeId: string, id: string) {
   const existing = await prisma.mediaAsset.findFirst({ where: { id, storeId } });
   if (!existing) return false;
 
-  const filepath = urlToFilePath(existing.url, storeId);
-  if (filepath) {
-    try {
-      await unlink(filepath);
-    } catch {
-      // File may already be removed from disk
-    }
-  }
+  await deletePersistedFile(existing.url, storeId);
 
   await prisma.mediaAsset.delete({ where: { id } });
   return true;
