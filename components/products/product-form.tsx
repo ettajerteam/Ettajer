@@ -230,7 +230,8 @@ export function ProductForm({
         <div>
           <h3 className="text-sm font-semibold tracking-[-0.01em] text-foreground">Media</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            First image is the cover. We store width × height and file size for each photo.
+            Upload product photos — we compress them automatically, store them in the cloud, and
+            save them with this product when you publish. First image is the cover.
           </p>
         </div>
         <Controller

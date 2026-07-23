@@ -27,6 +27,8 @@ export const productImageAssetSchema = z.object({
   width: z.number().int().positive().optional().nullable(),
   height: z.number().int().positive().optional().nullable(),
   sizeBytes: z.number().int().nonnegative().optional().nullable(),
+  originalSizeBytes: z.number().int().nonnegative().optional().nullable(),
+  compressed: z.boolean().optional(),
   alt: z.string().max(200).optional().nullable(),
 });
 

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedStore } from "@/lib/products";
 import { prisma } from "@/lib/db";
+import { compressRasterImage, LOGO_IMAGE_MAX_EDGE } from "@/lib/media/compress-image";
 import { persistUploadedFile } from "@/lib/media/storage";
-import { IMAGE_MAX_SIZE, IMAGE_MIME_TYPES } from "@/lib/media/service";
+import { IMAGE_MAX_SIZE, IMAGE_MIME_TYPES, IMAGE_RAW_MAX_SIZE } from "@/lib/media/service";
 
 export async function POST(request: Request) {
   try {
@@ -23,11 +24,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid file type" }, { status: 400 });
     }
 
-    if (file.size > IMAGE_MAX_SIZE) {
-      return NextResponse.json({ message: "File too large (max 5MB)" }, { status: 400 });
+    if (file.size > IMAGE_RAW_MAX_SIZE) {
+      return NextResponse.json(
+        { message: `File too large (max ${IMAGE_RAW_MAX_SIZE / (1024 * 1024)}MB)` },
+        { status: 400 }
+      );
     }
 
-    const { url: logoUrl } = await persistUploadedFile(store.id, file, {
+    const compressed = await compressRasterImage(file, {
+      maxEdge: LOGO_IMAGE_MAX_EDGE,
+      quality: 85,
+    });
+    const uploadFile = compressed.file;
+
+    if (uploadFile.size > IMAGE_MAX_SIZE) {
+      return NextResponse.json(
+        { message: "Logo is still too large after compression" },
+        { status: 400 }
+      );
+    }
+
+    const { url: logoUrl } = await persistUploadedFile(store.id, uploadFile, {
       prefix: "logos",
     });
 

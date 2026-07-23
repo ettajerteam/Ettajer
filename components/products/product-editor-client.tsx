@@ -124,8 +124,8 @@ export function ProductEditorClient({
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {isEditing
-              ? "Update photos, pricing, type, variants, and copyrights."
-              : "Full product page — save as draft anytime, publish when ready."}
+              ? "Update photos (auto-compressed), pricing, type, variants, and copyrights."
+              : "Add photos — we compress and save them — then set pricing and publish when ready."}
           </p>
         </div>
         <div className="hidden items-center gap-2 sm:flex">

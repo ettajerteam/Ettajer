@@ -1,6 +1,10 @@
 import path from "path";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import {
+  compressRasterImage,
+  PRODUCT_IMAGE_RAW_MAX_SIZE,
+} from "@/lib/media/compress-image";
 import { deletePersistedFile, persistUploadedFile, urlToLocalFilePath } from "@/lib/media/storage";
 import type {
   MediaFolderCreatePayload,
@@ -11,7 +15,10 @@ import type {
   MediaUploadMetadata,
 } from "./types";
 
+/** Max size after compression / for non-compressed assets. */
 export const IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+/** Max raw upload before server-side compression (phone photos). */
+export const IMAGE_RAW_MAX_SIZE = PRODUCT_IMAGE_RAW_MAX_SIZE;
 export const VIDEO_MAX_SIZE = 50 * 1024 * 1024;
 export const SVG_MAX_SIZE = 1 * 1024 * 1024;
 
@@ -37,9 +44,13 @@ function inferKind(mimeType: string, requestedKind?: MediaKind): MediaKind {
   return requestedKind === "video" ? "video" : "image";
 }
 
-function maxSizeForMime(mimeType: string): number {
+function maxSizeForMime(mimeType: string, opts?: { rawUpload?: boolean }): number {
   if (VIDEO_MIME_TYPES.includes(mimeType)) return VIDEO_MAX_SIZE;
   if (SVG_MIME_TYPES.includes(mimeType)) return SVG_MAX_SIZE;
+  // Allow larger phone photos; we compress rasters before storage
+  if (opts?.rawUpload && IMAGE_MIME_TYPES.includes(mimeType)) {
+    return IMAGE_RAW_MAX_SIZE;
+  }
   return IMAGE_MAX_SIZE;
 }
 
@@ -135,34 +146,60 @@ export async function saveUploadedFile(
     throw new Error(`Invalid file type: ${file.type}`);
   }
 
-  const maxSize = maxSizeForMime(file.type);
+  const maxSize = maxSizeForMime(file.type, { rawUpload: true });
   if (file.size > maxSize) {
     const limitMb = maxSize / (1024 * 1024);
     throw new Error(`File too large: ${file.name} (max ${limitMb}MB)`);
   }
 
-  const { url } = await writeFileToDisk(storeId, file);
-  const kind = inferKind(file.type, options?.kind);
-  const width = options?.metadata?.width ?? null;
-  const height = options?.metadata?.height ?? null;
+  const shouldCompress =
+    IMAGE_MIME_TYPES.includes(file.type) || file.type === "image/webp";
+  const compressed = shouldCompress
+    ? await compressRasterImage(file, {
+        maxEdge: options?.kind === "logo" ? 800 : undefined,
+        quality: options?.kind === "logo" ? 85 : 80,
+      })
+    : null;
+
+  const uploadFile = compressed?.file ?? file;
+  if (uploadFile.size > IMAGE_MAX_SIZE && shouldCompress) {
+    throw new Error(
+      `Image is still too large after compression (max ${IMAGE_MAX_SIZE / (1024 * 1024)}MB). Try a smaller photo.`
+    );
+  }
+
+  const { url } = await writeFileToDisk(storeId, uploadFile);
+  const kind = inferKind(uploadFile.type, options?.kind);
+  const width =
+    options?.metadata?.width ??
+    (compressed && compressed.width > 0 ? compressed.width : null);
+  const height =
+    options?.metadata?.height ??
+    (compressed && compressed.height > 0 ? compressed.height : null);
+
+  const metaPayload = buildMetadata(uploadFile, {
+    width: width ?? undefined,
+    height: height ?? undefined,
+  });
+  if (compressed?.compressed) {
+    metaPayload.originalSize = compressed.originalSize;
+    metaPayload.compressed = true;
+  }
 
   const asset = await prisma.mediaAsset.create({
     data: {
       storeId,
       folderId: options?.folderId ?? null,
       url,
-      filename: file.name,
-      mimeType: file.type,
+      filename: uploadFile.name,
+      mimeType: uploadFile.type,
       kind,
-      size: file.size,
+      size: uploadFile.size,
       width,
       height,
       alt: options?.metadata?.alt ?? file.name.replace(/\.[^.]+$/, ""),
       title: options?.metadata?.title ?? null,
-      metadata: buildMetadata(file, {
-        width: width ?? undefined,
-        height: height ?? undefined,
-      }) as Prisma.InputJsonValue,
+      metadata: metaPayload as Prisma.InputJsonValue,
     },
   });
 
@@ -182,37 +219,61 @@ export async function replaceMediaAssetFile(
     throw new Error(`Invalid file type for this asset: ${file.type}`);
   }
 
-  const maxSize = maxSizeForMime(file.type);
+  const maxSize = maxSizeForMime(file.type, { rawUpload: true });
   if (file.size > maxSize) {
     const limitMb = maxSize / (1024 * 1024);
     throw new Error(`File too large: ${file.name} (max ${limitMb}MB)`);
   }
 
-  const oldPath = urlToFilePath(existing.url, storeId);
-  const { url } = await writeFileToDisk(storeId, file);
+  const shouldCompress =
+    IMAGE_MIME_TYPES.includes(file.type) || file.type === "image/webp";
+  const compressed = shouldCompress
+    ? await compressRasterImage(file, {
+        maxEdge: existing.kind === "logo" ? 800 : undefined,
+      })
+    : null;
+  const uploadFile = compressed?.file ?? file;
 
-  if (oldPath || existing.url.startsWith("http")) {
+  if (uploadFile.size > IMAGE_MAX_SIZE && shouldCompress) {
+    throw new Error(
+      `Image is still too large after compression (max ${IMAGE_MAX_SIZE / (1024 * 1024)}MB). Try a smaller photo.`
+    );
+  }
+
+  const { url } = await writeFileToDisk(storeId, uploadFile);
+
+  if (urlToLocalFilePath(existing.url, storeId) || existing.url.startsWith("http")) {
     await deletePersistedFile(existing.url, storeId);
   }
 
-  const kind = inferKind(file.type, existing.kind as MediaKind);
-  const width = options?.metadata?.width ?? existing.width;
-  const height = options?.metadata?.height ?? existing.height;
+  const kind = inferKind(uploadFile.type, existing.kind as MediaKind);
+  const width =
+    options?.metadata?.width ??
+    (compressed && compressed.width > 0 ? compressed.width : existing.width);
+  const height =
+    options?.metadata?.height ??
+    (compressed && compressed.height > 0 ? compressed.height : existing.height);
+
+  const metaPayload = buildMetadata(uploadFile, {
+    width: width ?? undefined,
+    height: height ?? undefined,
+  });
+  if (compressed?.compressed) {
+    metaPayload.originalSize = compressed.originalSize;
+    metaPayload.compressed = true;
+  }
 
   const asset = await prisma.mediaAsset.update({
     where: { id },
     data: {
       url,
-      filename: file.name,
-      mimeType: file.type,
+      filename: uploadFile.name,
+      mimeType: uploadFile.type,
       kind,
-      size: file.size,
+      size: uploadFile.size,
       width,
       height,
-      metadata: buildMetadata(file, {
-        width: width ?? undefined,
-        height: height ?? undefined,
-      }) as Prisma.InputJsonValue,
+      metadata: metaPayload as Prisma.InputJsonValue,
     },
   });
 

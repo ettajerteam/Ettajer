@@ -3,6 +3,8 @@ export type ProductImageAsset = {
   width?: number | null;
   height?: number | null;
   sizeBytes?: number | null;
+  originalSizeBytes?: number | null;
+  compressed?: boolean;
   alt?: string | null;
 };
 
@@ -23,6 +25,9 @@ export function parseProductImageAssets(images: unknown): ProductImageAsset[] {
       width: typeof row.width === "number" ? row.width : null,
       height: typeof row.height === "number" ? row.height : null,
       sizeBytes: typeof row.sizeBytes === "number" ? row.sizeBytes : null,
+      originalSizeBytes:
+        typeof row.originalSizeBytes === "number" ? row.originalSizeBytes : null,
+      compressed: typeof row.compressed === "boolean" ? row.compressed : undefined,
       alt: typeof row.alt === "string" ? row.alt : null,
     });
   }
@@ -42,6 +47,8 @@ export function serializeProductImagesForDb(images: ProductImageAsset[]): Produc
       ...(img.width != null ? { width: img.width } : {}),
       ...(img.height != null ? { height: img.height } : {}),
       ...(img.sizeBytes != null ? { sizeBytes: img.sizeBytes } : {}),
+      ...(img.originalSizeBytes != null ? { originalSizeBytes: img.originalSizeBytes } : {}),
+      ...(img.compressed != null ? { compressed: img.compressed } : {}),
       ...(img.alt?.trim() ? { alt: img.alt.trim() } : {}),
     }));
 }

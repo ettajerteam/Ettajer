@@ -1,23 +1,6 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { getAuthenticatedStore } from "@/lib/products";
 import { saveUploadedFile } from "@/lib/media/service";
-
-async function readServerImageDimensions(
-  file: File
-): Promise<{ width: number; height: number } | null> {
-  try {
-    if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
-      return null;
-    }
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const meta = await sharp(buffer).metadata();
-    if (!meta.width || !meta.height) return null;
-    return { width: meta.width, height: meta.height };
-  } catch {
-    return null;
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -39,19 +22,21 @@ export async function POST(request: Request) {
       height: number | null;
       sizeBytes: number;
       alt: string | null;
+      originalSizeBytes?: number | null;
+      compressed?: boolean;
     }[] = [];
     const urls: string[] = [];
 
     for (const file of files) {
       try {
-        const dims = await readServerImageDimensions(file);
         const asset = await saveUploadedFile(store.id, file, {
           kind: "image",
-          metadata: {
-            width: dims?.width,
-            height: dims?.height,
-          },
         });
+        const meta =
+          asset.metadata && typeof asset.metadata === "object"
+            ? (asset.metadata as { originalSize?: number; compressed?: boolean })
+            : null;
+
         urls.push(asset.url);
         assets.push({
           url: asset.url,
@@ -59,6 +44,8 @@ export async function POST(request: Request) {
           height: asset.height,
           sizeBytes: asset.size,
           alt: asset.alt,
+          originalSizeBytes: meta?.originalSize ?? null,
+          compressed: Boolean(meta?.compressed),
         });
       } catch (error) {
         return NextResponse.json(
