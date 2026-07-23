@@ -1,5 +1,4 @@
 import path from "path";
-import { Resvg } from "@resvg/resvg-js";
 import { renderToBuffer } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
 import { FounderMembershipPdf } from "@/components/founder/founder-membership-pdf";
@@ -25,8 +24,11 @@ export async function generateFounderCardAssets(
 ): Promise<FounderCardAssets> {
   const svg = buildFounderCardSvg(name, founderNumber);
 
-  // resvg + bundled Noto fonts — Sharp/librsvg has no Arial on Vercel, which
-  // rendered tofu boxes (□) instead of founder numbers and names.
+  // Dynamic import keeps the native .node binary out of the webpack graph.
+  const { Resvg } = await import("@resvg/resvg-js");
+
+  // Bundled Noto fonts — Sharp/librsvg has no Arial on Vercel, which rendered
+  // tofu boxes (□) instead of founder numbers and names.
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: 960 },
     font: {
