@@ -14,11 +14,21 @@ const nextConfig = {
       { protocol: "https", hostname: "public.blob.vercel-storage.com" },
     ],
   },
-  // Keep founder-card fonts available to serverless email/PDF generation
+  // Keep founder-card fonts + native resvg binary out of the webpack graph
   experimental: {
+    serverComponentsExternalPackages: ["@resvg/resvg-js"],
     outputFileTracingIncludes: {
       "/*": ["./assets/fonts/**/*"],
     },
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      if (Array.isArray(config.externals)) {
+        config.externals.push("@resvg/resvg-js");
+      }
+    }
+    return config;
   },
 };
 
