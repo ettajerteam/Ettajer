@@ -14,6 +14,12 @@ const nextConfig = {
       { protocol: "https", hostname: "public.blob.vercel-storage.com" },
     ],
   },
+  // Keep founder-card fonts available to serverless email/PDF generation
+  experimental: {
+    outputFileTracingIncludes: {
+      "/*": ["./assets/fonts/**/*"],
+    },
+  },
 };
 
 export default nextConfig;

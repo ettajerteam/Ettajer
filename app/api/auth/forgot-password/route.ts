@@ -40,16 +40,10 @@ const GENERIC_MESSAGE =
 
 
 
-function getBaseUrl(request: Request): string {
+import { getAppUrl } from "@/lib/app-url";
 
-  return (
-
-    process.env.NEXTAUTH_URL?.trim() ||
-
-    new URL(request.url).origin
-
-  );
-
+function getBaseUrl(_request: Request): string {
+  return getAppUrl();
 }
 
 

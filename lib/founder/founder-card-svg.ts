@@ -54,18 +54,18 @@ export function buildFounderCardSvg(name: string, founderNumber: number): string
 
   <!-- Logo block -->
   <rect x="28" y="28" width="44" height="44" rx="10" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.14)"/>
-  <text x="50" y="58" text-anchor="middle" fill="url(#foil)" font-family="Arial, sans-serif" font-size="18" font-weight="800">E</text>
-  <text x="82" y="46" fill="url(#foil)" font-family="Arial, sans-serif" font-size="13" font-weight="800" letter-spacing="3">ETTAJER</text>
-  <text x="82" y="62" fill="#71717a" font-family="Arial, sans-serif" font-size="9" letter-spacing="1">التاجر</text>
+  <text x="50" y="58" text-anchor="middle" fill="url(#foil)" font-family="Noto Sans, sans-serif" font-size="18" font-weight="600">E</text>
+  <text x="82" y="46" fill="url(#foil)" font-family="Noto Sans, sans-serif" font-size="13" font-weight="600" letter-spacing="3">ETTAJER</text>
+  <text x="82" y="62" fill="#71717a" font-family="Noto Sans Arabic, Noto Sans, sans-serif" font-size="9" letter-spacing="1">التاجر</text>
 
   <!-- Title -->
-  <text x="${width - 28}" y="42" text-anchor="end" fill="url(#foil)" font-family="Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="2.2">FOUNDING MERCHANT</text>
-  <text x="${width - 28}" y="58" text-anchor="end" fill="#52525b" font-family="monospace" font-size="8" letter-spacing="1.5">EST. 2026</text>
+  <text x="${width - 28}" y="42" text-anchor="end" fill="url(#foil)" font-family="Noto Sans, sans-serif" font-size="9" font-weight="600" letter-spacing="2.2">FOUNDING MERCHANT</text>
+  <text x="${width - 28}" y="58" text-anchor="end" fill="#52525b" font-family="Noto Sans, sans-serif" font-size="8" letter-spacing="1.5">EST. 2026</text>
 
   <!-- Founder badge -->
   <rect x="${width / 2 - 88}" y="88" width="176" height="28" rx="14" fill="rgba(245,158,11,0.12)" stroke="rgba(245,158,11,0.35)"/>
   <circle cx="${width / 2 - 68}" cy="102" r="3" fill="#fbbf24"/>
-  <text x="${width / 2}" y="107" text-anchor="middle" fill="url(#gold)" font-family="monospace" font-size="11" font-weight="700" letter-spacing="1.2">FOUNDER #${padded}</text>
+  <text x="${width / 2}" y="107" text-anchor="middle" fill="url(#gold)" font-family="Noto Sans, sans-serif" font-size="11" font-weight="600" letter-spacing="1.2">FOUNDER #${padded}</text>
 
   <!-- Chip -->
   <rect x="28" y="138" width="52" height="38" rx="7" fill="url(#gold)" stroke="#7a5b12" stroke-width="1"/>
@@ -76,20 +76,20 @@ export function buildFounderCardSvg(name: string, founderNumber: number): string
 
   <!-- Hologram -->
   <circle cx="${width - 48}" cy="157" r="18" fill="rgba(59,130,246,0.2)" stroke="rgba(255,255,255,0.2)"/>
-  <text x="${width - 48}" y="161" text-anchor="middle" fill="#ffffff" font-family="monospace" font-size="7" font-weight="700">100</text>
+  <text x="${width - 48}" y="161" text-anchor="middle" fill="#ffffff" font-family="Noto Sans, sans-serif" font-size="7" font-weight="600">100</text>
 
   <!-- Card ID -->
-  <text x="28" y="210" fill="#a1a1aa" font-family="monospace" font-size="10" letter-spacing="1.4">${cardId}</text>
+  <text x="28" y="210" fill="#a1a1aa" font-family="Noto Sans, sans-serif" font-size="10" letter-spacing="1.4">${cardId}</text>
 
   <!-- Name -->
-  <text x="28" y="232" fill="#71717a" font-family="Arial, sans-serif" font-size="7" font-weight="700" letter-spacing="1.8">CARDHOLDER</text>
-  <text x="28" y="252" fill="#ffffff" font-family="Arial, sans-serif" font-size="15" font-weight="600" letter-spacing="0.8">${displayName.length > 24 ? displayName.slice(0, 24) + "…" : displayName}</text>
+  <text x="28" y="232" fill="#71717a" font-family="Noto Sans, sans-serif" font-size="7" font-weight="600" letter-spacing="1.8">CARDHOLDER</text>
+  <text x="28" y="252" fill="#ffffff" font-family="Noto Sans, sans-serif" font-size="15" font-weight="600" letter-spacing="0.8">${displayName.length > 24 ? displayName.slice(0, 24) + "..." : displayName}</text>
   <line x1="28" y1="264" x2="48" y2="264" stroke="#3b82f6" stroke-width="1.5"/>
-  <text x="54" y="268" fill="#93c5fd" font-family="Arial, sans-serif" font-size="8" font-weight="600" letter-spacing="1.6">EARLY ACCESS MEMBER</text>
+  <text x="54" y="268" fill="#93c5fd" font-family="Noto Sans, sans-serif" font-size="8" font-weight="600" letter-spacing="1.6">EARLY ACCESS MEMBER</text>
 
   <!-- Seal -->
   <circle cx="${width - 58}" cy="238" r="34" fill="url(#gold)" stroke="#e5b242" stroke-width="1" stroke-dasharray="3 2"/>
   <circle cx="${width - 58}" cy="238" r="26" fill="none" stroke="#b45309" stroke-width="1" opacity="0.45"/>
-  <text x="${width - 58}" y="244" text-anchor="middle" fill="#b45309" font-family="monospace" font-size="12" font-weight="800">${padded}</text>
+  <text x="${width - 58}" y="244" text-anchor="middle" fill="#b45309" font-family="Noto Sans, sans-serif" font-size="12" font-weight="600">${padded}</text>
 </svg>`;
 }

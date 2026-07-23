@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-session";
+import { getPostAuthRedirect } from "@/lib/auth-redirect";
 import { getUserFounderProfile, USER_STATUS } from "@/lib/founder";
 import { isPlatformLaunched } from "@/lib/founder/launch-date";
 import { FounderShell } from "@/components/founder/founder-shell";
@@ -26,8 +27,9 @@ export default async function WelcomePage() {
   if (!user?.emailVerified) {
     redirect(`/activate?email=${encodeURIComponent(user?.email ?? "")}`);
   }
+  // Post-launch (or non-waiting): skip waiting UI — dashboard or onboarding wizard
   if (!user?.founderNumber || user.status !== USER_STATUS.WAITING || isPlatformLaunched()) {
-    redirect(`/opening?next=${encodeURIComponent("/dashboard")}`);
+    redirect(await getPostAuthRedirect());
   }
 
   return (

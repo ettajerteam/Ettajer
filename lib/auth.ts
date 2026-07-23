@@ -417,7 +417,7 @@ export const authOptions: NextAuthOptions = {
 
     error: "/login",
 
-    newUser: "/welcome",
+    newUser: "/onboarding",
 
   },
 

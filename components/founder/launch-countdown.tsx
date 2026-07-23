@@ -94,9 +94,9 @@ export function LaunchCountdown({
       try {
         await update();
       } catch {
-        // Still continue via opening bridge — JWT refresh happens there too.
+        // Session refresh may fail; destination still works after navigation.
       }
-      window.location.assign(`/opening?next=${encodeURIComponent(next)}`);
+      window.location.replace(next);
     } catch {
       setError("Network error. Please try again.");
     }

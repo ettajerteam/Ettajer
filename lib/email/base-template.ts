@@ -5,6 +5,9 @@ import {
   type LandingLocale,
 } from "@/lib/landing/landing-i18n";
 import { getEmailCopy, type EmailShellCopy } from "@/lib/email/email-i18n";
+import { getAppUrl } from "@/lib/app-url";
+
+export { getAppUrl } from "@/lib/app-url";
 
 export function escapeHtml(value: string): string {
   return value
@@ -12,10 +15,6 @@ export function escapeHtml(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-export function getAppUrl(): string {
-  return process.env.NEXTAUTH_URL?.replace(/\/$/, "") || "https://ettajer.com";
 }
 
 export interface EmailKeyValue {

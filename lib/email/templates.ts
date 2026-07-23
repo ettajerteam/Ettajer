@@ -1,5 +1,5 @@
 import type { OrderStatus } from "@/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatEmailCurrency } from "@/lib/utils";
 import { formatFounderNumber } from "@/lib/founder/constants";
 import type { LandingLocale } from "@/lib/landing/landing-i18n";
 import {
@@ -7,7 +7,7 @@ import {
   getEmailCopy,
 } from "@/lib/email/email-i18n";
 import { buildModernEmailHtml, escapeHtml, getAppUrl } from "@/lib/email/base-template";
-import { getStoreUrl } from "@/lib/storefront-urls";
+import { getAbsoluteStoreUrl } from "@/lib/storefront-urls";
 
 function emailOpts(locale: LandingLocale = "en") {
   const copy = getEmailCopy(locale);
@@ -347,7 +347,7 @@ export function buildMerchantNewOrderEmailHtml(
 ): string {
   const { copy, shell, locale: loc } = emailOpts(locale);
   const t = copy.merchantNewOrder;
-  const totalFormatted = formatCurrency(params.total, params.currency);
+  const totalFormatted = formatEmailCurrency(params.total, params.currency);
   const ordersUrl = `${getAppUrl()}/dashboard/orders/${params.orderId}`;
 
   return buildModernEmailHtml({
@@ -381,7 +381,7 @@ export function buildStoreLiveEmailHtml(
 ): string {
   const { copy, shell, locale: loc } = emailOpts(locale);
   const t = copy.storeLive;
-  const storeUrl = getStoreUrl(storeSlug);
+  const storeUrl = getAbsoluteStoreUrl(storeSlug);
 
   return buildModernEmailHtml({
     locale: loc,
@@ -440,7 +440,7 @@ export function buildOrderStatusEmailHtml(
       { label: t.orderLabel, value: params.orderNumber, highlight: true },
       {
         label: t.totalLabel,
-        value: formatCurrency(params.total, params.currency),
+        value: formatEmailCurrency(params.total, params.currency),
         highlight: true,
       },
       ...(params.note ? [{ label: t.noteLabel, value: params.note }] : []),
@@ -501,22 +501,22 @@ export function buildOrderConfirmationEmailHtml(
       rows: [
         ...params.items.map((item) => ({
           left: `${item.title} × ${item.quantity}`,
-          right: formatCurrency(item.price * item.quantity, params.currency),
+          right: formatEmailCurrency(item.price * item.quantity, params.currency),
         })),
         {
           left: t.subtotal,
-          right: formatCurrency(params.subtotal, params.currency),
+          right: formatEmailCurrency(params.subtotal, params.currency),
         },
         {
           left: t.shipping,
           right:
             params.shipping === 0
               ? t.shippingFree
-              : formatCurrency(params.shipping, params.currency),
+              : formatEmailCurrency(params.shipping, params.currency),
         },
         {
           left: t.total,
-          right: formatCurrency(params.total, params.currency),
+          right: formatEmailCurrency(params.total, params.currency),
         },
       ],
     },
@@ -557,11 +557,11 @@ export function buildAbandonedCartEmailHtml(
       rows: [
         ...params.items.map((item) => ({
           left: `${item.title} × ${item.quantity}`,
-          right: formatCurrency(item.price * item.quantity, params.currency),
+          right: formatEmailCurrency(item.price * item.quantity, params.currency),
         })),
         {
           left: t.totalHeader,
-          right: formatCurrency(params.subtotal, params.currency),
+          right: formatEmailCurrency(params.subtotal, params.currency),
         },
       ],
     },

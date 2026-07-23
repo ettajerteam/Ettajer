@@ -17,6 +17,7 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
+      id: true,
       status: true,
       founderNumber: true,
       email: true,
@@ -30,10 +31,27 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
   }
 
   const isAdmin = isPlatformAdmin({ role: user?.role, email: user?.email });
+  const launched = isPlatformLaunched();
+
+  // Post-launch: promote waiting founders so they never bounce through waiting UI.
+  if (
+    launched &&
+    user &&
+    !isAdmin &&
+    user.status === USER_STATUS.WAITING &&
+    user.founderNumber
+  ) {
+    await prisma.user
+      .update({
+        where: { id: user.id },
+        data: { status: USER_STATUS.ACTIVE },
+      })
+      .catch(() => null);
+  }
 
   if (
     !isAdmin &&
-    !isPlatformLaunched() &&
+    !launched &&
     user?.status === USER_STATUS.WAITING &&
     user.founderNumber
   ) {

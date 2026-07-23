@@ -1,3 +1,5 @@
+import { CANONICAL_APP_URL, isUsablePublicAppUrl } from "@/lib/app-url";
+
 export const SITE_NAME = "Ettajer";
 
 /** Default social preview image (absolute path on site). */
@@ -16,13 +18,14 @@ export function getSiteUrl(): URL {
   const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
 
   let raw: string;
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
     // Do not use NEXTAUTH_URL alone here: it is server-only, so the client would fall
     // through to NEXT_PUBLIC_SITE_URL (often production) and hydrate a different host.
     // Prefer NEXT_PUBLIC_APP_URL (shared), else localhost for both sides.
     raw = publicAppUrl || "http://localhost:3000";
   } else {
-    raw = publicSiteUrl || nextAuthUrl || publicAppUrl || "https://ettajer.com";
+    const candidates = [publicSiteUrl, publicAppUrl, nextAuthUrl];
+    raw = candidates.find((c) => isUsablePublicAppUrl(c)) || CANONICAL_APP_URL;
   }
 
   const normalized = raw.endsWith("/") ? raw.slice(0, -1) : raw;

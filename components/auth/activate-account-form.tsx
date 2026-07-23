@@ -114,7 +114,13 @@ export function ActivateAccountForm() {
 
           if (signInResult?.ok) {
             toast.success(a.activatedToast);
-            window.location.href = "/welcome";
+            try {
+              const targetRes = await fetch("/api/auth/redirect-target");
+              const target = (await targetRes.json()) as { redirect?: string };
+              window.location.replace(target.redirect || "/dashboard");
+            } catch {
+              window.location.replace("/dashboard");
+            }
             return;
           }
         }

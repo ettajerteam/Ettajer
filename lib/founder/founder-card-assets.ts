@@ -1,4 +1,5 @@
-import sharp from "sharp";
+import path from "path";
+import { Resvg } from "@resvg/resvg-js";
 import { renderToBuffer } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
 import { FounderMembershipPdf } from "@/components/founder/founder-membership-pdf";
@@ -10,16 +11,31 @@ export interface FounderCardAssets {
   pngBase64: string;
 }
 
+function fontPaths(): string[] {
+  const dir = path.join(process.cwd(), "assets", "fonts");
+  return [
+    path.join(dir, "NotoSans-SemiBold.ttf"),
+    path.join(dir, "NotoSansArabic-SemiBold.ttf"),
+  ];
+}
+
 export async function generateFounderCardAssets(
   name: string,
   founderNumber: number,
 ): Promise<FounderCardAssets> {
   const svg = buildFounderCardSvg(name, founderNumber);
 
-  const pngBuffer = await sharp(Buffer.from(svg))
-    .png({ quality: 95 })
-    .resize(960, 606, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .toBuffer();
+  // resvg + bundled Noto fonts — Sharp/librsvg has no Arial on Vercel, which
+  // rendered tofu boxes (□) instead of founder numbers and names.
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: "width", value: 960 },
+    font: {
+      fontFiles: fontPaths(),
+      loadSystemFonts: false,
+      defaultFontFamily: "Noto Sans",
+    },
+  });
+  const pngBuffer = Buffer.from(resvg.render().asPng());
 
   const pdfBuffer = await renderToBuffer(
     FounderMembershipPdf({

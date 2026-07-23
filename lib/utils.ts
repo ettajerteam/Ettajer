@@ -14,6 +14,13 @@ export function formatCurrency(amount: number, currency = "MAD"): string {
   }).format(amount);
 }
 
+/** ASCII-safe money for emails (avoids NBSP / exotic glyphs that show as □). */
+export function formatEmailCurrency(amount: number, currency = "MAD"): string {
+  const n = Number.isFinite(amount) ? amount : 0;
+  const fixed = Number.isInteger(n) ? String(n) : n.toFixed(2);
+  return `${fixed} ${currency}`;
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()

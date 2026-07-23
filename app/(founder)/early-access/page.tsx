@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-session";
+import { getPostAuthRedirect } from "@/lib/auth-redirect";
 import { getUserFounderProfile, getFounderCount, USER_STATUS } from "@/lib/founder";
 import { getRecentFounderCount, getLaunchTargetDate } from "@/lib/founder/waiting-intelligence";
 import { isPlatformLaunched } from "@/lib/founder/launch-date";
@@ -36,9 +37,9 @@ export default async function EarlyAccessPage({
     redirect("/dashboard");
   }
 
-  // Platform is live — leave the waiting room (JWT refresh via /opening).
+  // Platform is live — skip waiting UI, go straight to dashboard or onboarding.
   if (isPlatformLaunched() || user.status !== USER_STATUS.WAITING) {
-    redirect(`/opening?next=${encodeURIComponent("/dashboard")}`);
+    redirect(await getPostAuthRedirect());
   }
 
   const isReturning = searchParams.new !== "1";

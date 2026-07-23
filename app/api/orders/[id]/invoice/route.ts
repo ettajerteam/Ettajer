@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { getAuthenticatedStore } from "@/lib/products";
 import { getOrderForStore, serializeOrderDetail } from "@/lib/orders";
 import { InvoiceDocument } from "@/components/orders/invoice-document";
+import { getAppUrl } from "@/lib/app-url";
 import type { ReactElement } from "react";
 
 interface RouteParams {
@@ -22,7 +23,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     const serialized = serializeOrderDetail(order);
-    const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+    const baseUrl = getAppUrl();
     const logoUrl = store.logo
       ? store.logo.startsWith("http")
         ? store.logo

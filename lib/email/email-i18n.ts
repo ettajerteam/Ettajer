@@ -347,7 +347,7 @@ const EN: EmailCopy = {
     footerNote: "You're receiving this because you created an Ettajer account.",
   },
   founderWelcome: {
-    subject: (padded) => `Welcome to Ettajer — You're Founder #${padded} 🎉`,
+    subject: (padded) => `Welcome to Ettajer — You're Founder #${padded}`,
     previewText: (padded) => `Welcome to Ettajer — You're Founder #${padded}`,
     title: "Welcome to Ettajer",
     badge: (padded) => `Founder #${padded}`,
@@ -691,10 +691,10 @@ const FR: EmailCopy = {
     footerNote: "Vous recevez cet e-mail car vous avez créé un compte Ettajer.",
   },
   founderWelcome: {
-    subject: (padded) => `Bienvenue sur Ettajer — Vous êtes Fondateur n°${padded} 🎉`,
-    previewText: (padded) => `Bienvenue sur Ettajer — Vous êtes Fondateur n°${padded}`,
+    subject: (padded) => `Bienvenue sur Ettajer — Vous etes Fondateur #${padded}`,
+    previewText: (padded) => `Bienvenue sur Ettajer — Vous etes Fondateur #${padded}`,
     title: "Bienvenue sur Ettajer",
-    badge: (padded) => `Fondateur n°${padded}`,
+    badge: (padded) => `Fondateur #${padded}`,
     greeting: (name) => `Bonjour ${name},`,
     body: (founderLabel) =>
       `Bienvenue sur Ettajer.<br /><br />Votre compte a été créé avec succès.<br /><br />Vous faites officiellement partie de notre <strong>première communauté de marchands</strong> — ${founderLabel}.`,
@@ -1032,7 +1032,7 @@ const AR: EmailCopy = {
     footerNote: "تتلقى هذا البريد لأنك أنشأت حساب Ettajer.",
   },
   founderWelcome: {
-    subject: (padded) => `مرحباً بك في Ettajer — أنت المؤسس رقم ${padded} 🎉`,
+    subject: (padded) => `مرحبا بك في Ettajer — انت المؤسس رقم ${padded}`,
     previewText: (padded) => `مرحباً بك في Ettajer — أنت المؤسس رقم ${padded}`,
     title: "مرحباً بك في Ettajer",
     badge: (padded) => `مؤسس رقم ${padded}`,

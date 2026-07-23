@@ -35,9 +35,8 @@ const authMiddleware = withAuth(
       }
     }
 
-    // After launch: leave the waiting room. Prefer /opening so the JWT can
-    // refresh, then land on dashboard (or onboarding if no store yet).
-    // Do NOT bounce /opening — that bridge must run once.
+    // After launch: leave early-access and go straight to the dashboard.
+    // Dashboard itself sends users without a store to onboarding.
     if (
       !isAdmin &&
       launched &&
@@ -45,9 +44,7 @@ const authMiddleware = withAuth(
       token?.founderNumber &&
       path === "/early-access"
     ) {
-      return NextResponse.redirect(
-        new URL("/opening?next=%2Fdashboard", req.url)
-      );
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
     if (
