@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
-import { USER_STATUS } from "@/lib/founder";
-import { isPlatformLaunched } from "@/lib/founder/launch-date";
 import { OnboardingPageClientRoot } from "@/components/onboarding/onboarding-page-client";
 import { getAuthSeo } from "@/lib/auth/auth-seo";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
@@ -22,22 +20,6 @@ export default async function OnboardingPage() {
 
   if (!session?.user?.id) {
     redirect("/login");
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { status: true, founderNumber: true },
-  });
-
-  // Pre-launch only: waiting founders stay in the early-access room.
-  // After launch, they must complete onboarding — otherwise they loop
-  // early-access ↔ dashboard ↔ onboarding forever.
-  if (
-    !isPlatformLaunched() &&
-    user?.status === USER_STATUS.WAITING &&
-    user.founderNumber
-  ) {
-    redirect("/early-access");
   }
 
   const existingStore = await prisma.store.findFirst({

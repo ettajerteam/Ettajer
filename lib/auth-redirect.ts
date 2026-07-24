@@ -3,12 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { USER_STATUS } from "@/lib/founder";
-import { isPlatformAdmin } from "@/lib/admin/roles";
-import { isPlatformLaunched } from "@/lib/founder/launch-date";
 
 /**
- * After sign-in, route merchants based on account status and store setup.
- * After platform launch, waiting founders go to their dashboard (or onboarding).
+ * After sign-in, send merchants straight to dashboard or onboarding.
+ * Nobody waits — waiting accounts are activated automatically.
  */
 export async function getPostAuthRedirect(fallback = "/dashboard") {
   const session = await getServerSession(authOptions);
@@ -19,10 +17,8 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
     select: {
       id: true,
       status: true,
-      founderNumber: true,
       email: true,
       emailVerified: true,
-      role: true,
     },
   });
 
@@ -30,32 +26,13 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
     return `/activate?email=${encodeURIComponent(user.email)}`;
   }
 
-  const isAdmin = isPlatformAdmin({ role: user?.role, email: user?.email });
-  const launched = isPlatformLaunched();
-
-  // Post-launch: promote waiting founders so they never bounce through waiting UI.
-  if (
-    launched &&
-    user &&
-    !isAdmin &&
-    user.status === USER_STATUS.WAITING &&
-    user.founderNumber
-  ) {
+  if (user && user.status !== USER_STATUS.ACTIVE) {
     await prisma.user
       .update({
         where: { id: user.id },
         data: { status: USER_STATUS.ACTIVE },
       })
       .catch(() => null);
-  }
-
-  if (
-    !isAdmin &&
-    !launched &&
-    user?.status === USER_STATUS.WAITING &&
-    user.founderNumber
-  ) {
-    return "/early-access";
   }
 
   const store = await prisma.store.findFirst({

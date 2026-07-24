@@ -181,7 +181,7 @@ export async function POST(request: Request) {
         name,
         email: normalizedEmail,
         passwordHash,
-        status: USER_STATUS.WAITING,
+        status: USER_STATUS.ACTIVE,
       },
       select: { id: true, name: true, email: true },
     });

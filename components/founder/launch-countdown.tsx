@@ -53,7 +53,7 @@ export function LaunchCountdown({
   subtitle,
   liveTitle,
   liveSubtitle,
-  claimLabel,
+  claimLabel: _claimLabel,
   claimingLabel,
   unitDays,
   unitHours,
@@ -101,6 +101,13 @@ export function LaunchCountdown({
       setError("Network error. Please try again.");
     }
   }
+
+  // Live = auto-enter. No button click required.
+  useEffect(() => {
+    if (!parts.isLive || pending) return;
+    void claimAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when live
+  }, [parts.isLive]);
 
   const units = [
     { label: unitDays, value: parts.days },
@@ -152,17 +159,10 @@ export function LaunchCountdown({
             ))}
           </div>
         ) : (
-          <div className="mt-5">
-            <button
-              type="button"
-              onClick={() => void claimAccess()}
-              disabled={pending}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-neutral-900 px-6 text-sm font-semibold text-white shadow-lg transition hover:bg-neutral-800 disabled:opacity-60"
-            >
-              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-              {pending ? claimingLabel : claimLabel}
-            </button>
-            {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+          <div className="mt-5 flex items-center gap-2 text-sm font-medium text-emerald-800">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {claimingLabel}
+            {error ? <span className="text-red-600">{error}</span> : null}
           </div>
         )}
       </div>

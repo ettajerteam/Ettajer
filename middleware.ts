@@ -1,16 +1,13 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
-import { USER_STATUS } from "@/lib/founder/constants";
 import { USER_ROLE } from "@/lib/admin/constants";
 import { isPlatformHost } from "@/lib/storefront-urls";
-import { isPlatformLaunched } from "@/lib/founder/launch-date";
 
 const authMiddleware = withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
     const isAdmin = token?.role === USER_ROLE.ADMIN;
-    const launched = isPlatformLaunched();
 
     if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
       if (!isAdmin) {
@@ -22,37 +19,8 @@ const authMiddleware = withAuth(
       return NextResponse.next();
     }
 
-    // Pre-launch: waiting founders stay on early-access.
-    // After launch: send them to their dashboard home.
-    if (
-      !isAdmin &&
-      !launched &&
-      token?.status === USER_STATUS.WAITING &&
-      token?.founderNumber
-    ) {
-      if (path.startsWith("/dashboard") || path === "/onboarding") {
-        return NextResponse.redirect(new URL("/early-access", req.url));
-      }
-    }
-
-    // After launch: leave early-access and go straight to the dashboard.
-    // Dashboard itself sends users without a store to onboarding.
-    if (
-      !isAdmin &&
-      launched &&
-      token?.status === USER_STATUS.WAITING &&
-      token?.founderNumber &&
-      path === "/early-access"
-    ) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-
-    if (
-      !isAdmin &&
-      token?.status === USER_STATUS.ACTIVE &&
-      token?.founderNumber &&
-      path === "/early-access"
-    ) {
+    // Waiting room retired — bounce /early-access straight to the app.
+    if (!isAdmin && path === "/early-access") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 

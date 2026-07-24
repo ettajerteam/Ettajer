@@ -49,7 +49,7 @@ export async function assignFounderNumber(userId: string): Promise<number | null
       where: { id: userId },
       data: {
         founderNumber: next,
-        status: USER_STATUS.WAITING,
+        status: USER_STATUS.ACTIVE,
       },
     });
 

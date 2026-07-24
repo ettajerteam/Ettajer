@@ -2,26 +2,19 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
 import { USER_STATUS } from "@/lib/founder/constants";
-import { isPlatformLaunched } from "@/lib/founder/waiting-intelligence";
 import { sendFounderAccessUnlockedEmail } from "@/lib/email/automations";
 import { getEmailLocaleFromCookieHeader } from "@/lib/email/email-locale";
 import { headers } from "next/headers";
 
 /**
- * When the public launch countdown hits zero, waiting founders unlock themselves.
+ * Activate the signed-in account and send them to dashboard or onboarding.
+ * No waiting / no launch gate — anyone verified can enter.
  */
 export async function POST() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
-    if (!isPlatformLaunched()) {
-      return NextResponse.json(
-        { message: "Platform launch is not open yet." },
-        { status: 403 },
-      );
     }
 
     const user = await prisma.user.findUnique({
@@ -51,29 +44,25 @@ export async function POST() {
       );
     }
 
-    if (!user.founderNumber) {
-      return NextResponse.json({ message: "Account is not a founder seat." }, { status: 403 });
-    }
-
     const redirect = user.stores.length > 0 ? "/dashboard" : "/onboarding";
 
-    if (user.status === USER_STATUS.ACTIVE) {
-      return NextResponse.json({ success: true, redirect, alreadyActive: true });
+    if (user.status !== USER_STATUS.ACTIVE) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { status: USER_STATUS.ACTIVE },
+      });
+
+      if (user.founderNumber) {
+        const headerList = await headers();
+        const locale = getEmailLocaleFromCookieHeader(headerList.get("cookie"));
+        void sendFounderAccessUnlockedEmail(
+          user.email,
+          user.name ?? session.user.name ?? null,
+          user.founderNumber,
+          locale,
+        ).catch((err) => console.error("[claim-access] unlock email failed:", err));
+      }
     }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { status: USER_STATUS.ACTIVE },
-    });
-
-    const headerList = await headers();
-    const locale = getEmailLocaleFromCookieHeader(headerList.get("cookie"));
-    void sendFounderAccessUnlockedEmail(
-      user.email,
-      user.name ?? session.user.name ?? null,
-      user.founderNumber,
-      locale,
-    ).catch((err) => console.error("[claim-access] unlock email failed:", err));
 
     return NextResponse.json({ success: true, redirect });
   } catch (error) {

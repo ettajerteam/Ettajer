@@ -19,7 +19,7 @@ import { sendMagicLinkEmail } from "@/lib/email";
 import { sendWelcomeEmail, sendFounderWelcomeEmail } from "@/lib/email/automations";
 import { getEmailLocaleFromCookieHeader } from "@/lib/email/email-locale";
 
-import { assignFounderNumber, isFounderSlotsFull } from "@/lib/founder";
+import { assignFounderNumber, isFounderSlotsFull, USER_STATUS } from "@/lib/founder";
 import { normalizeEmail } from "@/lib/password-reset";
 import { parseOAuthSignupCookies } from "@/lib/auth/oauth-signup";
 
@@ -493,8 +493,18 @@ export const authOptions: NextAuthOptions = {
           select: { status: true, founderNumber: true, name: true, role: true, email: true },
         });
         if (dbUser) {
+          let status = dbUser.status;
+          if (status !== USER_STATUS.ACTIVE) {
+            await prisma.user
+              .update({
+                where: { id: token.id as string },
+                data: { status: USER_STATUS.ACTIVE },
+              })
+              .catch(() => null);
+            status = USER_STATUS.ACTIVE;
+          }
           const role = await ensureBootstrapAdminRole(token.id as string, dbUser.email, dbUser.role);
-          token.status = dbUser.status;
+          token.status = status;
           token.founderNumber = dbUser.founderNumber;
           token.role = role;
           if (dbUser.name) token.name = dbUser.name;
