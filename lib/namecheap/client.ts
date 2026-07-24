@@ -106,10 +106,11 @@ export async function namecheapCommand(
   }
   // Also catch <Error> without Number
   if (errors.length === 0) {
-    const plain = [...raw.matchAll(/<Error[^>]*>([^<]+)<\/Error>/gi)].map((m) =>
-      m[1].trim()
-    );
-    errors.push(...plain);
+    const plainRe = /<Error[^>]*>([^<]+)<\/Error>/gi;
+    let plainMatch: RegExpExecArray | null;
+    while ((plainMatch = plainRe.exec(raw))) {
+      errors.push(plainMatch[1].trim());
+    }
   }
 
   return {
