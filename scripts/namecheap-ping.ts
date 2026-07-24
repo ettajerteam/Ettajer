@@ -33,7 +33,7 @@ async function main() {
   console.log("\nChecking balance...");
   const bal = await getAccountBalance();
   if (!bal.ok) {
-    console.error("FAILED:", bal.errors.join("; ") || bal.status);
+    console.error("FAILED:", bal.errors.join("; ") || "unknown error");
     console.error(
       "\nIf you see IP / permission errors: whitelist this exact IPv4 in Namecheap → Profile → Tools → API Access,\nand set NAMECHEAP_CLIENT_IP to the same value."
     );
