@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 interface ImageUploadProps {
   images: ProductImageAsset[];
   onChange: (images: ProductImageAsset[]) => void;
+  /** Ebook mode labels first two images as front/back covers. */
+  variant?: "product" | "ebook";
 }
 
 function savingsLabel(asset: ProductImageAsset): string | null {
@@ -31,9 +33,19 @@ function savingsLabel(asset: ProductImageAsset): string | null {
   return `${pct}% smaller`;
 }
 
-export function ImageUpload({ images, onChange }: ImageUploadProps) {
+export function ImageUpload({ images, onChange, variant = "product" }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const isEbook = variant === "ebook";
+
+  const coverLabel = (index: number): string | null => {
+    if (isEbook) {
+      if (index === 0) return "Front cover";
+      if (index === 1) return "Back cover";
+      return null;
+    }
+    return index === 0 ? "Cover" : null;
+  };
 
   const uploadFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -143,12 +155,18 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#007AFF]/10 text-[#007AFF]">
               <ImagePlus className="h-6 w-6" />
             </div>
-            <p className="text-sm font-medium mb-1">Drag & drop product photos</p>
+            <p className="text-sm font-medium mb-1">
+              {isEbook ? "Drag & drop book covers" : "Drag & drop product photos"}
+            </p>
             <p className="text-xs text-muted-foreground mb-1 text-center max-w-sm">
-              JPG, PNG, WebP · up to 15 MB each · auto-compressed to WebP
+              {isEbook
+                ? "JPG, PNG, WebP · first image = front cover · second = back cover"
+                : "JPG, PNG, WebP · up to 15 MB each · auto-compressed to WebP"}
             </p>
             <p className="text-xs text-muted-foreground/80 mb-4 text-center">
-              Saved to your media library and linked when you publish
+              {isEbook
+                ? "Upload front cover, then back cover (optional gallery after)"
+                : "Saved to your media library and linked when you publish"}
             </p>
             <label className="cursor-pointer">
               <input
@@ -173,7 +191,9 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-medium text-muted-foreground">
-              {images.length} photo{images.length === 1 ? "" : "s"} · first is the cover
+              {isEbook
+                ? `${images.length} cover photo${images.length === 1 ? "" : "s"} · front first, back second`
+                : `${images.length} photo${images.length === 1 ? "" : "s"} · first is the cover`}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -191,7 +211,7 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
                     exit={{ opacity: 0, scale: 0.92 }}
                     className={cn(
                       "group relative overflow-hidden rounded-xl border bg-muted",
-                      index === 0 && "ring-2 ring-[#007AFF]/35"
+                      (index === 0 || (isEbook && index === 1)) && "ring-2 ring-[#007AFF]/35"
                     )}
                   >
                     <div className="relative aspect-[4/5]">
@@ -208,10 +228,10 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
                             type="button"
                             onClick={() => setAsCover(index)}
                             className="inline-flex items-center gap-1 rounded-lg bg-black/65 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm hover:bg-black/80"
-                            title="Set as cover"
+                            title={isEbook ? "Set as front cover" : "Set as cover"}
                           >
                             <Star className="h-3 w-3" />
-                            Cover
+                            {isEbook ? "Front" : "Cover"}
                           </button>
                         ) : (
                           <span />
@@ -225,9 +245,9 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      {index === 0 && (
+                      {coverLabel(index) && (
                         <span className="absolute bottom-1.5 left-1.5 rounded-md bg-[#007AFF] px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm">
-                          Cover
+                          {coverLabel(index)}
                         </span>
                       )}
                       {saved && (

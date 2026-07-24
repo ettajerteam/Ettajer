@@ -17,7 +17,7 @@ export const PRODUCT_TYPE_OPTIONS: {
   {
     value: "digital",
     label: "Digital",
-    description: "Downloads, courses, files — no shipping weight.",
+    description: "Ebooks & downloads — upload PDF + front/back covers, no shipping.",
   },
   {
     value: "service",

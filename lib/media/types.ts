@@ -1,4 +1,4 @@
-export type MediaKind = "image" | "svg" | "logo" | "video";
+export type MediaKind = "image" | "svg" | "logo" | "video" | "document";
 
 export interface MediaMetadata {
   width?: number;

@@ -5,6 +5,7 @@ import { productSchema } from "@/lib/validations/product";
 import { getAuthenticatedStore, serializeProduct, productInclude } from "@/lib/products";
 import { validateProductIds } from "@/lib/catalog";
 import { serializeProductImagesForDb } from "@/lib/product-images";
+import { serializeProductDigitalFilesForDb } from "@/lib/product-digital-files";
 import { productTracksInventory, type ProductType } from "@/lib/product-types";
 
 export async function GET(request: Request) {
@@ -105,6 +106,10 @@ export async function POST(request: Request) {
 
     const productType = data.productType as ProductType;
     const inventory = productTracksInventory(productType) ? data.inventory : data.inventory;
+    const digitalFiles =
+      productType === "digital"
+        ? serializeProductDigitalFilesForDb(data.digitalFiles)
+        : [];
 
     const product = await prisma.product.create({
       data: {
@@ -122,6 +127,7 @@ export async function POST(request: Request) {
         copyrightOwner: data.copyrightOwner,
         copyrightNotice: data.copyrightNotice,
         images: serializeProductImagesForDb(data.images),
+        digitalFiles,
         variants: data.variants,
         details,
         reviews,

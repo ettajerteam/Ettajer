@@ -667,9 +667,11 @@ export const HELP_ARTICLES: HelpArticle[] = [
     title: "Images not uploading",
     excerpt: "Fix product or section image upload failures.",
     categoryId: "troubleshooting",
-    keywords: ["image", "upload", "photo"],
+    keywords: ["image", "upload", "photo", "pdf", "ebook", "digital"],
     body: [
-      "Use JPG, PNG, or WebP under 10 MB per file.",
+      "Use JPG, PNG, or WebP under 10 MB per file for covers and photos.",
+      "For ebooks: set product type to Digital, upload Front cover + Back cover photos, then upload the PDF under Ebook file.",
+      "PDF files can be up to 50 MB. Only PDF is accepted for digital downloads.",
       "Product photos upload to cloud storage — if upload fails, wait a minute and try again.",
       "Check your internet connection — large files on slow mobile networks may timeout.",
       "Try a different browser. Disable VPN if uploads consistently fail.",

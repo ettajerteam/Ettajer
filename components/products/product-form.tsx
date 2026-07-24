@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/products/image-upload";
+import { DigitalFileUpload } from "@/components/products/digital-file-upload";
 import { VariantEditor } from "@/components/products/variant-editor";
 import { TagInput } from "@/components/products/tag-input";
 import { ReviewsEditor } from "@/components/products/reviews-editor";
@@ -56,6 +57,7 @@ const defaultValues: ProductFormValues = {
   copyrightOwner: "",
   copyrightNotice: "",
   images: [],
+  digitalFiles: [],
   variants: [],
   details: [],
   reviews: [],
@@ -82,6 +84,7 @@ function toFormValues(product: Product): ProductFormValues {
     images: product.imageAssets?.length
       ? product.imageAssets
       : product.images.map((url) => ({ url })),
+    digitalFiles: product.digitalFiles ?? [],
     variants: product.variants,
     details: product.details ?? [],
     reviews: product.reviews ?? [],
@@ -230,18 +233,43 @@ export function ProductForm({
         <div>
           <h3 className="text-sm font-semibold tracking-[-0.01em] text-foreground">Media</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Upload product photos — we compress them automatically, store them in the cloud, and
-            save them with this product when you publish. First image is the cover.
+            {productType === "digital"
+              ? "Add front and back covers for your ebook. Photos are compressed automatically."
+              : "Upload product photos — we compress them automatically, store them in the cloud, and save them with this product when you publish. First image is the cover."}
           </p>
         </div>
         <Controller
           name="images"
           control={control}
           render={({ field }) => (
-            <ImageUpload images={field.value} onChange={field.onChange} />
+            <ImageUpload
+              images={field.value}
+              onChange={field.onChange}
+              variant={productType === "digital" ? "ebook" : "product"}
+            />
           )}
         />
       </section>
+
+      {productType === "digital" ? (
+        <section className="premium-card space-y-5 p-5 sm:p-6">
+          <div>
+            <h3 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
+              Ebook file (PDF)
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Upload the PDF customers receive. You can attach up to 3 files (ebook + extras).
+            </p>
+          </div>
+          <Controller
+            name="digitalFiles"
+            control={control}
+            render={({ field }) => (
+              <DigitalFileUpload files={field.value} onChange={field.onChange} />
+            )}
+          />
+        </section>
+      ) : null}
 
       <section className="premium-card space-y-5 p-5 sm:p-6">
         <div>

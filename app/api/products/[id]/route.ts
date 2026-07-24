@@ -5,6 +5,7 @@ import { productSchema } from "@/lib/validations/product";
 import { getAuthenticatedStore, serializeProduct, productInclude } from "@/lib/products";
 import { validateProductIds } from "@/lib/catalog";
 import { serializeProductImagesForDb } from "@/lib/product-images";
+import { serializeProductDigitalFilesForDb } from "@/lib/product-digital-files";
 import type { ProductType } from "@/lib/product-types";
 
 interface RouteParams {
@@ -78,6 +79,10 @@ async function updateProduct(request: Request, productId: string) {
   }
 
   const productType = data.productType as ProductType;
+  const digitalFiles =
+    productType === "digital"
+      ? serializeProductDigitalFilesForDb(data.digitalFiles)
+      : [];
 
   const product = await prisma.product.update({
     where: { id: existing.id },
@@ -96,6 +101,7 @@ async function updateProduct(request: Request, productId: string) {
       copyrightOwner: data.copyrightOwner,
       copyrightNotice: data.copyrightNotice,
       images: serializeProductImagesForDb(data.images),
+      digitalFiles,
       variants: data.variants,
       details,
       reviews,

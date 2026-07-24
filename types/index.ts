@@ -51,6 +51,7 @@ export interface Product {
   copyrightNotice?: string | null;
   images: string[];
   imageAssets: ProductImageAsset[];
+  digitalFiles: ProductDigitalFile[];
   variants: ProductVariant[];
   details: ProductDetail[];
   tags: string[];
@@ -63,6 +64,13 @@ export interface Product {
   collectionNames: string[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProductDigitalFile {
+  url: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
 }
 
 export interface ProductReview {

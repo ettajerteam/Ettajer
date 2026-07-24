@@ -1,4 +1,5 @@
 import { parseProductImages, parseProductImageAssets } from "@/lib/product-images";
+import { parseProductDigitalFiles } from "@/lib/product-digital-files";
 import { parseProductVariants } from "@/lib/product-variants";
 import { parseProductReviews } from "@/lib/product-reviews";
 import { parseProductDetails } from "@/lib/product-details";
@@ -26,6 +27,7 @@ export function serializeProduct(product: {
   copyrightOwner?: string | null;
   copyrightNotice?: string | null;
   images: unknown;
+  digitalFiles?: unknown;
   variants: unknown;
   reviews?: unknown;
   details?: unknown;
@@ -56,6 +58,7 @@ export function serializeProduct(product: {
     copyrightNotice: product.copyrightNotice ?? null,
     images: imageAssets.map((asset) => asset.url),
     imageAssets,
+    digitalFiles: parseProductDigitalFiles(product.digitalFiles),
     variants: parseProductVariants(product.variants),
     details: parseProductDetails(product.details),
     reviews: parseProductReviews(product.reviews),

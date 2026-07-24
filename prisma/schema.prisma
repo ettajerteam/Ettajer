@@ -185,6 +185,8 @@ model Product {
   copyrightOwner  String?
   copyrightNotice String?  @db.Text
   images       Json        @default("[]")
+  /** Digital downloads for ebook/files: [{ url, filename, mimeType, sizeBytes }] */
+  digitalFiles Json        @default("[]")
   variants     Json        @default("[]")
   reviews      Json        @default("[]")
   /** Spec rows shown on the product page: [{ id, label, value }] */

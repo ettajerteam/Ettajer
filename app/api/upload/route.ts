@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedStore } from "@/lib/products";
-import { saveUploadedFile } from "@/lib/media/service";
+import { saveUploadedFile, DOCUMENT_MIME_TYPES } from "@/lib/media/service";
 
 export async function POST(request: Request) {
   try {
@@ -11,9 +11,22 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const files = formData.getAll("files") as File[];
+    const kindRaw = String(formData.get("kind") || "image");
+    const kind = kindRaw === "document" ? "document" : "image";
 
     if (!files.length) {
       return NextResponse.json({ message: "No files provided" }, { status: 400 });
+    }
+
+    if (kind === "document") {
+      for (const file of files) {
+        if (!DOCUMENT_MIME_TYPES.includes(file.type)) {
+          return NextResponse.json(
+            { message: `Only PDF files are allowed for digital products (got ${file.type || file.name})` },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     const assets: {
@@ -22,6 +35,8 @@ export async function POST(request: Request) {
       height: number | null;
       sizeBytes: number;
       alt: string | null;
+      filename: string;
+      mimeType: string;
       originalSizeBytes?: number | null;
       compressed?: boolean;
     }[] = [];
@@ -30,7 +45,7 @@ export async function POST(request: Request) {
     for (const file of files) {
       try {
         const asset = await saveUploadedFile(store.id, file, {
-          kind: "image",
+          kind: kind === "document" ? "document" : "image",
         });
         const meta =
           asset.metadata && typeof asset.metadata === "object"
@@ -44,6 +59,8 @@ export async function POST(request: Request) {
           height: asset.height,
           sizeBytes: asset.size,
           alt: asset.alt,
+          filename: asset.filename,
+          mimeType: asset.mimeType,
           originalSizeBytes: meta?.originalSize ?? null,
           compressed: Boolean(meta?.compressed),
         });
@@ -58,6 +75,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ urls, assets });
   } catch (error) {
     console.error("Upload error:", error);
-    return NextResponse.json({ message: "Failed to upload images" }, { status: 500 });
+    return NextResponse.json({ message: "Failed to upload files" }, { status: 500 });
   }
 }

@@ -21,10 +21,13 @@ export const IMAGE_MAX_SIZE = 5 * 1024 * 1024;
 export const IMAGE_RAW_MAX_SIZE = PRODUCT_IMAGE_RAW_MAX_SIZE;
 export const VIDEO_MAX_SIZE = 50 * 1024 * 1024;
 export const SVG_MAX_SIZE = 1 * 1024 * 1024;
+/** Ebook / PDF digital downloads */
+export const DOCUMENT_MAX_SIZE = 50 * 1024 * 1024;
 
 export const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 export const SVG_MIME_TYPES = ["image/svg+xml"];
 export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+export const DOCUMENT_MIME_TYPES = ["application/pdf"];
 
 /** @deprecated Prefer persistUploadedFile from @/lib/media/storage */
 export function getUploadDir(storeId: string): string {
@@ -38,6 +41,7 @@ export function urlToFilePath(url: string, storeId: string): string | null {
 
 function inferKind(mimeType: string, requestedKind?: MediaKind): MediaKind {
   if (requestedKind === "logo") return "logo";
+  if (requestedKind === "document" || DOCUMENT_MIME_TYPES.includes(mimeType)) return "document";
   if (SVG_MIME_TYPES.includes(mimeType)) return "svg";
   if (VIDEO_MIME_TYPES.includes(mimeType)) return "video";
   if (requestedKind === "svg") return "svg";
@@ -45,6 +49,7 @@ function inferKind(mimeType: string, requestedKind?: MediaKind): MediaKind {
 }
 
 function maxSizeForMime(mimeType: string, opts?: { rawUpload?: boolean }): number {
+  if (DOCUMENT_MIME_TYPES.includes(mimeType)) return DOCUMENT_MAX_SIZE;
   if (VIDEO_MIME_TYPES.includes(mimeType)) return VIDEO_MAX_SIZE;
   if (SVG_MIME_TYPES.includes(mimeType)) return SVG_MAX_SIZE;
   // Allow larger phone photos; we compress rasters before storage
@@ -58,10 +63,12 @@ function isAllowedMime(mimeType: string, kind?: MediaKind): boolean {
   if (kind === "logo") return IMAGE_MIME_TYPES.includes(mimeType);
   if (kind === "svg") return SVG_MIME_TYPES.includes(mimeType);
   if (kind === "video") return VIDEO_MIME_TYPES.includes(mimeType);
+  if (kind === "document") return DOCUMENT_MIME_TYPES.includes(mimeType);
   return (
     IMAGE_MIME_TYPES.includes(mimeType) ||
     SVG_MIME_TYPES.includes(mimeType) ||
-    VIDEO_MIME_TYPES.includes(mimeType)
+    VIDEO_MIME_TYPES.includes(mimeType) ||
+    DOCUMENT_MIME_TYPES.includes(mimeType)
   );
 }
 
@@ -168,8 +175,10 @@ export async function saveUploadedFile(
     );
   }
 
-  const { url } = await writeFileToDisk(storeId, uploadFile);
   const kind = inferKind(uploadFile.type, options?.kind);
+  const { url } = await persistUploadedFile(storeId, uploadFile, {
+    prefix: kind === "document" ? "documents" : kind === "logo" ? "logos" : "uploads",
+  });
   const width =
     options?.metadata?.width ??
     (compressed && compressed.width > 0 ? compressed.width : null);

@@ -32,6 +32,13 @@ export const productImageAssetSchema = z.object({
   alt: z.string().max(200).optional().nullable(),
 });
 
+export const productDigitalFileSchema = z.object({
+  url: z.string().min(1),
+  filename: z.string().min(1).max(255),
+  mimeType: z.string().min(1).max(120),
+  sizeBytes: z.number().int().nonnegative(),
+});
+
 const imageInputSchema = z.union([
   z.string().min(1),
   productImageAssetSchema,
@@ -76,6 +83,7 @@ export const productSchema = z.object({
             }
       )
     ),
+  digitalFiles: z.array(productDigitalFileSchema).default([]),
   variants: z.array(productVariantSchema).default([]),
   details: z.array(productDetailSchema).default([]),
   reviews: z.array(productReviewSchema).default([]),
