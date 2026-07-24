@@ -432,27 +432,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
 
     async signIn({ user, account }) {
-
+      // Allow Google signup even when founder cards are sold out —
+      // createUser will simply skip assigning a founder number/card.
       if (account?.provider === "google" && user?.email) {
-
-        const existing = await prisma.user.findUnique({
-
-          where: { email: normalizeEmail(user.email) },
-
-          select: { id: true },
-
-        });
-
-        if (!existing && (await isFounderSlotsFull())) {
-
-          return "/signup?error=founder_full";
-
-        }
-
+        return true;
       }
 
       return true;
-
     },
 
     async jwt({ token, user }) {
@@ -548,7 +534,10 @@ export const authOptions: NextAuthOptions = {
         });
       }
 
-      if (await isFounderSlotsFull()) return;
+      if (await isFounderSlotsFull()) {
+        // Cards sold out — regular welcome only (no founder card/PDF).
+        return;
+      }
 
       const founderNumber = await assignFounderNumber(user.id);
 

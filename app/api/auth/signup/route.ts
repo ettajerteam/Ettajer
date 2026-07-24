@@ -15,7 +15,6 @@ import {
 } from "@/lib/account-activation";
 import {
   assignFounderNumber,
-  isFounderSlotsFull,
   USER_STATUS,
 } from "@/lib/founder";
 import { sendActivationCodeEmail } from "@/lib/email/automations";
@@ -115,16 +114,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (await isFounderSlotsFull()) {
-      return NextResponse.json(
-        {
-          error:
-            "All 100 founder spots have been claimed. Join the waitlist soon.",
-        },
-        { status: 403 },
-      );
-    }
-
     const existing = await prisma.user.findUnique({
       where: { email: normalizedEmail },
       select: { id: true, name: true, emailVerified: true, founderNumber: true },
@@ -188,18 +177,9 @@ export async function POST(request: Request) {
 
     await persistSignupPreferences(user.id, marketingEmails ?? false, termsAcceptedAt);
 
+    // Founder cards are limited to MAX_FOUNDERS. After that, signup still works
+    // as a normal merchant account — just no founder number / card email.
     const founderNumber = await assignFounderNumber(user.id);
-
-    if (!founderNumber) {
-      await prisma.user.delete({ where: { id: user.id } });
-      return NextResponse.json(
-        {
-          error:
-            "All 100 founder spots have been claimed. Join the waitlist soon.",
-        },
-        { status: 403 },
-      );
-    }
 
     await sendActivationForUser(normalizedEmail, user.name ?? name, emailLocale);
 
@@ -207,7 +187,7 @@ export async function POST(request: Request) {
       email: normalizedEmail,
       action: "signup",
       success: true,
-      reason: "created",
+      reason: founderNumber ? "created_founder" : "created",
       ipAddress,
       userAgent,
       userId: user.id,
@@ -217,6 +197,8 @@ export async function POST(request: Request) {
       success: true,
       needsActivation: true,
       email: user.email,
+      isFounder: Boolean(founderNumber),
+      founderNumber: founderNumber ?? null,
     });
   } catch (error) {
     console.error("Signup error:", error);

@@ -29,21 +29,26 @@ export async function isFounderSlotsFull(): Promise<boolean> {
 
 /**
  * Atomically assigns the next founder number to a user.
- * Returns null if all 100 founder slots are taken.
+ * Returns null once MAX_FOUNDERS cards have been issued — no more cards after that.
  */
 export async function assignFounderNumber(userId: string): Promise<number | null> {
   return prisma.$transaction(async (tx) => {
+    const issued = await tx.user.count({
+      where: { founderNumber: { not: null } },
+    });
+    if (issued >= MAX_FOUNDERS) {
+      return null;
+    }
+
     const aggregate = await tx.user.aggregate({
       _max: { founderNumber: true },
       where: { founderNumber: { not: null } },
     });
 
-    const currentMax = aggregate._max.founderNumber ?? 0;
-    if (currentMax >= MAX_FOUNDERS) {
+    const next = (aggregate._max.founderNumber ?? 0) + 1;
+    if (next > MAX_FOUNDERS) {
       return null;
     }
-
-    const next = currentMax + 1;
 
     await tx.user.update({
       where: { id: userId },
