@@ -1,6 +1,6 @@
 import path from "path";
 import { renderToBuffer } from "@react-pdf/renderer";
-import type { ReactElement } from "react";
+import React, { type ReactElement } from "react";
 import { FounderMembershipPdf } from "@/components/founder/founder-membership-pdf";
 import { buildFounderCardSvg } from "@/lib/founder/founder-card-svg";
 
@@ -39,17 +39,25 @@ export async function generateFounderCardAssets(
   });
   const pngBuffer = Buffer.from(resvg.render().asPng());
 
-  const pdfBuffer = await renderToBuffer(
-    FounderMembershipPdf({
-      name,
-      founderNumber,
-      cardPngBase64: pngBuffer.toString("base64"),
-    }) as ReactElement,
-  );
+  let pdfBuffer: Buffer;
+  try {
+    const rendered = await renderToBuffer(
+      FounderMembershipPdf({
+        name,
+        founderNumber,
+        cardPngBase64: pngBuffer.toString("base64"),
+      }) as ReactElement,
+    );
+    pdfBuffer = Buffer.from(rendered);
+  } catch (error) {
+    console.error("[founder-card] PDF generation failed, sending PNG only:", error);
+    // Minimal PDF fallback is not needed — attach PNG twice if PDF fails downstream.
+    pdfBuffer = Buffer.alloc(0);
+  }
 
   return {
     pngBuffer,
-    pdfBuffer: Buffer.from(pdfBuffer),
+    pdfBuffer,
     pngBase64: pngBuffer.toString("base64"),
   };
 }

@@ -20,6 +20,8 @@ import {
   buildSupportTicketEmailHtml,
   buildWelcomeEmailHtml,
   buildFounderWelcomeEmailHtml,
+  buildFounderCardResendEmailHtml,
+  getFounderCardResendSubject,
   buildFounderLaunchAnnounceEmailHtml,
   buildFounderBetaTestingEmailHtml,
   buildFounderAccessUnlockedEmailHtml,
@@ -43,6 +45,7 @@ export const EMAIL_AUTOMATIONS = {
   AUTH_PASSWORD_CHANGED: "auth.password_changed",
   AUTH_WELCOME: "auth.welcome",
   AUTH_FOUNDER_WELCOME: "auth.founder_welcome",
+  AUTH_FOUNDER_CARD_RESEND: "auth.founder_card_resend",
   AUTH_ACTIVATION: "auth.activation",
   FOUNDER_LAUNCH_ANNOUNCE: "founder.launch_announce",
   FOUNDER_BETA_TESTING: "founder.beta_testing",
@@ -224,6 +227,55 @@ export async function sendFounderWelcomeEmail(
     });
 
     return fallback.success;
+  }
+}
+
+export async function sendFounderCardResendEmail(
+  email: string,
+  name: string,
+  founderNumber: number,
+  locale?: string | null,
+): Promise<boolean> {
+  const loc = emailLocale(locale);
+
+  try {
+    const assets = await generateFounderCardAssets(name, founderNumber);
+    const filenames = getFounderAttachmentNames(founderNumber);
+    const attachments: {
+      filename: string;
+      content: Buffer;
+      contentType?: string;
+      inlineContentId?: string;
+    }[] = [
+      {
+        filename: "founder-card-inline.png",
+        content: assets.pngBuffer,
+        contentType: "image/png",
+        inlineContentId: FOUNDER_CARD_INLINE_CID,
+      },
+      { filename: filenames.png, content: assets.pngBuffer, contentType: "image/png" },
+    ];
+    if (assets.pdfBuffer.length > 0) {
+      attachments.push({
+        filename: filenames.pdf,
+        content: assets.pdfBuffer,
+        contentType: "application/pdf",
+      });
+    }
+
+    const result = await dispatch(EMAIL_AUTOMATIONS.AUTH_FOUNDER_CARD_RESEND, {
+      to: email,
+      subject: getFounderCardResendSubject(founderNumber, loc),
+      html: buildFounderCardResendEmailHtml(name, founderNumber, {
+        cid: FOUNDER_CARD_INLINE_CID,
+      }, loc),
+      attachments,
+    });
+
+    return result.success;
+  } catch (error) {
+    console.error("[email:auth.founder_card_resend] asset generation failed:", error);
+    return false;
   }
 }
 

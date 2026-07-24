@@ -159,7 +159,6 @@ export function buildFounderWelcomeEmailHtml(
   const t = copy.founderWelcome;
   const displayName = emailGreetingName(name, locale === "ar" ? "مؤسس" : "Founder");
   const padded = String(founderNumber).padStart(4, "0");
-  const earlyAccessUrl = `${getAppUrl()}/early-access`;
   const founderLabel = escapeHtml(formatFounderNumber(founderNumber));
 
   const cardSrc = cardImage?.cid
@@ -198,13 +197,123 @@ export function buildFounderWelcomeEmailHtml(
       { label: t.founderNumber, value: `#${padded}`, highlight: true },
       { label: t.status, value: t.statusValue, highlight: true },
     ],
-    cta: { label: t.cta, url: earlyAccessUrl },
+    cta: { label: t.cta, url: `${getAppUrl()}/dashboard` },
     highlight: {
       title: t.highlightTitle,
       body: t.highlightBody,
     },
     footerNote: t.footerNote,
   });
+}
+
+/** Corrected founder card resend (after font/tofu fix). */
+export function buildFounderCardResendEmailHtml(
+  name: string,
+  founderNumber: number,
+  cardImage?: { cid?: string; base64?: string },
+  locale: LandingLocale = "en",
+): string {
+  const { shell, locale: loc } = emailOpts(locale);
+  const displayName = emailGreetingName(name, locale === "ar" ? "مؤسس" : "Founder");
+  const padded = String(founderNumber).padStart(4, "0");
+  const founderLabel = escapeHtml(formatFounderNumber(founderNumber));
+  const dashboardUrl = `${getAppUrl()}/dashboard`;
+
+  const copy =
+    loc === "fr"
+      ? {
+          subject: `Votre carte Fondateur corrigee #${padded}`,
+          previewText: `Nouvelle carte Fondateur #${padded} avec texte et numeros lisibles`,
+          title: "Votre carte Fondateur mise a jour",
+          badge: `Fondateur #${padded}`,
+          body: `Bonjour ${escapeHtml(displayName)},<br /><br />Certains d'entre vous ont recu une carte sans texte lisible.<br /><br />Voici votre <strong>nouvelle carte Fondateur</strong> (${founderLabel}) avec le nom et le numero clairement visibles — PNG et certificat PDF en piece jointe.`,
+          cardLabel: "Votre carte corrigee",
+          cardHint: "PNG + certificat PDF joints a cet e-mail. Remplacez l'ancienne version.",
+          cta: "Ouvrir mon tableau de bord",
+          highlightTitle: "Rien a faire",
+          highlightBody: "Votre numero fondateur ne change pas. Conservez simplement cette nouvelle carte.",
+          footerNote: "Desole pour le desagrement — l'equipe Ettajer",
+        }
+      : loc === "ar"
+        ? {
+            subject: `بطاقتك المصححة للمؤسس رقم ${padded}`,
+            previewText: `بطاقة مؤسس جديدة رقم ${padded} بنص وأرقام واضحة`,
+            title: "بطاقة المؤسس المحدّثة",
+            badge: `مؤسس رقم ${padded}`,
+            body: `مرحباً ${escapeHtml(displayName)}،<br /><br />استلم بعضكم بطاقة بدون نص واضح.<br /><br />إليك <strong>بطاقتك الجديدة</strong> (${founderLabel}) مع الاسم والرقم واضحين — مرفق PNG وشهادة PDF.`,
+            cardLabel: "بطاقتك المصححة",
+            cardHint: "ملف PNG والشهادة PDF مرفقان. استبدل النسخة القديمة.",
+            cta: "افتح لوحة التحكم",
+            highlightTitle: "لا يلزم إجراء",
+            highlightBody: "رقم المؤسس لم يتغير. احتفظ بهذه البطاقة الجديدة فقط.",
+            footerNote: "نعتذر عن الإزعاج — فريق Ettajer",
+          }
+        : {
+            subject: `Your corrected Founder Card #${padded}`,
+            previewText: `Updated Founder Card #${padded} with readable text and numbers`,
+            title: "Your updated Founder Card",
+            badge: `Founder #${padded}`,
+            body: `Hi ${escapeHtml(displayName)},<br /><br />Some founders received a card where the text and numbers did not display correctly.<br /><br />Here is your <strong>updated Founder Card</strong> (${founderLabel}) with your name and number clearly visible — PNG and PDF certificate attached.`,
+            cardLabel: "Your corrected card",
+            cardHint: "PNG + membership PDF are attached. Please replace the older version.",
+            cta: "Open my dashboard",
+            highlightTitle: "Nothing else to do",
+            highlightBody: "Your founder number does not change. Just keep this new card.",
+            footerNote: "Sorry for the inconvenience — The Ettajer Team",
+          };
+
+  const cardSrc = cardImage?.cid
+    ? `cid:${cardImage.cid}`
+    : cardImage?.base64
+      ? `data:image/png;base64,${cardImage.base64}`
+      : null;
+
+  const cardBlock = cardSrc
+    ? `
+    <div style="margin-top:28px;text-align:center;">
+      <p style="margin:0 0 14px;color:#737373;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">${escapeHtml(copy.cardLabel)}</p>
+      <img
+        src="${cardSrc}"
+        alt="Ettajer Founder Card #${padded}"
+        width="440"
+        style="display:block;margin:0 auto;max-width:100%;height:auto;border-radius:16px;box-shadow:0 24px 60px -18px rgba(0,0,0,0.45);border:1px solid rgba(0,0,0,0.06);"
+      />
+      <p style="margin:14px 0 0;color:#a3a3a3;font-size:12px;line-height:1.55;">
+        ${escapeHtml(copy.cardHint)}
+      </p>
+    </div>`
+    : "";
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: copy.previewText,
+    title: copy.title,
+    badge: copy.badge,
+    badgeColor: "#ecfdf5",
+    greeting: undefined,
+    body: copy.body,
+    customBlock: cardBlock,
+    keyValues: [
+      { label: loc === "fr" ? "Numero fondateur" : loc === "ar" ? "رقم المؤسس" : "Founder Number", value: `#${padded}`, highlight: true },
+    ],
+    cta: { label: copy.cta, url: dashboardUrl },
+    highlight: {
+      title: copy.highlightTitle,
+      body: copy.highlightBody,
+    },
+    footerNote: copy.footerNote,
+  });
+}
+
+export function getFounderCardResendSubject(
+  founderNumber: number,
+  locale: LandingLocale = "en",
+): string {
+  const padded = String(founderNumber).padStart(4, "0");
+  if (locale === "fr") return `Votre carte Fondateur corrigee #${padded}`;
+  if (locale === "ar") return `بطاقتك المصححة للمؤسس رقم ${padded}`;
+  return `Your corrected Founder Card #${padded}`;
 }
 
 export function buildFounderLaunchAnnounceEmailHtml(
