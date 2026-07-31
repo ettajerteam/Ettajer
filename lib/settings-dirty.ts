@@ -42,8 +42,8 @@ export function getSettingsTabSnapshot(
         whatsapp: store.settings.shop.whatsapp,
         showContactOnStorefront: store.settings.shop.showContactOnStorefront,
       });
-    case "printers":
-      return JSON.stringify(store.settings.ticketPrinters);
+    case "email":
+      return "email";
     default:
       return "";
   }

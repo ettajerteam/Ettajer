@@ -4,8 +4,8 @@ import {
   Banknote,
   Globe2,
   Languages,
+  Mail,
   MessageCircle,
-  Printer,
   Search,
   ShoppingBag,
   Store,
@@ -23,7 +23,7 @@ export const SETTINGS_TABS = [
   "checkout",
   "seo",
   "contact",
-  "printers",
+  "email",
 ] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
@@ -37,7 +37,7 @@ export const SETTINGS_NAV: {
 }[] = [
   {
     id: "general",
-    label: "Store profile",
+    label: "Profile",
     description: "Name, logo, contact",
     icon: Store,
     group: "store",
@@ -54,6 +54,13 @@ export const SETTINGS_NAV: {
     label: "Currency & language",
     description: "Prices and locale",
     icon: Languages,
+    group: "store",
+  },
+  {
+    id: "email",
+    label: "Email",
+    description: "Providers & domains",
+    icon: Mail,
     group: "store",
   },
   {
@@ -78,13 +85,6 @@ export const SETTINGS_NAV: {
     group: "selling",
   },
   {
-    id: "printers",
-    label: "Printers",
-    description: "Ticket stations",
-    icon: Printer,
-    group: "selling",
-  },
-  {
     id: "seo",
     label: "SEO",
     description: "Search and sharing",
@@ -93,7 +93,7 @@ export const SETTINGS_NAV: {
   },
   {
     id: "contact",
-    label: "Storefront contact",
+    label: "Contact",
     description: "WhatsApp and visibility",
     icon: MessageCircle,
     group: "storefront",
@@ -105,7 +105,7 @@ const SETTINGS_GROUPS: {
   label: string;
 }[] = [
   { id: "store", label: "Store" },
-  { id: "selling", label: "Selling" },
+  { id: "selling", label: "Orders" },
   { id: "storefront", label: "Storefront" },
 ];
 
@@ -117,12 +117,9 @@ interface SettingsNavProps {
 export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
   return (
     <>
-      {/* Mobile — scrollable chips with edge fade */}
       <div className="relative lg:hidden">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-[#FAFAFA] to-transparent dark:from-[#0a0a0a]" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#FAFAFA] to-transparent dark:from-[#0a0a0a]" />
         <nav
-          className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none"
+          className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none"
           aria-label="Settings sections"
         >
           {SETTINGS_NAV.map((item) => {
@@ -135,13 +132,13 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
                 onClick={() => onChange(item.id)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[13px] font-medium transition-all duration-200",
+                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium transition",
                   active
-                    ? "border-[#007AFF] bg-[#007AFF] text-white shadow-[0_4px_14px_-4px_rgba(0,122,255,0.55)]"
-                    : "border-neutral-200/90 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900 dark:border-white/10 dark:bg-[#161616] dark:text-neutral-300"
+                    ? "border-[#007AFF]/30 bg-[#007AFF]/10 text-[#007AFF]"
+                    : "border-black/[0.06] bg-white text-neutral-600 hover:text-neutral-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-neutral-300"
                 )}
               >
-                <Icon className="h-3.5 w-3.5 opacity-90" />
+                <Icon className="h-3.5 w-3.5 opacity-80" />
                 {item.label}
               </button>
             );
@@ -149,14 +146,13 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
         </nav>
       </div>
 
-      {/* Desktop — grouped side list */}
       <nav className="hidden lg:block" aria-label="Settings sections">
-        <div className="space-y-5">
+        <div className="space-y-3">
           {SETTINGS_GROUPS.map((group) => {
             const items = SETTINGS_NAV.filter((item) => item.group === group.id);
             return (
               <div key={group.id}>
-                <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400 dark:text-neutral-500">
+                <p className="mb-1 px-2 text-[11px] font-medium text-neutral-400 dark:text-neutral-500">
                   {group.label}
                 </p>
                 <div className="space-y-0.5">
@@ -170,40 +166,15 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
                         onClick={() => onChange(item.id)}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "group relative flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-all duration-200",
+                          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition",
                           active
-                            ? "bg-[#007AFF]/[0.08] text-neutral-900 dark:bg-[#007AFF]/15 dark:text-white"
-                            : "text-neutral-600 hover:bg-neutral-100/90 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/[0.04] dark:hover:text-white"
+                            ? "bg-[#007AFF]/10 text-[#007AFF]"
+                            : "text-neutral-600 hover:bg-black/[0.03] hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/[0.04] dark:hover:text-white"
                         )}
                       >
-                        {active ? (
-                          <span
-                            className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-[#007AFF]"
-                            aria-hidden
-                          />
-                        ) : null}
-                        <span
-                          className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                            active
-                              ? "bg-[#007AFF] text-white shadow-[0_4px_12px_-4px_rgba(0,122,255,0.65)]"
-                              : "bg-neutral-100 text-neutral-500 group-hover:bg-white group-hover:text-neutral-700 dark:bg-white/[0.06] dark:text-neutral-400"
-                          )}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span
-                            className={cn(
-                              "block text-[13px] font-medium tracking-[-0.01em]",
-                              active && "text-neutral-900 dark:text-white"
-                            )}
-                          >
-                            {item.label}
-                          </span>
-                          <span className="mt-0.5 block truncate text-[11px] text-neutral-400 dark:text-neutral-500">
-                            {item.description}
-                          </span>
+                        <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                        <span className="min-w-0 flex-1 truncate text-[12px] font-medium tracking-[-0.01em]">
+                          {item.label}
                         </span>
                       </button>
                     );

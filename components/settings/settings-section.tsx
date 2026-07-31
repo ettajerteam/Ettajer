@@ -20,22 +20,24 @@ export function SettingsSection({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-neutral-200/80 bg-neutral-50/40 p-4 sm:p-5 dark:border-white/10 dark:bg-white/[0.02]",
+        "rounded-[10px] border border-black/[0.06] bg-[#FAFAFA]/80 p-3.5 dark:border-white/10 dark:bg-white/[0.025]",
         className
       )}
     >
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-[13px] font-semibold tracking-[-0.01em] text-neutral-900 dark:text-white">
+          <h3 className="text-[12px] font-semibold tracking-[-0.01em] text-neutral-900 dark:text-white">
             {title}
           </h3>
           {description ? (
-            <p className="mt-1 text-[12px] leading-relaxed text-neutral-500">{description}</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-400">
+              {description}
+            </p>
           ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-3">{children}</div>
     </div>
   );
 }
@@ -56,15 +58,15 @@ export function SettingsField({
   className,
 }: SettingsFieldProps) {
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-1.5", className)}>
       <label
         htmlFor={htmlFor}
-        className="block text-[13px] font-medium text-neutral-800 dark:text-neutral-200"
+        className="block text-[11px] font-medium text-neutral-600 dark:text-neutral-400"
       >
         {label}
       </label>
       {children}
-      {hint ? <p className="text-[12px] text-neutral-500">{hint}</p> : null}
+      {hint ? <p className="text-[10px] text-neutral-400">{hint}</p> : null}
     </div>
   );
 }

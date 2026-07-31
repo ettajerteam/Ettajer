@@ -13,41 +13,106 @@ const DASHBOARD_HELP_ROUTES: Record<string, string> = {
   "/dashboard/themes": "use-the-visual-builder",
   "/dashboard/themes/editor": "add-and-arrange-sections",
   "/dashboard/pages": "add-and-arrange-sections",
+  "/dashboard/pages/new": "add-and-arrange-sections",
   "/dashboard/navigation": "add-and-arrange-sections",
   "/dashboard/blog": "add-and-arrange-sections",
-  "/dashboard/marketing": "connect-marketing-pixels",
-  "/dashboard/marketing/integrations": "connect-meta-pixel",
-  "/dashboard/marketing/campaigns": "create-discounts-and-campaigns",
+  "/dashboard/blog/new": "add-and-arrange-sections",
+  "/dashboard/marketing": "meta-ads-launch-checklist",
+  "/dashboard/marketing/integrations": "connect-marketing-pixels",
   "/dashboard/marketing/discounts": "create-discounts-and-campaigns",
-  "/dashboard/marketing/attribution": "understand-your-analytics-dashboard",
-  "/dashboard/analytics/live": "understand-your-analytics-dashboard",
-  "/dashboard/analytics/reports": "understand-your-analytics-dashboard",
+  "/dashboard/marketing/newsletter": "newsletter-subscribers",
+  "/dashboard/marketing/email": "newsletter-subscribers",
+  "/dashboard/marketing/email/campaigns": "email-campaigns-guide",
+  "/dashboard/marketing/email/templates": "email-campaigns-guide",
+  "/dashboard/marketing/email/automations": "email-automations-and-flows",
+  "/dashboard/marketing/email/journeys": "email-automations-and-flows",
+  "/dashboard/marketing/email/insights": "email-automations-and-flows",
+  "/dashboard/marketing/email/subscribers": "email-list-health",
+  "/dashboard/marketing/email/segments": "email-list-health",
+  "/dashboard/marketing/email/queue": "email-list-health",
+  "/dashboard/marketing/email/deliverability": "email-list-health",
+  "/dashboard/marketing/email/analytics": "newsletter-subscribers",
+  "/dashboard/settings/email": "email-list-health",
+  "/dashboard/analytics/live": "track-live-store-visitors",
+  "/dashboard/analytics/reports": "read-traffic-and-conversion-reports",
   "/dashboard/settings": "configure-checkout-settings",
   "/dashboard/domains": "connect-a-custom-domain",
-  "/dashboard/gift-cards": "create-discounts-and-campaigns",
+  "/dashboard/gift-cards": "gift-cards-for-customers",
 };
 
 /** Settings tab → help article (query `?tab=`). */
 const SETTINGS_TAB_HELP: Record<string, string> = {
-  general: "configure-checkout-settings",
+  general: "change-store-name-currency-language",
   website: "connect-a-custom-domain",
-  currency: "configure-checkout-settings",
+  currency: "change-store-name-currency-language",
+  email: "email-list-health",
   shipping: "cod-address-fields-morocco",
   payment: "how-cod-checkout-works",
   checkout: "configure-checkout-settings",
   seo: "built-in-seo",
-  contact: "configure-checkout-settings",
-  printers: "manage-orders-and-fulfillment",
+  contact: "customer-messages",
+  billing: "upgrade-or-change-your-plan",
 };
+
+const EMAIL_PATH_HELP: { prefix: string; slug: string }[] = [
+  {
+    prefix: "/dashboard/marketing/email/campaigns",
+    slug: "email-campaigns-guide",
+  },
+  {
+    prefix: "/dashboard/marketing/email/templates",
+    slug: "email-campaigns-guide",
+  },
+  {
+    prefix: "/dashboard/marketing/email/automations",
+    slug: "email-automations-and-flows",
+  },
+  {
+    prefix: "/dashboard/marketing/email/journeys",
+    slug: "email-automations-and-flows",
+  },
+  {
+    prefix: "/dashboard/marketing/email/insights",
+    slug: "email-automations-and-flows",
+  },
+  {
+    prefix: "/dashboard/marketing/email/subscribers",
+    slug: "email-list-health",
+  },
+  {
+    prefix: "/dashboard/marketing/email/segments",
+    slug: "email-list-health",
+  },
+  {
+    prefix: "/dashboard/marketing/email/queue",
+    slug: "email-list-health",
+  },
+  {
+    prefix: "/dashboard/marketing/email/deliverability",
+    slug: "email-list-health",
+  },
+  {
+    prefix: "/dashboard/marketing/email/analytics",
+    slug: "newsletter-subscribers",
+  },
+  { prefix: "/dashboard/marketing/email", slug: "newsletter-subscribers" },
+];
 
 export function getHelpArticleForPath(
   pathname: string,
   search = ""
 ): string | undefined {
-  if (pathname === "/dashboard/settings" || pathname.startsWith("/dashboard/settings?")) {
-    const tab = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get(
-      "tab"
-    );
+  if (pathname === "/dashboard/settings/email") {
+    return "email-list-health";
+  }
+
+  if (
+    pathname === "/dashboard/settings" ||
+    pathname.startsWith("/dashboard/settings?")
+  ) {
+    const tab = new URLSearchParams(
+      search.startsWith("?") ? search.slice(1) : search
+    ).get("tab");
     if (tab && SETTINGS_TAB_HELP[tab]) {
       return SETTINGS_TAB_HELP[tab];
     }
@@ -56,6 +121,15 @@ export function getHelpArticleForPath(
 
   if (DASHBOARD_HELP_ROUTES[pathname]) {
     return DASHBOARD_HELP_ROUTES[pathname];
+  }
+
+  for (const entry of EMAIL_PATH_HELP) {
+    if (
+      pathname === entry.prefix ||
+      pathname.startsWith(`${entry.prefix}/`)
+    ) {
+      return entry.slug;
+    }
   }
 
   if (pathname.startsWith("/dashboard/marketing/")) {
@@ -76,6 +150,13 @@ export function getHelpArticleForPath(
 
   if (pathname.startsWith("/dashboard/orders/")) {
     return "manage-orders-and-fulfillment";
+  }
+
+  if (
+    pathname.startsWith("/dashboard/pages/") ||
+    pathname.startsWith("/dashboard/blog/")
+  ) {
+    return "add-and-arrange-sections";
   }
 
   return undefined;

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { serializeStoreWithSettings } from "@/lib/store-settings";
 import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
+import { SettingsDashboardHeader } from "@/components/settings/settings-dashboard-header";
 import { SettingsPageClient } from "@/components/settings/settings-page-client";
 
 export const metadata = { title: "Settings" };
@@ -21,14 +22,15 @@ export default async function DashboardSettingsPage() {
 
   return (
     <DashboardLayout>
+      <SettingsDashboardHeader />
       <DashboardPageContent>
         <Suspense
           fallback={
-            <div className="space-y-4">
-              <div className="h-16 animate-pulse rounded-2xl bg-muted" />
-              <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-                <div className="hidden h-80 animate-pulse rounded-2xl bg-muted lg:block" />
-                <div className="h-96 animate-pulse rounded-2xl bg-muted" />
+            <div className="space-y-3">
+              <div className="h-10 animate-pulse rounded-[12px] bg-black/[0.04] dark:bg-white/[0.06]" />
+              <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
+                <div className="hidden h-64 animate-pulse rounded-[12px] bg-black/[0.04] lg:block dark:bg-white/[0.06]" />
+                <div className="h-80 animate-pulse rounded-[12px] bg-black/[0.04] dark:bg-white/[0.06]" />
               </div>
             </div>
           }

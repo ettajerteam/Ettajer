@@ -1,57 +1,61 @@
-/** Shared compact dashboard layout tokens */
+/** Shared compact dashboard layout tokens — Apple quiet */
 export const dashboardPageContent =
-  "mx-auto max-w-[1320px] space-y-4 px-5 py-4 sm:px-6 sm:py-5";
+  "mx-auto max-w-[1320px] space-y-3 px-4 py-4 sm:px-5 sm:py-5";
 
-export const dashboardStack = "space-y-4";
+export const dashboardStack = "space-y-3";
 
 export const dashboardCard =
-  "rounded-xl border border-neutral-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-12px_rgba(15,23,42,0.08)] ring-1 ring-neutral-200/50 transition-shadow duration-300 dark:border-white/10 dark:bg-[#161616] dark:ring-white/[0.06]";
+  "rounded-[12px] border border-black/[0.06] bg-white transition-colors duration-200 dark:border-white/10 dark:bg-[#1C1C1E]";
 
 export const dashboardCardInteractive =
-  "hover:shadow-[0_2px_6px_rgba(15,23,42,0.06),0_16px_32px_-16px_rgba(15,23,42,0.14)] hover:ring-neutral-300/60 dark:hover:ring-white/10";
+  "hover:bg-[#FAFAFA] dark:hover:bg-white/[0.03]";
 
-export const dashboardCardPad = "p-4 sm:p-5";
+export const dashboardCardPad = "p-4";
 
 export const dashboardKicker =
-  "text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400 dark:text-neutral-500";
+  "text-[10px] font-medium uppercase tracking-[0.06em] text-neutral-400 dark:text-neutral-500";
 
 export const dashboardTitle =
-  "text-base font-semibold tracking-[-0.02em] text-neutral-900 dark:text-white";
+  "text-[13px] font-semibold tracking-[-0.01em] text-neutral-900 dark:text-white";
 
-export const dashboardSubtitle = "text-xs text-neutral-500 dark:text-neutral-400";
+export const dashboardSubtitle = "text-[11px] text-neutral-400 dark:text-neutral-500";
 
 export const dashboardMetric =
-  "text-xl font-semibold tracking-[-0.03em] text-neutral-900 dark:text-white";
+  "text-[18px] font-semibold tracking-[-0.03em] text-neutral-900 dark:text-white";
 
 export const dashboardHeading =
-  "text-lg font-semibold tracking-[-0.02em] text-neutral-900 dark:text-white";
+  "text-[15px] font-semibold tracking-[-0.02em] text-neutral-900 dark:text-white";
 
-/** Segmented nav (tabs with counts) — matches DashboardSectionNav active state */
-export const dashboardSegmentNav = "premium-card flex flex-wrap gap-1 p-1";
+/** Segmented nav (tabs with counts) */
+export const dashboardSegmentNav =
+  "flex flex-wrap gap-0.5 rounded-[12px] border border-black/[0.06] bg-white p-1 dark:border-white/10 dark:bg-[#1C1C1E]";
 
 export const dashboardSegmentTab =
-  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200";
+  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-200";
 
-export const dashboardSegmentTabActive = "premium-nav-active text-foreground";
+export const dashboardSegmentTabActive =
+  "bg-[#F5F5F7] text-neutral-900 dark:bg-white/[0.08] dark:text-white";
 
 export const dashboardSegmentTabInactive =
-  "text-muted-foreground hover:bg-muted/60 hover:text-foreground";
+  "text-neutral-500 hover:bg-black/[0.03] hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/[0.04] dark:hover:text-neutral-200";
 
 /** Inline range / filter pill group */
-export const dashboardPillGroup = "premium-card inline-flex p-0.5";
+export const dashboardPillGroup =
+  "inline-flex rounded-[10px] border border-black/[0.06] bg-white p-0.5 dark:border-white/10 dark:bg-[#1C1C1E]";
 
 export const dashboardPill =
-  "rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200";
+  "rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors duration-200";
 
-export const dashboardPillActive = "premium-nav-active text-foreground";
+export const dashboardPillActive =
+  "bg-[#F5F5F7] text-neutral-900 dark:bg-white/[0.08] dark:text-white";
 
 export const dashboardPillInactive =
-  "text-muted-foreground hover:bg-muted/60 hover:text-foreground";
+  "text-neutral-500 hover:bg-black/[0.03] hover:text-neutral-800 dark:text-neutral-400";
 
-/** Primary CTA — Apple / Shopify blue */
+/** Primary CTA — solid #007AFF (overrides default btn-gradient) */
 export const dashboardPrimaryBtn =
-  "rounded-xl bg-[#007AFF] font-medium text-white shadow-[0_1px_2px_rgba(0,122,255,0.2),0_4px_12px_-2px_rgba(0,122,255,0.35)] hover:bg-[#0071EB] active:scale-[0.98] transition-all";
+  "rounded-md bg-[#007AFF] text-[12px] font-medium text-white shadow-none transition-colors duration-200 [background-image:none] hover:bg-[#0071EB] hover:scale-100 hover:shadow-none active:scale-[0.98]";
 
 /** Glass sticky bar for editors */
 export const dashboardGlassHeader =
-  "sticky top-0 z-40 border-b border-neutral-200/70 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70 dark:border-white/10 dark:bg-[#121212]/85";
+  "sticky top-0 z-40 border-b border-black/[0.06] bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-[#121212]/90";

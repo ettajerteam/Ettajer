@@ -123,7 +123,7 @@ export function SeoSettings({
       </SettingsSection>
 
       <div className="rounded-2xl border border-neutral-200/80 bg-white p-4 dark:border-white/10 dark:bg-white/[0.03]">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+        <p className="mb-3 text-[11px] font-medium text-neutral-400">
           Google preview
         </p>
         <div className="max-w-xl space-y-1">
