@@ -1,5 +1,9 @@
 import { Globe2 } from "lucide-react";
-import { dashboardCard, dashboardCardPad, dashboardSubtitle, dashboardTitle } from "@/lib/dashboard-ui";
+import {
+  dashboardCard,
+  dashboardSubtitle,
+  dashboardTitle,
+} from "@/lib/dashboard-ui";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { ReportsData } from "@/lib/reports";
 
@@ -12,50 +16,47 @@ export function ReportsTopRegions({ regions, currency }: ReportsTopRegionsProps)
   const maxRevenue = Math.max(...regions.map((region) => region.revenue), 1);
 
   return (
-    <section className={cn(dashboardCard, dashboardCardPad, "ring-1 ring-neutral-200/60 dark:ring-white/10")}>
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#007AFF]/10">
-          <Globe2 className="h-4 w-4 text-[#007AFF]" />
-        </div>
-        <div>
-          <h2 className={dashboardTitle}>Top regions</h2>
-          <p className={dashboardSubtitle}>Revenue by shipping country</p>
-        </div>
+    <section className={cn(dashboardCard, "overflow-hidden")}>
+      <div className="border-b border-black/[0.05] px-4 py-3 dark:border-white/10">
+        <h2 className={dashboardTitle}>Top regions</h2>
+        <p className={dashboardSubtitle}>Revenue by shipping country</p>
       </div>
 
       {regions.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">No regional data in this period</p>
+        <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
+          <Globe2 className="h-5 w-5 text-neutral-300" />
+          <p className="mt-2 text-[12px] text-neutral-400">
+            No regional data in this period
+          </p>
+        </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-black/[0.04] dark:divide-white/5">
           {regions.map((region, index) => {
             const width = `${(region.revenue / maxRevenue) * 100}%`;
 
             return (
-              <li
-                key={region.code}
-                className="rounded-xl border border-transparent bg-neutral-50/70 px-3 py-2.5 dark:bg-white/[0.02]"
-              >
+              <li key={region.code} className="px-4 py-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-bold text-neutral-500 shadow-sm dark:bg-white/10">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#F5F5F7] text-[10px] font-semibold text-neutral-500 dark:bg-white/[0.08] dark:text-neutral-300">
                       {index + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-neutral-900 dark:text-white">
+                      <p className="truncate text-[12px] font-medium text-neutral-900 dark:text-white">
                         {region.name}
                       </p>
-                      <p className="text-[11px] text-neutral-500">
+                      <p className={dashboardSubtitle}>
                         {region.orders} orders · {region.share.toFixed(1)}%
                       </p>
                     </div>
                   </div>
-                  <p className="shrink-0 text-sm font-semibold text-neutral-900 dark:text-white">
+                  <p className="shrink-0 text-[12px] font-semibold tabular-nums text-neutral-900 dark:text-white">
                     {formatCurrency(region.revenue, currency)}
                   </p>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-200/80 dark:bg-white/10">
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/[0.05] dark:bg-white/10">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#60A5FA] to-[#007AFF]"
+                    className="h-full rounded-full bg-[#007AFF]"
                     style={{ width }}
                   />
                 </div>

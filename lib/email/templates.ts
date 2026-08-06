@@ -516,6 +516,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   delivered: "#ecfdf5",
   returned: "#fff7ed",
   cancelled: "#fef2f2",
+  refunded: "#fdf2f8",
 };
 
 export function buildOrderStatusEmailHtml(
@@ -569,6 +570,8 @@ export function buildOrderConfirmationEmailHtml(
     currency: string;
     subtotal: number;
     shipping: number;
+    tax?: number;
+    taxLabel?: string;
     total: number;
     items: { title: string; quantity: number; price: number }[];
     shippingAddress: {
@@ -623,6 +626,14 @@ export function buildOrderConfirmationEmailHtml(
               ? t.shippingFree
               : formatEmailCurrency(params.shipping, params.currency),
         },
+        ...(params.tax && params.tax > 0
+          ? [
+              {
+                left: params.taxLabel?.trim() || t.tax,
+                right: formatEmailCurrency(params.tax, params.currency),
+              },
+            ]
+          : []),
         {
           left: t.total,
           right: formatEmailCurrency(params.total, params.currency),

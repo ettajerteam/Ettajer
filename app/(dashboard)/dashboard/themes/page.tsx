@@ -6,6 +6,10 @@ import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
 import { ThemesPageClient } from "@/components/themes/themes-page-client";
 import { isWebsiteTemplateId } from "@/lib/website-templates/registry";
+import {
+  THEMES_PAGE_TIPS,
+  ThemesTipsFooter,
+} from "@/components/shared/dashboard-tips-button";
 
 export const metadata = { title: "Themes" };
 
@@ -17,9 +21,20 @@ export default async function DashboardThemesPage() {
   if (!store) redirect("/onboarding");
 
   const [sampleProduct, sampleCategory, sampleCollection] = await Promise.all([
-    prisma.product.findFirst({ where: { storeId: store.id }, select: { slug: true }, orderBy: { createdAt: "desc" } }),
-    prisma.category.findFirst({ where: { storeId: store.id, status: "active" }, select: { slug: true } }),
-    prisma.collection.findFirst({ where: { storeId: store.id }, select: { slug: true }, orderBy: { featured: "desc" } }),
+    prisma.product.findFirst({
+      where: { storeId: store.id },
+      select: { slug: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.category.findFirst({
+      where: { storeId: store.id, status: "active" },
+      select: { slug: true },
+    }),
+    prisma.collection.findFirst({
+      where: { storeId: store.id },
+      select: { slug: true },
+      orderBy: { featured: "desc" },
+    }),
   ]);
 
   return (
@@ -27,11 +42,16 @@ export default async function DashboardThemesPage() {
       <DashboardHeader
         title="Themes"
         description="Storefront design, brand, and live preview"
+        tips={THEMES_PAGE_TIPS}
+        tipsTitle="Theme tips"
+        tipsDescription="Preview, customize, and publish with confidence."
+        tipsFooter={<ThemesTipsFooter />}
       />
       <DashboardPageContent>
         <ThemesPageClient
           store={{
             slug: store.slug,
+            name: store.name,
             logo: store.logo,
             theme: store.theme as "minimal" | "modern" | "bold",
             primaryColor: store.primaryColor,

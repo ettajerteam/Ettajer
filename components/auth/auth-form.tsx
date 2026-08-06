@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
@@ -64,11 +65,13 @@ function GoogleIcon() {
 
 const PENDING_WELCOME_KEY = "ettajer_pending_welcome";
 
+const REMEMBER_ME_KEY = "ettajer_remember_me";
+
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="text-[13px] font-medium tracking-[-0.01em] text-neutral-700"
+      className="text-[13px] font-semibold tracking-[-0.01em] text-neutral-800"
     >
       {children}
     </label>
@@ -80,21 +83,27 @@ function IconField({
   icon: Icon,
   rightSlot,
   className,
+  compact,
   ...props
 }: React.ComponentProps<typeof Input> & {
   icon: typeof Mail;
   rightSlot?: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
     <div className="group/field relative">
       <Icon
-        className="pointer-events-none absolute start-3.5 top-1/2 h-[17px] w-[17px] -translate-y-1/2 text-neutral-400 transition-colors duration-200 group-focus-within/field:text-blue-500"
+        className={cn(
+          "pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors duration-200 group-focus-within/field:text-[#007AFF]",
+          compact ? "h-3.5 w-3.5" : "h-[17px] w-[17px]",
+        )}
         strokeWidth={1.75}
       />
       <Input
         id={id}
         className={cn(
-          "h-11 rounded-xl border-neutral-200/80 bg-white/80 ps-10 pe-10 text-[15px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] transition-all duration-200 placeholder:text-neutral-400 hover:border-neutral-300 hover:bg-white focus-visible:border-blue-500/70 focus-visible:bg-white focus-visible:shadow-[0_0_0_3px_rgba(59,130,246,0.1)] focus-visible:ring-0",
+          "rounded-2xl border-neutral-200/90 bg-white ps-10 pe-10 shadow-[inset_0_1px_2px_rgba(15,23,42,0.03)] transition-all duration-200 placeholder:text-neutral-400 hover:border-neutral-300 focus-visible:border-[#007AFF]/70 focus-visible:bg-white focus-visible:shadow-[0_0_0_4px_rgba(0,122,255,0.12)] focus-visible:ring-0",
+          compact ? "h-11 text-[15px] rounded-xl sm:h-9 sm:text-[13.5px] sm:rounded-lg" : "h-12 text-[15px]",
           className,
         )}
         {...props}
@@ -107,7 +116,7 @@ function IconField({
 }
 
 const cardShell =
-  "relative overflow-hidden rounded-[1.25rem] border border-white/80 bg-white/75 shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_2px_4px_rgba(0,0,0,0.02),0_12px_40px_-8px_rgba(0,0,0,0.08)] backdrop-blur-xl backdrop-saturate-150";
+  "relative overflow-hidden rounded-2xl border border-white/90 bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04),0_8px_24px_-8px_rgba(15,23,42,0.12)] sm:rounded-xl sm:bg-white/90 sm:shadow-[0_0_0_1px_rgba(15,23,42,0.04),0_8px_16px_-4px_rgba(15,23,42,0.06),0_24px_48px_-12px_rgba(15,23,42,0.1)] sm:backdrop-blur-xl sm:backdrop-saturate-150";
 
 export function AuthForm({ mode, providers }: AuthFormProps) {
   const { copy: authCopy } = useAuthLocale();
@@ -157,6 +166,24 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
   const errorMessage = authError
     ? (authErrors[authError] ?? err.default)
     : null;
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(REMEMBER_ME_KEY);
+      if (stored === "false") setRememberMe(false);
+      if (stored === "true") setRememberMe(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(REMEMBER_ME_KEY, rememberMe ? "true" : "false");
+    } catch {
+      /* ignore */
+    }
+  }, [rememberMe]);
 
   useEffect(() => {
     if (passwordResetSuccess && queryEmail && mode === "login" && !email) {
@@ -228,6 +255,8 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
 
   const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Password managers need type=password at submit time to offer saving.
+    flushSync(() => setShowPassword(false));
     setLoginError(null);
     setNeedsActivation(false);
     if (!email.trim()) {
@@ -263,7 +292,7 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
 
       const result = await signIn("credentials", {
         redirect: false,
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
         remember: rememberMe ? "true" : "false",
         callbackUrl: postAuthUrl,
@@ -280,15 +309,16 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
           }
         }
       } else if (result?.ok) {
-        // Prefer post-auth routing (dashboard home when store exists).
+        // Full navigation helps Chrome/Google Password Manager detect a successful login.
         sessionStorage.removeItem(PENDING_WELCOME_KEY);
         try {
           const targetRes = await fetch("/api/auth/redirect-target");
           const targetData = (await targetRes.json()) as { redirect?: string };
-          window.location.replace(targetData.redirect ?? "/dashboard");
+          window.location.assign(targetData.redirect ?? "/dashboard");
         } catch {
-          window.location.replace("/dashboard");
+          window.location.assign("/dashboard");
         }
+        return;
       }
     } catch {
       toast.error(err.unableSignIn);
@@ -358,36 +388,27 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
     <div>
       <div className={cardShell}>
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/50 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#007AFF]/55 to-transparent"
           aria-hidden
         />
-        <div
-          className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-400/[0.06] blur-3xl"
-          aria-hidden
-        />
-
         {isLogin ? (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: EASE }}
-            className="relative flex flex-col items-center border-b border-neutral-100/80 px-7 pb-6 pt-8 text-center sm:px-9 sm:pt-9"
+            transition={{ duration: 0.4, ease: EASE }}
+            className="relative flex flex-col items-center px-4 pb-1 pt-5 text-center sm:pt-4"
           >
-            <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-[14px] bg-gradient-to-b from-neutral-50 to-white shadow-[0_1px_2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-neutral-200/70">
-              <Image
-                src={BRAND_ICON}
-                alt=""
-                width={30}
-                height={30}
-                className="h-[30px] w-[30px] object-contain"
-              />
-            </div>
-            <h1 className="text-[1.7rem] font-semibold leading-tight tracking-[-0.035em] text-neutral-900">
+            <Image
+              src={BRAND_ICON}
+              alt="Ettajer"
+              width={40}
+              height={40}
+              className="mb-2.5 h-11 w-11 object-contain sm:mb-2 sm:h-10 sm:w-10"
+              priority
+            />
+            <h1 className="text-[1.45rem] font-bold leading-none tracking-[-0.03em] text-neutral-950 sm:text-[1.35rem]">
               {c.title}
             </h1>
-            <p className="mt-2 max-w-[260px] text-[13px] leading-relaxed text-neutral-500">
-              {c.subtitle}
-            </p>
           </motion.div>
         ) : (
           <div className="relative border-b border-neutral-100/80 px-7 pb-6 pt-8 text-center sm:px-9 sm:pt-9">
@@ -400,7 +421,7 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
           </div>
         )}
 
-        <div className="relative px-7 py-7 sm:px-9 sm:py-8">
+        <div className={cn("relative", isLogin ? "px-4 pb-4 pt-3 sm:pb-3.5 sm:pt-2.5" : "px-7 py-7 sm:px-9 sm:py-8")}>
           <AnimatePresence>
             {activatedSuccess && isLogin ? (
               <motion.div
@@ -492,19 +513,28 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
           ) : null}
 
           <motion.form
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08, ease: EASE }}
+            transition={{ duration: 0.4, delay: 0.05, ease: EASE }}
+            method="post"
+            action="/login"
+            autoComplete="on"
             onSubmit={isLogin ? handlePasswordSignIn : handleEmailSignIn}
-            className="space-y-4"
+            className={cn(isLogin ? "space-y-2" : "space-y-4")}
           >
-            <div className="space-y-1.5">
-              <FieldLabel htmlFor="email">{isLogin && l ? l.email : authCopy.signup.email}</FieldLabel>
+            <div className={cn(!isLogin && "space-y-1.5")}>
+              {!isLogin ? (
+                <FieldLabel htmlFor="email">{authCopy.signup.email}</FieldLabel>
+              ) : null}
               <IconField
                 id="email"
+                name="email"
                 icon={Mail}
+                compact={isLogin}
                 type="email"
+                inputMode="email"
                 placeholder={isLogin && l ? l.emailPlaceholder : authCopy.signup.emailPlaceholder}
+                aria-label={isLogin && l ? l.email : authCopy.signup.email}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -514,52 +544,61 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
                   }
                 }}
                 required
-                autoComplete="email"
+                autoComplete={isLogin ? "username" : "email"}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
               />
             </div>
 
             {isLogin && l ? (
               <div className="space-y-1.5">
-                <FieldLabel htmlFor="password">{l.password}</FieldLabel>
                 <IconField
                   id="password"
+                  name="password"
                   icon={Lock}
+                  compact
                   type={showPassword ? "text" : "password"}
                   placeholder={l.passwordPlaceholder}
+                  aria-label={l.password}
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     setLoginError(null);
                   }}
+                  required
                   autoComplete="current-password"
                   rightSlot={
                     <button
                       type="button"
+                      tabIndex={-1}
                       onClick={() => setShowPassword((v) => !v)}
-                      className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/25"
+                      className="rounded-md p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/30"
                       aria-label={showPassword ? l.hidePassword : l.showPassword}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-3.5 w-3.5" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3.5 w-3.5" />
                       )}
                     </button>
                   }
                 />
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <label className="group inline-flex cursor-pointer items-center gap-2.5">
-                    <span className="relative flex h-[18px] w-[18px] items-center justify-center">
+                <div className="flex items-center justify-between gap-2 pt-0.5">
+                  <label className="group inline-flex cursor-pointer items-center gap-2">
+                    <span className="relative flex h-4 w-4 items-center justify-center">
                       <input
                         type="checkbox"
+                        name="remember"
+                        value="true"
                         checked={rememberMe}
                         onChange={(e) => setRememberMe(e.target.checked)}
                         className="peer sr-only"
                       />
-                      <span className="h-[18px] w-[18px] rounded-[5px] border border-neutral-300/90 bg-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-all duration-200 peer-checked:border-neutral-900 peer-checked:bg-neutral-900 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500/25" />
+                      <span className="h-4 w-4 rounded-[4px] border border-neutral-300/90 bg-white transition-all duration-200 peer-checked:border-[#007AFF] peer-checked:bg-[#007AFF] peer-focus-visible:ring-2 peer-focus-visible:ring-[#007AFF]/30" />
                       <svg
-                        className="pointer-events-none absolute h-3 w-3 text-white opacity-0 transition-opacity peer-checked:opacity-100"
+                        className="pointer-events-none absolute h-2.5 w-2.5 text-white opacity-0 transition-opacity peer-checked:opacity-100"
                         viewBox="0 0 12 12"
                         fill="none"
                         aria-hidden
@@ -573,13 +612,13 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
                         />
                       </svg>
                     </span>
-                    <span className="text-[12px] text-neutral-500 transition-colors group-hover:text-neutral-700">
+                    <span className="text-[12px] font-medium text-neutral-600">
                       {l.staySignedIn}
                     </span>
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-[12px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+                    className="text-[12px] font-medium text-[#007AFF] hover:underline"
                   >
                     {l.forgotPassword}
                   </Link>
@@ -594,12 +633,11 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
             <button
               type="submit"
               disabled={loading || (!isLogin && !showEmailLink)}
-              className="group relative mt-1 flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-neutral-900 text-sm font-medium text-white shadow-[0_1px_2px_rgba(0,0,0,0.1),0_4px_14px_rgba(0,0,0,0.08)] transition-all duration-200 hover:bg-neutral-800 hover:shadow-[0_2px_4px_rgba(0,0,0,0.1),0_8px_24px_rgba(0,0,0,0.1)] active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+              className={cn(
+                "group relative flex w-full items-center justify-center gap-2 overflow-hidden bg-[#007AFF] text-sm font-semibold text-white shadow-none transition-all duration-200 hover:bg-[#0066d6] active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60",
+                isLogin ? "mt-1.5 h-11 rounded-xl text-[15px] sm:mt-1 sm:h-9 sm:rounded-lg sm:text-sm" : "mt-2 h-12 rounded-2xl bg-neutral-950 hover:bg-neutral-800",
+              )}
             >
-              <span
-                className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.08] to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                aria-hidden
-              />
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -608,13 +646,45 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
               ) : (
                 <>
                   {isLogin && l ? l.signIn : c.emailCta}
-                  <AuthArrowForward className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
+                  {!isLogin ? (
+                    <AuthArrowForward className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
+                  ) : null}
                 </>
               )}
             </button>
           </motion.form>
 
-          {showGoogle ? (
+          {isLogin && showGoogle ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.08, ease: EASE }}
+              className="mt-3"
+            >
+              <div className="mb-2.5 flex items-center gap-2.5">
+                <div className="h-px flex-1 bg-neutral-200/90" />
+                <span className="text-[11px] font-medium text-neutral-400">
+                  {authCopy.login.or}
+                </span>
+                <div className="h-px flex-1 bg-neutral-200/90" />
+              </div>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading || loading}
+                className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white text-[14px] font-semibold text-neutral-800 transition-all hover:bg-neutral-50 active:scale-[0.985] disabled:opacity-60 sm:h-9 sm:rounded-lg sm:text-[13px]"
+              >
+                {googleLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-500" />
+                ) : (
+                  <GoogleIcon />
+                )}
+                {googleLoading ? authCopy.login.connectingGoogle : authCopy.login.continueGoogle}
+              </button>
+            </motion.div>
+          ) : null}
+
+          {!isLogin && showGoogle ? (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -632,7 +702,7 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={googleLoading}
-                className="group flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-neutral-200/80 bg-white/90 text-sm font-medium text-neutral-800 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-200 hover:border-neutral-300 hover:bg-white hover:shadow-[0_2px_8px_rgba(0,0,0,0.05)] active:scale-[0.985] disabled:opacity-60"
+                className="group flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl border border-neutral-200/90 bg-white text-sm font-medium text-neutral-800 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-200 hover:border-neutral-300 hover:bg-[#fafbfc] hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] active:scale-[0.985] disabled:opacity-60"
               >
                 {googleLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin text-neutral-500" />
@@ -646,33 +716,34 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
         </div>
       </div>
 
-      <motion.p
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.22 }}
-        className="mt-7 text-center text-[13px] text-neutral-500"
+        transition={{ duration: 0.35, delay: 0.15 }}
+        className={cn(
+          "text-center text-[12.5px] text-neutral-500",
+          isLogin ? "mt-3.5 sm:mt-3" : "mt-7 space-y-1.5 text-[13px]",
+        )}
       >
-        {c.switch.text}{" "}
-        <Link
-          href={c.switch.href}
-          className="font-semibold text-neutral-900 underline-offset-3 transition-colors hover:underline"
-        >
-          {c.switch.link}
-        </Link>
-      </motion.p>
-
-      {isLogin ? (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.28 }}
-          className="mt-3 text-center text-[11px] text-neutral-400"
-        >
-          <Link href="/help" className="transition-colors hover:text-neutral-600">
-            {authCopy.login.needHelp}
+        {isLogin ? (
+          <Link
+            href={c.switch.href}
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-neutral-200 bg-white text-[14px] font-semibold text-[#007AFF] transition-colors hover:bg-neutral-50 sm:h-9 sm:rounded-lg sm:text-[13px]"
+          >
+            {c.switch.link}
           </Link>
-        </motion.p>
-      ) : null}
+        ) : (
+          <p>
+            {c.switch.text}{" "}
+            <Link
+              href={c.switch.href}
+              className="font-semibold text-neutral-900 underline-offset-3 transition-colors hover:underline"
+            >
+              {c.switch.link}
+            </Link>
+          </p>
+        )}
+      </motion.div>
     </div>
   );
 }

@@ -44,6 +44,10 @@ const AURA_NEWSLETTER = {
   backgroundColor: AURA_INK,
   textColor: AURA_ON_DARK,
   padding: "5rem 2rem",
+  styles: {
+    desktop: { padding: "5rem 2rem" },
+    mobile: { padding: "3.5rem 1.25rem" },
+  },
 };
 
 /** Aura — premium cinematic editorial lifestyle storefront */
@@ -74,7 +78,7 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       layout: tplLayout(
         tplSection("aura-hero", "hero", {
           headline: "Winter lookbook",
-          subheadline: "Clean silhouettes and tactile materials for the season ahead.",
+          subheadline: "Clean silhouettes. Tactile materials. The season ahead.",
           ctaText: "Shop the collection",
           ctaLink: "/products",
           secondaryCtaText: "Lookbook",
@@ -91,16 +95,24 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           animation: "fade",
           overlay: true,
           eyebrow: "Winter / 26",
+          styles: {
+            desktop: { padding: "0", minHeight: "100svh" },
+            mobile: { padding: "0", minHeight: "100svh" },
+          },
         }),
         tplSection("aura-trust", "rich-text", {
           title: "",
           layout: "strip",
           content:
-            "<p><strong>Free shipping</strong> on qualifying orders · <strong>30-day</strong> returns · <strong>Secure COD</strong></p>",
+            "<p><strong>Free shipping</strong> · <strong>30-day returns</strong> · <strong>Secure COD</strong></p>",
           alignment: "center",
           backgroundColor: AURA_INK,
           textColor: AURA_MUTE,
           padding: "0",
+          styles: {
+            desktop: { padding: "0" },
+            mobile: { padding: "0" },
+          },
         }),
         tplSection("aura-intro", "rich-text", {
           title: "The edit",
@@ -110,6 +122,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "center",
           backgroundColor: AURA_WHITE,
           padding: "6rem 2rem 3rem",
+          styles: {
+            desktop: { padding: "6rem 2rem 3rem" },
+            mobile: { padding: "3.5rem 1.25rem 2rem" },
+          },
         }),
         tplSection("aura-collections", "featured-collections", {
           title: "Curated edits",
@@ -117,6 +133,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           limit: 4,
           backgroundColor: AURA_WHITE,
           padding: "1rem 2rem 0",
+          styles: {
+            desktop: { padding: "1rem 2rem 0" },
+            mobile: { padding: "0.5rem 1.25rem 0" },
+          },
         }),
         tplSection("aura-trending", "product-grid", {
           title: "Trending now",
@@ -128,6 +148,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           backgroundColor: AURA_WHITE,
           padding: "5rem 2rem 2rem",
           animation: "slide-up",
+          styles: {
+            desktop: { padding: "5rem 2rem 2rem" },
+            mobile: { padding: "3rem 1.25rem 1.5rem" },
+          },
         }),
         tplSection("aura-atelier", "hero", {
           headline: "The atelier standard",
@@ -143,6 +167,11 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           showStoreDescription: false,
           backgroundColor: AURA_PAPER,
           padding: "0",
+          eyebrow: "Craft",
+          styles: {
+            desktop: { padding: "0" },
+            mobile: { padding: "0" },
+          },
         }),
         tplSection("aura-editorial-image", "image", {
           imageUrl: AURA_EDITORIAL,
@@ -154,6 +183,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "center",
           backgroundColor: AURA_PAPER,
           padding: "2rem 0 0",
+          styles: {
+            desktop: { padding: "2rem 0 0" },
+            mobile: { padding: "1rem 0 0" },
+          },
         }),
         tplSection("aura-philosophy", "rich-text", {
           title: "Craft over trend",
@@ -164,6 +197,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           textColor: AURA_INK,
           padding: "4rem 2rem 5rem",
           animation: "fade",
+          styles: {
+            desktop: { padding: "4rem 2rem 5rem" },
+            mobile: { padding: "2.5rem 1.25rem 3.5rem" },
+          },
         }),
         tplSection("aura-promo", "hero", {
           headline: "Night & gold",
@@ -180,6 +217,11 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           padding: "0",
           minHeight: "78vh",
           overlay: true,
+          eyebrow: "Campaign",
+          styles: {
+            desktop: { padding: "0", minHeight: "78vh" },
+            mobile: { padding: "0", minHeight: "70svh" },
+          },
         }),
         tplSection("aura-new", "product-grid", {
           title: "New arrivals",
@@ -191,6 +233,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           backgroundColor: AURA_WHITE,
           padding: "5.5rem 2rem 2rem",
           animation: "slide-up",
+          styles: {
+            desktop: { padding: "5.5rem 2rem 2rem" },
+            mobile: { padding: "3.25rem 1.25rem 1.5rem" },
+          },
         }),
         tplSection("aura-reviews", "testimonials", {
           title: "From the community",
@@ -215,6 +261,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           backgroundColor: AURA_PAPER,
           textColor: AURA_INK,
           padding: "5.5rem 2rem",
+          styles: {
+            desktop: { padding: "5.5rem 2rem" },
+            mobile: { padding: "3.5rem 1.25rem" },
+          },
         }),
         tplSection("aura-faq", "faq", {
           title: "Client care",
@@ -237,6 +287,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           backgroundColor: AURA_WHITE,
           textColor: AURA_INK,
           padding: "5rem 2rem",
+          styles: {
+            desktop: { padding: "5rem 2rem" },
+            mobile: { padding: "3.25rem 1.25rem" },
+          },
         }),
         tplSection("aura-cta", "cta", {
           title: "Ready for the next archive?",
@@ -247,6 +301,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
           padding: "5rem 2rem",
+          styles: {
+            desktop: { padding: "5rem 2rem" },
+            mobile: { padding: "3.5rem 1.25rem" },
+          },
         }),
         tplFooter(
           "aura-footer",
@@ -261,22 +319,29 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       status: "published",
       layout: tplLayout(
         tplSection("aura-about-hero", "hero", {
-          headline: "Our\natelier",
+          headline: "Our atelier",
           accentHeadline: "Craft & conscience",
           subheadline:
-            "Fewer pieces, honest materials, lasting construction — made with partners across Europe and Morocco.",
+            "Fewer pieces. Honest materials. Partners across Europe and Morocco.",
           ctaText: "Shop the edit",
           ctaLink: "/products",
+          secondaryCtaText: "Lookbook",
+          secondaryCtaLink: "/lookbook",
           imageUrl: AURA_ABOUT,
+          imageAlt: "Aura atelier — craft and quiet luxury",
           alignment: "left",
           showStoreDescription: false,
           showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "82vh",
+          minHeight: "88vh",
           overlay: true,
           padding: "0",
           eyebrow: "About",
+          styles: {
+            desktop: { padding: "0", minHeight: "88vh" },
+            mobile: { padding: "0", minHeight: "78svh" },
+          },
         }),
         tplSection("aura-about-intro", "rich-text", {
           title: "The idea",
@@ -286,6 +351,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "center",
           backgroundColor: AURA_WHITE,
           padding: "5.5rem 2rem 2rem",
+          styles: {
+            desktop: { padding: "5.5rem 2rem 2rem" },
+            mobile: { padding: "3.25rem 1.25rem 1.5rem" },
+          },
         }),
         tplSection("aura-about-body", "rich-text", {
           title: "Built for longevity",
@@ -294,6 +363,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "left",
           padding: "2rem 2rem 5rem",
           backgroundColor: AURA_WHITE,
+          styles: {
+            desktop: { padding: "2rem 2rem 5rem" },
+            mobile: { padding: "1.25rem 1.25rem 3.25rem" },
+          },
         }),
         tplSection("aura-about-image", "image", {
           imageUrl: AURA_ATELIER,
@@ -302,6 +375,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           layout: "cinematic",
           backgroundColor: AURA_INK,
           padding: "0",
+          styles: {
+            desktop: { padding: "0" },
+            mobile: { padding: "0" },
+          },
         }),
         tplSection("aura-about-stats", "rich-text", {
           title: "Commitments",
@@ -311,6 +388,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "center",
           backgroundColor: AURA_PAPER,
           padding: "5rem 2rem",
+          styles: {
+            desktop: { padding: "5rem 2rem" },
+            mobile: { padding: "3.25rem 1.25rem" },
+          },
         }),
         tplSection("aura-about-cta", "cta", {
           title: "Browse the archive",
@@ -322,6 +403,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
           padding: "5rem 2rem",
+          styles: {
+            desktop: { padding: "5rem 2rem" },
+            mobile: { padding: "3.5rem 1.25rem" },
+          },
         }),
         tplFooter(
           "aura-about-footer",
@@ -339,19 +424,26 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           headline: "Lookbook",
           accentHeadline: "Season frames",
           subheadline:
-            "Editorial stills from the current edit — outfit stories, night energy, and quiet styling notes.",
+            "Editorial stills from the current edit — worn, not only watched.",
           imageUrl: AURA_LOOKBOOK,
+          imageAlt: "Aura lookbook — winter editorial frames",
           alignment: "left",
           showStoreDescription: false,
           showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "78vh",
+          minHeight: "82vh",
           overlay: true,
           padding: "0",
-          eyebrow: "Visual diary · Winter / 26",
+          eyebrow: "Winter / 26",
           ctaText: "Shop the edit",
           ctaLink: "/products",
+          secondaryCtaText: "Our story",
+          secondaryCtaLink: "/about",
+          styles: {
+            desktop: { padding: "0", minHeight: "82vh" },
+            mobile: { padding: "0", minHeight: "72svh" },
+          },
         }),
         tplSection("aura-lookbook-intro", "rich-text", {
           title: "",
@@ -361,6 +453,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "center",
           backgroundColor: AURA_PAPER,
           padding: "4.5rem 2rem 1rem",
+          styles: {
+            desktop: { padding: "4.5rem 2rem 1rem" },
+            mobile: { padding: "3rem 1.25rem 0.75rem" },
+          },
         }),
         tplSection("aura-lookbook-gallery", "gallery", {
           title: "Season frames",
@@ -378,6 +474,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           ],
           backgroundColor: AURA_PAPER,
           padding: "1rem 1rem 3rem",
+          styles: {
+            desktop: { padding: "1rem 1rem 3rem" },
+            mobile: { padding: "0.5rem 0.75rem 2rem" },
+          },
         }),
         tplSection("aura-lookbook-video", "video", {
           title: "Campaign reel",
@@ -387,6 +487,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
           padding: "4rem 2rem",
+          styles: {
+            desktop: { padding: "4rem 2rem" },
+            mobile: { padding: "2.75rem 1.25rem" },
+          },
         }),
         tplSection("aura-lookbook-editorial", "image", {
           imageUrl: AURA_HOME_HERO,
@@ -394,6 +498,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           layout: "editorial",
           backgroundColor: AURA_PAPER,
           padding: "1rem 0 2rem",
+          styles: {
+            desktop: { padding: "1rem 0 2rem" },
+            mobile: { padding: "0.75rem 0 1.25rem" },
+          },
         }),
         tplSection("aura-lookbook-campaign", "image", {
           imageUrl: AURA_SHOP_HERO_IMAGE,
@@ -401,6 +509,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           layout: "cinematic",
           backgroundColor: AURA_INK,
           padding: "0",
+          styles: {
+            desktop: { padding: "0" },
+            mobile: { padding: "0" },
+          },
         }),
         tplSection("aura-lookbook-frame-2", "image", {
           imageUrl: AURA_LOOKBOOK_2,
@@ -408,6 +520,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           layout: "cinematic",
           backgroundColor: AURA_INK,
           padding: "0",
+          styles: {
+            desktop: { padding: "0" },
+            mobile: { padding: "0" },
+          },
         }),
         tplSection("aura-lookbook-grid", "product-grid", {
           title: "Shop the frames",
@@ -417,8 +533,18 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           showViewAll: true,
           padding: "4rem 2rem 1rem",
           backgroundColor: AURA_PAPER,
+          styles: {
+            desktop: { padding: "4rem 2rem 1rem" },
+            mobile: { padding: "2.75rem 1.25rem 0.75rem" },
+          },
         }),
-        tplSection("aura-lookbook-newsletter", "rich-text", AURA_NEWSLETTER),
+        tplSection("aura-lookbook-newsletter", "rich-text", {
+          ...AURA_NEWSLETTER,
+          styles: {
+            desktop: { padding: "5rem 2rem" },
+            mobile: { padding: "3.25rem 1.25rem" },
+          },
+        }),
         tplFooter(
           "aura-lookbook-footer",
           FOOTER,
@@ -432,17 +558,21 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       status: "published",
       layout: tplLayout(
         tplSection("aura-contact-hero", "hero", {
-          headline: "Visit &\nenquire",
-          subheadline: "Styling appointments, order support, and personal shopping by request.",
+          headline: "Visit & enquire",
+          subheadline: "Styling, orders, and personal shopping — by request.",
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "42vh",
+          minHeight: "48vh",
           overlay: true,
           eyebrow: "Client care",
           padding: "0",
+          styles: {
+            desktop: { padding: "0", minHeight: "48vh" },
+            mobile: { padding: "0", minHeight: "42svh" },
+          },
         }),
         tplSection("aura-contact-form", "contact-form", {
           title: "Send a message",
@@ -456,6 +586,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           detailAddress: "Atelier visits by appointment",
           backgroundColor: AURA_WHITE,
           padding: "4.5rem 2rem 5rem",
+          styles: {
+            desktop: { padding: "4.5rem 2rem 5rem" },
+            mobile: { padding: "2.75rem 1.25rem 3.5rem" },
+          },
         }),
         tplFooter(
           "aura-contact-footer",
@@ -470,17 +604,21 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       status: "published",
       layout: tplLayout(
         tplSection("aura-ship-hero", "hero", {
-          headline: "Shipping &\nreturns",
-          subheadline: "Transparent delivery timelines, easy returns, and repair-first service.",
+          headline: "Shipping & returns",
+          subheadline: "Clear timelines, easy returns, repair-first service.",
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "36vh",
+          minHeight: "42vh",
           overlay: true,
           padding: "0",
           eyebrow: "Client care",
+          styles: {
+            desktop: { padding: "0", minHeight: "42vh" },
+            mobile: { padding: "0", minHeight: "36svh" },
+          },
         }),
         tplSection("aura-ship-body", "rich-text", {
           title: "Delivery & returns",
@@ -489,6 +627,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "left",
           padding: "4.5rem 2rem 2rem",
           backgroundColor: AURA_PAPER,
+          styles: {
+            desktop: { padding: "4.5rem 2rem 2rem" },
+            mobile: { padding: "2.75rem 1.25rem 1.5rem" },
+          },
         }),
         tplSection("aura-ship-faq", "faq", {
           title: "Shipping questions",
@@ -511,6 +653,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           ],
           backgroundColor: AURA_PAPER,
           padding: "2rem 2rem 4rem",
+          styles: {
+            desktop: { padding: "2rem 2rem 4rem" },
+            mobile: { padding: "1.25rem 1.25rem 3rem" },
+          },
         }),
         tplFooter(
           "aura-ship-footer",
@@ -525,17 +671,21 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       status: "published",
       layout: tplLayout(
         tplSection("aura-privacy-hero", "hero", {
-          headline: "Privacy\npolicy",
+          headline: "Privacy policy",
           subheadline: "How we collect, use, and protect your information.",
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "36vh",
+          minHeight: "42vh",
           overlay: true,
           padding: "0",
           eyebrow: "Legal",
+          styles: {
+            desktop: { padding: "0", minHeight: "42vh" },
+            mobile: { padding: "0", minHeight: "36svh" },
+          },
         }),
         tplSection("aura-privacy-body", "rich-text", {
           title: "",
@@ -544,6 +694,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "left",
           padding: "4.5rem 2rem 5rem",
           backgroundColor: AURA_PAPER,
+          styles: {
+            desktop: { padding: "4.5rem 2rem 5rem" },
+            mobile: { padding: "2.75rem 1.25rem 3.5rem" },
+          },
         }),
         tplFooter(
           "aura-privacy-footer",
@@ -558,17 +712,21 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       status: "published",
       layout: tplLayout(
         tplSection("aura-terms-hero", "hero", {
-          headline: "Terms of\nservice",
+          headline: "Terms of service",
           subheadline: "The terms that govern purchases from our store.",
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "36vh",
+          minHeight: "42vh",
           overlay: true,
           padding: "0",
           eyebrow: "Legal",
+          styles: {
+            desktop: { padding: "0", minHeight: "42vh" },
+            mobile: { padding: "0", minHeight: "36svh" },
+          },
         }),
         tplSection("aura-terms-body", "rich-text", {
           title: "",
@@ -577,6 +735,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "left",
           padding: "4.5rem 2rem 5rem",
           backgroundColor: AURA_PAPER,
+          styles: {
+            desktop: { padding: "4.5rem 2rem 5rem" },
+            mobile: { padding: "2.75rem 1.25rem 3.5rem" },
+          },
         }),
         tplFooter(
           "aura-terms-footer",
@@ -594,7 +756,7 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           headline: "Collections",
           accentHeadline: "Curated edits",
           subheadline:
-            "Numbered archives, seasonal capsules, and everyday essentials — grouped for how you dress.",
+            "Archives, capsules, and essentials — grouped for how you dress.",
           ctaText: "Shop all products",
           ctaLink: "/products",
           secondaryCtaText: "View lookbook",
@@ -602,20 +764,28 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           imageUrl: AURA_LOOKBOOK,
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "52vh",
+          minHeight: "58vh",
           overlay: true,
           padding: "0",
           eyebrow: "Shop by edit",
+          styles: {
+            desktop: { padding: "0", minHeight: "58vh" },
+            mobile: { padding: "0", minHeight: "48svh" },
+          },
         }),
         tplSection("aura-collections-grid", "featured-collections", {
           title: "All collections",
           collectionSource: "all",
           limit: 12,
           backgroundColor: AURA_WHITE,
-          padding: "3rem 2rem 1rem",
+          padding: "3.5rem 2rem 1rem",
+          styles: {
+            desktop: { padding: "3.5rem 2rem 1rem" },
+            mobile: { padding: "2.5rem 1.25rem 0.75rem" },
+          },
         }),
         tplSection("aura-collections-newsletter", "rich-text", AURA_NEWSLETTER),
         tplFooter(
@@ -633,16 +803,20 @@ export const auraTemplate: WebsiteTemplateDefinition = {
         tplSection("aura-search-hero", "hero", {
           headline: "Search",
           accentHeadline: "Find a piece",
-          subheadline: "Search the full catalog by name, description, or tags.",
+          subheadline: "Search by name, material, or tag.",
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
           minHeight: "42vh",
           overlay: true,
           padding: "0",
           eyebrow: "Catalog",
+          styles: {
+            desktop: { padding: "0", minHeight: "42vh" },
+            mobile: { padding: "0", minHeight: "36svh" },
+          },
         }),
         tplSection("aura-search-bar", "search", {
           title: "Search the archive",
@@ -650,6 +824,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           buttonText: "Search",
           backgroundColor: AURA_PAPER,
           padding: "3rem 2rem 1rem",
+          styles: {
+            desktop: { padding: "3rem 2rem 1rem" },
+            mobile: { padding: "2.25rem 1.25rem 0.75rem" },
+          },
         }),
         tplSection("aura-search-intro", "rich-text", {
           title: "",
@@ -658,6 +836,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "center",
           backgroundColor: AURA_PAPER,
           padding: "1rem 2rem 0",
+          styles: {
+            desktop: { padding: "1rem 2rem 0" },
+            mobile: { padding: "0.75rem 1.25rem 0" },
+          },
         }),
         tplSection("aura-search-browse", "product-grid", {
           title: "Browse instead",
@@ -667,6 +849,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           showViewAll: true,
           backgroundColor: AURA_PAPER,
           padding: "2rem 2rem 1rem",
+          styles: {
+            desktop: { padding: "2rem 2rem 1rem" },
+            mobile: { padding: "1.5rem 1.25rem 0.75rem" },
+          },
         }),
         tplSection("aura-search-newsletter", "rich-text", AURA_NEWSLETTER),
         tplFooter(
@@ -684,16 +870,20 @@ export const auraTemplate: WebsiteTemplateDefinition = {
         tplSection("aura-blog-hero", "hero", {
           headline: "Journal",
           accentHeadline: "Stories & notes",
-          subheadline: "Atelier notes, lookbook frames, and quiet dispatches from the archive.",
+          subheadline: "Atelier notes and quiet dispatches from the archive.",
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
-          minHeight: "48vh",
+          minHeight: "52vh",
           overlay: true,
           padding: "0",
           eyebrow: "Editorial",
+          styles: {
+            desktop: { padding: "0", minHeight: "52vh" },
+            mobile: { padding: "0", minHeight: "44svh" },
+          },
         }),
         tplSection("aura-blog-intro", "rich-text", {
           title: "",
@@ -703,6 +893,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           alignment: "center",
           backgroundColor: AURA_WHITE,
           padding: "3.5rem 2rem 0.5rem",
+          styles: {
+            desktop: { padding: "3.5rem 2rem 0.5rem" },
+            mobile: { padding: "2.5rem 1.25rem 0.25rem" },
+          },
         }),
         tplSection("aura-blog-newsletter", "rich-text", {
           ...AURA_NEWSLETTER,
@@ -724,21 +918,28 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       layout: tplLayout(
         tplSection("aura-products-hero", "hero", {
           headline: "All pieces",
+          accentHeadline: "The full edit",
           subheadline:
-            "The full catalog — atelier essentials, numbered archive drops, and campaign pieces.",
+            "Atelier essentials, numbered archives, and campaign pieces.",
           ctaText: "Browse collections",
           ctaLink: "/collections",
+          secondaryCtaText: "Lookbook",
+          secondaryCtaLink: "/lookbook",
           imageUrl: AURA_SHOP_HERO_IMAGE,
           imageAlt: "Moroccan woman dancing under disco ball — gold and orange nightlife editorial",
           alignment: "left",
           showStoreDescription: false,
-          showBrand: false,
+          showBrand: true,
           backgroundColor: AURA_INK,
           textColor: AURA_WHITE,
           padding: "0",
-          minHeight: "48vh",
+          minHeight: "58vh",
           overlay: true,
           eyebrow: "Full catalog",
+          styles: {
+            desktop: { padding: "0", minHeight: "58vh" },
+            mobile: { padding: "0", minHeight: "48svh" },
+          },
         }),
         tplSection("aura-products-grid", "product-grid", {
           title: "",
@@ -748,15 +949,23 @@ export const auraTemplate: WebsiteTemplateDefinition = {
           showViewAll: false,
           layout: "grid",
           backgroundColor: AURA_WHITE,
-          padding: "1rem 2rem 3rem",
+          padding: "1.5rem 2rem 3.5rem",
           animation: "slide-up",
+          styles: {
+            desktop: { padding: "1.5rem 2rem 3.5rem" },
+            mobile: { padding: "1rem 1.25rem 2.5rem" },
+          },
         }),
         tplSection("aura-products-collections", "featured-collections", {
           title: "Shop by edit",
           collectionSource: "featured",
           limit: 6,
           backgroundColor: AURA_PAPER,
-          padding: "3rem 2rem 1rem",
+          padding: "3.5rem 2rem 1rem",
+          styles: {
+            desktop: { padding: "3.5rem 2rem 1rem" },
+            mobile: { padding: "2.5rem 1.25rem 0.75rem" },
+          },
         }),
         tplSection("aura-products-newsletter", "rich-text", AURA_NEWSLETTER),
         tplFooter(
@@ -780,29 +989,65 @@ export const auraTemplate: WebsiteTemplateDefinition = {
   ],
   productLayout: tplLayout(
     tplSection("aura-pdp-gallery", "product-gallery", {
+      layout: "side",
       showThumbnails: true,
+      thumbPosition: "left",
       backgroundColor: AURA_PAPER,
       padding: "0",
+      styles: {
+        desktop: { padding: "0" },
+        mobile: { padding: "0" },
+      },
     }),
     tplSection("aura-pdp-info", "product-info", {
+      layout: "editorial",
       showDescription: true,
+      showBrand: true,
       padding: "0",
+      styles: {
+        desktop: { padding: "0" },
+        mobile: { padding: "0" },
+      },
     }),
-    tplSection("aura-pdp-price", "product-price", { padding: "0" }),
-    tplSection("aura-pdp-variants", "product-variants", { padding: "0" }),
+    tplSection("aura-pdp-price", "product-price", {
+      layout: "stacked",
+      padding: "0.25rem 0 0",
+      styles: {
+        desktop: { padding: "0.25rem 0 0" },
+        mobile: { padding: "0.2rem 0 0" },
+      },
+    }),
+    tplSection("aura-pdp-variants", "product-variants", {
+      layout: "underline",
+      label: "Select",
+      padding: "0.5rem 0 0",
+      styles: {
+        desktop: { padding: "0.5rem 0 0" },
+        mobile: { padding: "0.4rem 0 0" },
+      },
+    }),
     tplSection("aura-pdp-buy", "product-buy-button", {
-      buttonText: "Add to bag",
-      padding: "0",
+      buttonText: "Buy now",
+      layout: "solid",
+      padding: "0.75rem 0 0",
+      styles: {
+        desktop: { padding: "0.75rem 0 0" },
+        mobile: { padding: "0.65rem 0 0" },
+      },
     }),
     tplSection("aura-pdp-trust", "rich-text", {
       title: "",
       layout: "strip",
       content:
-        "<p><strong>Free shipping</strong> on qualifying orders · <strong>30-day</strong> returns · <strong>2-day</strong> dispatch · <strong>5-year</strong> craftsmanship pledge</p>",
-      alignment: "center",
-      backgroundColor: AURA_PAPER,
+        "<p><strong>Complimentary shipping</strong> on qualifying orders · <strong>30-day</strong> returns · <strong>2-day</strong> atelier dispatch · <strong>5-year</strong> craftsmanship pledge</p>",
+      alignment: "left",
+      backgroundColor: "transparent",
       textColor: AURA_MUTE,
-      padding: "1.5rem 2rem",
+      padding: "1.25rem 0 0",
+      styles: {
+        desktop: { padding: "1.25rem 0 0" },
+        mobile: { padding: "1rem 0 0" },
+      },
     }),
     tplSection("aura-pdp-materials", "rich-text", {
       title: "Material notes",
@@ -811,31 +1056,58 @@ export const auraTemplate: WebsiteTemplateDefinition = {
         "<p><em>Fibre origins, finish, and fit notes live with every piece — ask client care for the full composition sheet.</em></p>",
       alignment: "center",
       backgroundColor: AURA_WHITE,
-      padding: "3rem 2rem 1rem",
+      textColor: AURA_INK,
+      padding: "4.5rem 2rem 2rem",
+      styles: {
+        desktop: { padding: "4.5rem 2rem 2rem" },
+        mobile: { padding: "3rem 1.25rem 1.5rem" },
+      },
     }),
     tplSection("aura-pdp-reviews", "product-reviews", {
       title: "From the community",
-      padding: "2rem 2rem 2rem",
+      layout: "cards",
+      showSummary: true,
+      padding: "2.5rem 2rem 2rem",
       backgroundColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "2.5rem 2rem 2rem" },
+        mobile: { padding: "2rem 1.25rem 1.5rem" },
+      },
     }),
     tplSection("aura-pdp-faq", "product-faq", {
       title: "Details & care",
+      layout: "accordion",
       content:
         "<p><strong>Materials</strong> — full composition on the garment label; fibre origins available on request.</p><p><strong>Care</strong> — cold wash, line dry, low iron. Dry clean recommended for wool archive pieces.</p><p><strong>Fit</strong> — true to size unless noted. Model is 178cm wearing size M.</p><p><strong>Shipping</strong> — dispatched within 2 business days; tracking sent by email.</p>",
-      padding: "2rem 2rem 3rem",
+      padding: "2rem 2rem 3.5rem",
       backgroundColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "2rem 2rem 3.5rem" },
+        mobile: { padding: "1.5rem 1.25rem 2.75rem" },
+      },
     }),
     tplSection("aura-pdp-related", "product-related", {
       title: "Shop the frame",
+      layout: "grid",
       limit: 4,
-      padding: "2rem 2rem 3rem",
+      columns: 4,
+      padding: "3.5rem 2rem 3rem",
       backgroundColor: AURA_PAPER,
+      styles: {
+        desktop: { padding: "3.5rem 2rem 3rem" },
+        mobile: { padding: "2.5rem 1.25rem 2rem" },
+      },
     }),
     tplSection("aura-pdp-recent", "product-recently-viewed", {
       title: "Recently viewed",
+      layout: "rail",
       limit: 4,
-      padding: "0 2rem 4rem",
+      padding: "0 2rem 5rem",
       backgroundColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "0 2rem 5rem" },
+        mobile: { padding: "0 1.25rem 3.5rem" },
+      },
     }),
     tplFooter(
       "aura-pdp-footer",
@@ -847,46 +1119,70 @@ export const auraTemplate: WebsiteTemplateDefinition = {
     tplSection("aura-col-banner", "collection-page-banner", {
       padding: "0",
       layout: "hero",
-      minHeight: "48vh",
+      minHeight: "52vh",
       showBreadcrumb: true,
       showTitle: true,
       backgroundColor: AURA_INK,
       textColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "0", minHeight: "52vh" },
+        mobile: { padding: "0", minHeight: "42svh" },
+      },
     }),
     tplSection("aura-col-desc", "collection-description", {
-      padding: "0",
+      padding: "2.5rem 2rem 1rem",
       layout: "centered",
       showTitle: false,
       showDescription: true,
       backgroundColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "2.5rem 2rem 1rem" },
+        mobile: { padding: "1.75rem 1.25rem 0.75rem" },
+      },
     }),
     tplSection("aura-col-filters", "collection-filters", {
       title: "Browse",
       layout: "minimal",
-      padding: "0",
+      padding: "0 2rem",
       backgroundColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "0 2rem" },
+        mobile: { padding: "0 1.25rem" },
+      },
     }),
     tplSection("aura-col-grid", "collection-product-grid", {
       columns: 3,
       density: "comfortable",
       layout: "grid",
-      padding: "0",
+      padding: "1rem 2rem 2rem",
       backgroundColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "1rem 2rem 2rem" },
+        mobile: { padding: "0.75rem 1.25rem 1.5rem" },
+      },
     }),
     tplSection("aura-col-pages", "collection-pagination", {
       pageSize: 12,
       layout: "simple",
-      padding: "0",
+      padding: "0 2rem 3.5rem",
       backgroundColor: AURA_WHITE,
+      styles: {
+        desktop: { padding: "0 2rem 3.5rem" },
+        mobile: { padding: "0 1.25rem 2.5rem" },
+      },
     }),
     tplSection("aura-col-newsletter", "collection-newsletter", {
       title: "Stay in the edit",
       description: "Archive drops, restocks, and editorial notes — no noise.",
       buttonText: "Join",
       layout: "strip",
-      padding: "0",
+      padding: "4rem 2rem",
       backgroundColor: AURA_INK,
       textColor: AURA_ON_DARK,
+      styles: {
+        desktop: { padding: "4rem 2rem" },
+        mobile: { padding: "3rem 1.25rem" },
+      },
     }),
     tplFooter(
       "aura-col-footer",
@@ -897,10 +1193,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
   blogPostLayout: tplLayout(
     tplSection("aura-post-hero", "hero", {
       headline: "Journal note",
-      subheadline: "Atelier notes, lookbook frames, and quiet dispatches from the archive.",
+      subheadline: "Atelier notes and quiet dispatches from the archive.",
       alignment: "left",
       showStoreDescription: false,
-      showBrand: false,
+      showBrand: true,
       backgroundColor: AURA_INK,
       textColor: AURA_WHITE,
       minHeight: "52vh",
@@ -908,6 +1204,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       padding: "0",
       eyebrow: "Journal",
       imageUrl: AURA_LOOKBOOK,
+      styles: {
+        desktop: { padding: "0", minHeight: "52vh" },
+        mobile: { padding: "0", minHeight: "44svh" },
+      },
     }),
     tplSection("aura-post-body", "rich-text", {
       title: "",
@@ -916,6 +1216,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       alignment: "left",
       backgroundColor: AURA_WHITE,
       padding: "3.5rem 2rem 2rem",
+      styles: {
+        desktop: { padding: "3.5rem 2rem 2rem" },
+        mobile: { padding: "2.5rem 1.25rem 1.5rem" },
+      },
     }),
     tplSection("aura-post-cta", "cta", {
       title: "Shop the frames from this note",
@@ -927,6 +1231,10 @@ export const auraTemplate: WebsiteTemplateDefinition = {
       backgroundColor: AURA_PAPER,
       textColor: AURA_INK,
       padding: "3.5rem 2rem",
+      styles: {
+        desktop: { padding: "3.5rem 2rem" },
+        mobile: { padding: "2.5rem 1.25rem" },
+      },
     }),
     tplSection("aura-post-newsletter", "rich-text", {
       ...AURA_NEWSLETTER,

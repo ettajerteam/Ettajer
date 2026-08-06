@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedStore } from "@/lib/products";
 import { getInventorySummary, listInventory, updateInventory, type StockFilter } from "@/lib/inventory";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const FILTERS: StockFilter[] = ["all", "in_stock", "low_stock", "out_of_stock"];
 
 export async function GET(request: Request) {

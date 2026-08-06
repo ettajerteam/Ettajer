@@ -2,11 +2,16 @@ import { Inter, Outfit, Space_Grotesk, Playfair_Display, Poppins } from "next/fo
 import type { Metadata } from "next";
 import { getStoreBySlug } from "@/lib/storefront";
 import { parseStoreSeo } from "@/lib/seo/storefront-metadata";
+import { parseMarketingIntegrations } from "@/lib/marketing-integrations";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-inter",
+});
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-poppins",
 });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -29,6 +34,11 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     (store.settings as { seo?: unknown } | null | undefined)?.seo
   );
 
+  const domainCode = parseMarketingIntegrations(
+    (store.settings as { marketingIntegrations?: unknown } | null | undefined)
+      ?.marketingIntegrations
+  ).meta.domainVerificationCode;
+
   return {
     title: {
       default: seo.title || store.name,
@@ -36,6 +46,13 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     },
     description: seo.description || store.description || `Shop at ${store.name}`,
     robots: seo.noIndex ? { index: false, follow: false } : undefined,
+    ...(domainCode
+      ? {
+          other: {
+            "facebook-domain-verification": domainCode,
+          },
+        }
+      : {}),
   };
 }
 

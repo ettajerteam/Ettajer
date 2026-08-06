@@ -528,7 +528,7 @@ export const paperTemplate: WebsiteTemplateDefinition = {
     tplSection("paper-pdp-price", "product-price", { padding: "0.5rem 2rem" }),
     tplSection("paper-pdp-variants", "product-variants", { padding: "0.5rem 2rem" }),
     tplSection("paper-pdp-buy", "product-buy-button", {
-      buttonText: "Add to cart",
+      buttonText: "Buy now",
       padding: "1rem 2rem 1rem",
     }),
     tplSection("paper-pdp-trust", "rich-text", {

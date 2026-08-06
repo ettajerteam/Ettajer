@@ -6,13 +6,62 @@ import type { NavItem } from "@/lib/navigation";
 
 export type { PublicCategory, PublicCollection };
 
+export interface PublicShippingZone {
+  id: string;
+  name: string;
+  countries: string[];
+  cities: string[];
+  rate: number;
+  freeShippingThreshold: number;
+}
+
+export interface PublicShippableCountry {
+  code: string;
+  name: string;
+}
+
 export interface PublicCheckoutSettings {
   cashOnDelivery: boolean;
   stripe: boolean;
+  paypal: boolean;
+  /** Present when merchant connected PayPal (Client ID only — never secret). */
+  paypalClientId: string | null;
+  paypalMode: "sandbox" | "live";
   freeShippingThreshold: number;
   minOrderAmount: number;
   checkoutNote: string;
   codMessage: string;
+  paypalMessage: string;
+  codTitle: string;
+  paypalTitle: string;
+  codFee: number;
+  taxEnabled: boolean;
+  taxRatePercent: number;
+  taxPricesIncludeTax: boolean;
+  taxLabel: string;
+  taxShowOnCheckout: boolean;
+  checkoutTheme: "classic" | "soft" | "compact";
+  checkoutLayout: "steps" | "single";
+  showProgress: boolean;
+  showCoupon: boolean;
+  summaryOpenByDefault: boolean;
+  continueLabel: string;
+  placeOrderLabel: string;
+  successMessage: string;
+  requireTerms: boolean;
+  phonePlaceholder: string;
+  phoneHint: string;
+  fields: {
+    email: "required" | "optional" | "hidden";
+    phone: "required" | "optional" | "hidden";
+    street: "required" | "optional" | "hidden";
+    city: "required" | "optional" | "hidden";
+    postalCode: "required" | "optional" | "hidden";
+    country: "required" | "optional" | "hidden";
+    orderNote: "required" | "optional" | "hidden";
+  };
+  shippingZones: PublicShippingZone[];
+  shippableCountries: PublicShippableCountry[];
 }
 
 export interface PublicStoreContact {
@@ -67,6 +116,8 @@ export interface PublicProduct {
   tags: string[];
   /** Spec rows (brand, material, weight, etc.) shown on the product page. */
   details?: PublicProductDetail[];
+  /** Bullet highlights under the title. */
+  highlights?: string[];
   /** Merchant-managed customer reviews for this product. */
   reviews?: PublicProductReview[];
   productType?: string;

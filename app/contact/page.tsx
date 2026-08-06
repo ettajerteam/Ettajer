@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function ContactPage({
   searchParams,
 }: {
-  searchParams?: { topic?: string; ref?: string };
+  searchParams?: { topic?: string; ref?: string; plan?: string; period?: string };
 }) {
   const topicParam = searchParams?.topic;
   const initialTopic =
@@ -32,10 +32,18 @@ export default function ContactPage({
       ? (topicParam as ContactSupportInput["topic"])
       : undefined;
 
+  const plan = searchParams?.plan?.trim();
+  const period = searchParams?.period?.trim();
+  const initialMessage =
+    plan && ["starter", "growth", "business"].includes(plan.toLowerCase())
+      ? `I would like to upgrade to the ${plan.charAt(0).toUpperCase()}${plan.slice(1)} plan${period === "annually" || period === "monthly" ? ` (${period})` : ""}.`
+      : undefined;
+
   return (
     <ContactSupportPage
       initialTopic={initialTopic}
       articleRef={searchParams?.ref}
+      initialMessage={initialMessage}
     />
   );
 }

@@ -16,14 +16,18 @@ export function getSettingsHealth(store: StoreWithSettings): SettingsHealthItem[
 
   return [
     {
-      id: "profile",
-      label: "Profile",
+      id: "general",
+      label: "General",
       tab: "general",
-      done: Boolean(store.name.trim() && (store.logo || store.description?.trim())),
+      done: Boolean(
+        store.name.trim() &&
+          (store.logo || store.description?.trim()) &&
+          (store.contactEmail || store.phone || shop.whatsapp)
+      ),
     },
     {
       id: "website",
-      label: "Website",
+      label: "Domains",
       tab: "website",
       done: Boolean(store.slug && store.slug.length >= 2),
     },
@@ -31,19 +35,27 @@ export function getSettingsHealth(store: StoreWithSettings): SettingsHealthItem[
       id: "shipping",
       label: "Shipping",
       tab: "shipping",
-      done: zones.length > 0 && zones.every((z) => z.cities.length > 0),
+      done:
+        zones.length > 0 &&
+        zones.every((z) => z.countries.length > 0 || z.cities.length > 0),
     },
     {
       id: "payments",
       label: "Payments",
       tab: "payment",
-      done: pay.cashOnDelivery || pay.stripe,
+      done: pay.cashOnDelivery || pay.stripe || pay.paypal,
     },
     {
       id: "checkout",
       label: "Checkout",
       tab: "checkout",
-      done: Boolean(shop.checkoutNote?.trim() || shop.codMessage?.trim() || shop.minOrderAmount > 0),
+      done: Boolean(
+        shop.checkoutNote?.trim() ||
+          shop.codMessage?.trim() ||
+          shop.paypalMessage?.trim() ||
+          shop.minOrderAmount > 0 ||
+          shop.checkoutTheme !== "classic"
+      ),
     },
     {
       id: "seo",
@@ -52,13 +64,12 @@ export function getSettingsHealth(store: StoreWithSettings): SettingsHealthItem[
       done: Boolean(seo.title?.trim() || seo.description?.trim()),
     },
     {
-      id: "contact",
-      label: "Contact",
-      tab: "contact",
-      done: Boolean(
-        shop.whatsapp ||
-          (shop.showContactOnStorefront && (store.contactEmail || store.phone))
-      ),
+      id: "print",
+      label: "Print",
+      tab: "print",
+      done:
+        Boolean(store.settings.shop.eticket?.size) &&
+        Boolean(store.settings.shop.invoice?.documentTitle?.trim()),
     },
   ];
 }

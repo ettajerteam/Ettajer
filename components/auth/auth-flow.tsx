@@ -112,9 +112,11 @@ export function getPasswordStrength(
 export function SignupPasswordRequirements({
   password,
   copy,
+  compact = false,
 }: {
   password: string;
   copy: AuthCopy["signup"];
+  compact?: boolean;
 }) {
   const rules = [
     { met: password.length >= 8, label: copy.reqMinLength },
@@ -126,9 +128,14 @@ export function SignupPasswordRequirements({
   const allMet = rules.every((rule) => rule.met);
 
   return (
-    <div className="space-y-3 rounded-xl border border-neutral-100 bg-neutral-50/60 px-3.5 py-3">
+    <div
+      className={cn(
+        "rounded-xl border border-neutral-100 bg-neutral-50/60",
+        compact ? "space-y-1.5 px-2.5 py-2" : "space-y-3 px-3.5 py-3",
+      )}
+    >
       {strength ? (
-        <div className="space-y-1.5">
+        <div className={cn(compact ? "space-y-1" : "space-y-1.5")}>
           <div className="flex items-center justify-between text-[11px]">
             <span className="font-medium text-neutral-500">{copy.strengthLabel}</span>
             <span className="font-semibold text-neutral-700">
@@ -149,18 +156,20 @@ export function SignupPasswordRequirements({
         </div>
       ) : null}
 
-      <ul className="space-y-1.5">
+      <ul className={cn(compact ? "flex flex-wrap gap-x-3 gap-y-0.5" : "space-y-1.5")}>
         {rules.map((rule) => (
           <li
             key={rule.label}
             className={cn(
-              "flex items-center gap-2 text-[12px] transition-colors duration-200",
+              "flex items-center gap-1.5 transition-colors duration-200",
+              compact ? "text-[11px]" : "gap-2 text-[12px]",
               rule.met ? "text-emerald-700" : "text-neutral-400",
             )}
           >
             <span
               className={cn(
-                "flex h-4 w-4 items-center justify-center rounded-full text-[10px]",
+                "flex items-center justify-center rounded-full text-[10px]",
+                compact ? "h-3.5 w-3.5" : "h-4 w-4",
                 rule.met ? "bg-emerald-100" : "bg-neutral-200/80",
               )}
             >
@@ -171,7 +180,7 @@ export function SignupPasswordRequirements({
         ))}
       </ul>
 
-      {password.length > 0 && allMet ? (
+      {password.length > 0 && allMet && !compact ? (
         <p className="text-[11px] font-medium text-emerald-700">{copy.passwordLooksGood}</p>
       ) : null}
     </div>

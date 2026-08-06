@@ -3,12 +3,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe2, MapPin, Maximize2, Minimize2, Search } from "lucide-react";
+import { MapPin, Maximize2, Minimize2, Search } from "lucide-react";
 import { LiveGlobeCanvas, type GlobePulse } from "@/components/analytics/live-globe-canvas";
 import {
   dashboardCard,
-  dashboardCardPad,
+  dashboardKicker,
   dashboardMetric,
+  dashboardPill,
+  dashboardPillActive,
+  dashboardPillGroup,
+  dashboardPillInactive,
   dashboardSubtitle,
   dashboardTitle,
 } from "@/lib/dashboard-ui";
@@ -109,7 +113,7 @@ export function LiveWorldMap({
   }
 
   const mapPanel = (
-    <div className="relative min-h-[360px] border-b border-neutral-200/80 dark:border-white/10 xl:border-b-0 xl:border-r xl:bg-[#030712]">
+    <div className="relative min-h-[360px] border-b border-black/[0.05] dark:border-white/10 xl:border-b-0 xl:border-r xl:bg-[#030712]">
       <LiveGlobeCanvas
         countries={countries}
         activeCode={activeCode}
@@ -123,7 +127,7 @@ export function LiveWorldMap({
           }
         }}
         className={cn(
-          "min-h-[360px] sm:min-h-[420px]",
+          "min-h-[360px] sm:min-h-[400px]",
           fullscreen && "min-h-[calc(100vh-120px)]"
         )}
       />
@@ -131,28 +135,27 @@ export function LiveWorldMap({
       <button
         type="button"
         onClick={() => setFullscreen((value) => !value)}
-        className="absolute right-3 top-14 z-20 flex h-8 w-8 items-center justify-center rounded-lg border border-white/12 bg-black/40 text-white/85 shadow-lg backdrop-blur-md transition-colors hover:bg-black/55"
+        className="absolute right-3 top-14 z-20 flex h-7 w-7 items-center justify-center rounded-md border border-white/12 bg-black/40 text-white/85 backdrop-blur-md transition-colors hover:bg-black/55"
         aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}
       >
         {fullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
       </button>
 
       {hovered ? (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-[260px] overflow-hidden rounded-xl border border-sky-300/20 bg-[#0b1528]/80 px-3.5 py-3 text-white shadow-[0_20px_50px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-300/50 to-transparent" />
-          <p className="text-sm font-semibold tracking-tight">{hovered.name}</p>
-          <p className="mt-1.5 text-xs text-white/65">
+        <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-[240px] rounded-[10px] border border-white/10 bg-black/70 px-3 py-2.5 text-white backdrop-blur-md">
+          <p className="text-[12px] font-semibold tracking-tight">{hovered.name}</p>
+          <p className="mt-1 text-[11px] text-white/65">
             {hovered.visitors} visitors · {hovered.orders} orders
           </p>
-          <p className="mt-1 text-sm font-medium text-sky-300">
+          <p className="mt-0.5 text-[12px] font-medium tabular-nums text-[#60A5FA]">
             {formatCurrency(hovered.revenue, currency)}
           </p>
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute bottom-4 right-4 hidden items-center gap-2 rounded-full border border-white/12 bg-black/45 px-3 py-1.5 text-[10px] text-white/75 shadow-lg backdrop-blur-md sm:flex">
+      <div className="pointer-events-none absolute bottom-4 right-4 hidden items-center gap-2 rounded-md border border-white/12 bg-black/45 px-2.5 py-1 text-[10px] text-white/75 backdrop-blur-md sm:flex">
         <span className="text-white/50">Low</span>
-        <div className="flex h-2 w-24 overflow-hidden rounded-full shadow-inner">
+        <div className="flex h-1.5 w-20 overflow-hidden rounded-full">
           {GLOBE_LEGEND_STOPS.map((color) => (
             <span key={color} className="h-full flex-1" style={{ backgroundColor: color }} />
           ))}
@@ -163,38 +166,25 @@ export function LiveWorldMap({
   );
 
   const content = (
-    <section
-      className={cn(
-        dashboardCard,
-        "overflow-hidden ring-1 ring-neutral-200/60 dark:ring-white/10",
-        className
-      )}
-    >
-      <div className={cn(dashboardCardPad, "border-b border-neutral-200/80 dark:border-white/10")}>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#007AFF]/10">
-              <Globe2 className="h-4 w-4 text-[#007AFF]" />
-            </div>
-            <div>
-              <h2 className={dashboardTitle}>Live Earth</h2>
-              <p className={dashboardSubtitle}>
-                Interactive 3D visitor globe · {getLiveMapRangeShortLabel(range)}
-              </p>
-            </div>
+    <section className={cn(dashboardCard, "overflow-hidden", className)}>
+      <div className="border-b border-black/[0.05] px-4 py-3 dark:border-white/10">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className={dashboardTitle}>Live Earth</h2>
+            <p className={dashboardSubtitle}>
+              Interactive visitor globe · {getLiveMapRangeShortLabel(range)}
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center rounded-lg border border-neutral-200/80 bg-neutral-50/80 p-0.5 dark:border-white/10 dark:bg-white/[0.03]">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div className={dashboardPillGroup}>
               {RANGE_OPTIONS.map((option) => (
                 <Link
                   key={option.value}
                   href={`${pathname}?range=${option.value}`}
                   className={cn(
-                    "rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
-                    range === option.value
-                      ? "bg-white text-neutral-900 shadow-sm dark:bg-white/10 dark:text-white"
-                      : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    dashboardPill,
+                    range === option.value ? dashboardPillActive : dashboardPillInactive
                   )}
                 >
                   {option.label}
@@ -202,17 +192,15 @@ export function LiveWorldMap({
               ))}
             </div>
 
-            <div className="flex items-center rounded-lg border border-neutral-200/80 bg-neutral-50/80 p-0.5 dark:border-white/10 dark:bg-white/[0.03]">
+            <div className={dashboardPillGroup}>
               {METRIC_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => setMetric(option.value)}
                   className={cn(
-                    "rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
-                    metric === option.value
-                      ? "bg-white text-neutral-900 shadow-sm dark:bg-white/10 dark:text-white"
-                      : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    dashboardPill,
+                    metric === option.value ? dashboardPillActive : dashboardPillInactive
                   )}
                 >
                   {option.label}
@@ -220,35 +208,33 @@ export function LiveWorldMap({
               ))}
             </div>
 
-            <div className="rounded-lg border border-neutral-200/80 bg-neutral-50/80 px-3 py-2 text-right dark:border-white/10 dark:bg-white/[0.03]">
-              <p className="text-[11px] text-neutral-500">Active regions</p>
-              <p className={dashboardMetric}>{countries.length}</p>
+            <div className="rounded-md border border-black/[0.06] bg-[#F5F5F7]/80 px-2.5 py-1 text-right dark:border-white/10 dark:bg-white/[0.04]">
+              <p className={dashboardKicker}>Regions</p>
+              <p className={cn(dashboardMetric, "text-[15px]")}>{countries.length}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid xl:grid-cols-[minmax(0,1fr)_250px]">
+      <div className="grid xl:grid-cols-[minmax(0,1fr)_240px]">
         {mapPanel}
 
-        <aside className={cn(dashboardCardPad, "bg-neutral-50/40 dark:bg-white/[0.02]")}>
+        <aside className="bg-[#FAFAFA] p-3 dark:bg-white/[0.02]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") handleSearchSubmit();
               }}
-              placeholder="Search country..."
-              className="h-8 rounded-lg border-neutral-200/80 bg-white pl-8 text-xs dark:border-white/10 dark:bg-white/[0.03]"
+              placeholder="Search country…"
+              className="h-7 rounded-md border-black/[0.06] bg-white pl-7 text-[12px] dark:border-white/10 dark:bg-white/[0.05]"
             />
           </div>
 
-          <p className="mt-3 text-xs font-medium uppercase tracking-wide text-neutral-400">
-            Top regions
-          </p>
-          <p className="mt-0.5 text-[11px] text-neutral-500">
+          <p className={cn(dashboardKicker, "mt-3")}>Top regions</p>
+          <p className={dashboardSubtitle}>
             {totalMetric > 0
               ? `${formatMetricValue(totalMetric, metric, currency)} total ${metric}`
               : "Waiting for activity"}
@@ -256,11 +242,11 @@ export function LiveWorldMap({
 
           {visibleCountries.length === 0 ? (
             <div className="mt-6 flex flex-col items-center justify-center py-8 text-center">
-              <MapPin className="h-8 w-8 text-neutral-300" />
-              <p className="mt-2 text-sm text-muted-foreground">No matching regions</p>
+              <MapPin className="h-5 w-5 text-neutral-300" />
+              <p className="mt-2 text-[12px] text-neutral-400">No matching regions</p>
             </div>
           ) : (
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-2.5 space-y-1">
               {visibleCountries.map((country, index) => {
                 const value = getCountryMetricValue(country, metric);
                 const width = `${(value / maxMetric) * 100}%`;
@@ -274,28 +260,28 @@ export function LiveWorldMap({
                       onMouseEnter={() => handleCountryHover(country)}
                       onMouseLeave={() => handleCountryHover(null)}
                       className={cn(
-                        "w-full rounded-lg border px-3 py-2.5 text-left transition-all duration-300",
+                        "w-full rounded-md px-2.5 py-2 text-left transition-colors",
                         isActive
-                          ? "border-[#007AFF]/40 bg-gradient-to-r from-[#007AFF]/10 to-transparent shadow-[0_8px_24px_rgba(0,122,255,0.08)]"
-                          : "border-transparent bg-white/70 hover:border-neutral-200/80 hover:bg-white dark:bg-white/[0.03] dark:hover:bg-white/[0.05]"
+                          ? "bg-[#007AFF]/[0.08]"
+                          : "hover:bg-white dark:hover:bg-white/[0.04]"
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-neutral-100 text-[10px] font-bold text-neutral-500 dark:bg-white/10">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white text-[10px] font-semibold text-neutral-500 dark:bg-white/10">
                             {index + 1}
                           </span>
-                          <span className="truncate text-xs font-medium text-neutral-800 dark:text-neutral-100">
+                          <span className="truncate text-[11px] font-medium text-neutral-800 dark:text-neutral-100">
                             {country.name}
                           </span>
                         </div>
-                        <span className="shrink-0 text-xs font-semibold text-neutral-900 dark:text-white">
+                        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-neutral-900 dark:text-white">
                           {formatMetricValue(value, metric, currency)}
                         </span>
                       </div>
-                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-neutral-200/80 dark:bg-white/10">
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/[0.05] dark:bg-white/10">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-[#60A5FA] to-[#007AFF] transition-all duration-500"
+                          className="h-full rounded-full bg-[#007AFF]"
                           style={{ width }}
                         />
                       </div>
@@ -314,17 +300,19 @@ export function LiveWorldMap({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#030712]/95 p-3 backdrop-blur-sm sm:p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-medium text-white">Live Earth · Fullscreen</p>
+      <div className="mb-2.5 flex items-center justify-between">
+        <p className="text-[12px] font-medium text-white">Live Earth · Fullscreen</p>
         <button
           type="button"
           onClick={() => setFullscreen(false)}
-          className="rounded-lg border border-white/15 bg-white/10 px-3 py-1.5 text-xs text-white hover:bg-white/15"
+          className="rounded-md border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] text-white hover:bg-white/15"
         >
           Exit fullscreen
         </button>
       </div>
-      <div className="flex-1 overflow-hidden rounded-2xl ring-1 ring-white/10">{content}</div>
+      <div className="flex-1 overflow-hidden rounded-[12px] border border-white/10">
+        {content}
+      </div>
     </div>
   );
 }

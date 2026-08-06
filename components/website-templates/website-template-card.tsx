@@ -36,21 +36,23 @@ export function WebsiteTemplateCard({
       <button
         type="button"
         onClick={onPreview}
-        className="relative block w-full text-left"
+        className="relative block w-full p-2 pb-0 text-left"
         aria-label={`Preview ${template.name} template`}
       >
-        <WebsiteTemplateMockup templateId={template.id} compact />
-        <div className="absolute left-2 top-2">
-          <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-neutral-700 shadow-sm">
-            {look.mood}
-          </span>
+        <div className="relative overflow-hidden rounded-lg ring-1 ring-black/[0.06]">
+          <WebsiteTemplateMockup templateId={template.id} compact />
+          <div className="absolute left-1.5 top-1.5 z-10">
+            <span className="rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-semibold text-neutral-700 shadow-sm">
+              {look.mood}
+            </span>
+          </div>
+          {selected ? (
+            <span className="absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+              <Check className="h-2.5 w-2.5" />
+              Draft
+            </span>
+          ) : null}
         </div>
-        {selected ? (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-            <Check className="h-2.5 w-2.5" />
-            Draft
-          </span>
-        ) : null}
       </button>
 
       <div className="flex flex-1 flex-col gap-2.5 p-3">

@@ -2,14 +2,20 @@
 
 import {
   Banknote,
+  CreditCard,
+  Bell,
+  FileText,
   Globe2,
   Languages,
   Mail,
-  MessageCircle,
+  Printer,
+  Percent,
+  Scale,
   Search,
   ShoppingBag,
   Store,
   Truck,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,95 +24,143 @@ export const SETTINGS_TABS = [
   "general",
   "website",
   "currency",
+  "email",
   "shipping",
   "payment",
   "checkout",
   "seo",
-  "contact",
-  "email",
+  "taxes",
+  "notifications",
+  "print",
+  "profile",
+  "plan",
+  "legal",
 ] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
-export const SETTINGS_NAV: {
+export type SettingsGroupId =
+  | "store"
+  | "selling"
+  | "online"
+  | "account";
+
+export type SettingsNavItem = {
   id: SettingsTab;
   label: string;
   description: string;
   icon: LucideIcon;
-  group: "store" | "selling" | "storefront";
-}[] = [
+  group: SettingsGroupId;
+  /** Placeholder section — no full product yet */
+  comingSoon?: boolean;
+};
+
+export const SETTINGS_NAV: SettingsNavItem[] = [
   {
     id: "general",
-    label: "Profile",
-    description: "Name, logo, contact",
+    label: "General",
+    description: "Store details and contact",
     icon: Store,
     group: "store",
   },
   {
     id: "website",
-    label: "Website",
-    description: "URL and domain",
+    label: "Domains",
+    description: "Store URL and custom domain",
     icon: Globe2,
     group: "store",
   },
   {
     id: "currency",
-    label: "Currency & language",
-    description: "Prices and locale",
+    label: "Languages",
+    description: "Currency and storefront language",
     icon: Languages,
     group: "store",
   },
   {
     id: "email",
     label: "Email",
-    description: "Providers & domains",
+    description: "Providers, domains, senders",
     icon: Mail,
     group: "store",
   },
   {
-    id: "shipping",
-    label: "Shipping",
-    description: "Zones and rates",
-    icon: Truck,
-    group: "selling",
-  },
-  {
     id: "payment",
     label: "Payments",
-    description: "COD and cards",
+    description: "COD, PayPal, Stripe",
     icon: Banknote,
     group: "selling",
   },
   {
     id: "checkout",
     label: "Checkout",
-    description: "Orders and messages",
+    description: "Order rules and messages",
     icon: ShoppingBag,
+    group: "selling",
+  },
+  {
+    id: "shipping",
+    label: "Shipping",
+    description: "Zones and delivery rates",
+    icon: Truck,
+    group: "selling",
+  },
+  {
+    id: "taxes",
+    label: "Taxes",
+    description: "Tax rates and invoices",
+    icon: Percent,
     group: "selling",
   },
   {
     id: "seo",
     label: "SEO",
-    description: "Search and sharing",
+    description: "Search and social sharing",
     icon: Search,
-    group: "storefront",
+    group: "online",
   },
   {
-    id: "contact",
-    label: "Contact",
-    description: "WhatsApp and visibility",
-    icon: MessageCircle,
-    group: "storefront",
+    id: "notifications",
+    label: "Notifications",
+    description: "Order and customer emails",
+    icon: Bell,
+    group: "online",
+  },
+  {
+    id: "print",
+    label: "Print",
+    description: "E-tickets and invoices",
+    icon: Printer,
+    group: "online",
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    description: "Your name, photo, and password",
+    icon: UserRound,
+    group: "account",
+  },
+  {
+    id: "plan",
+    label: "Plan",
+    description: "Subscription, usage, and billing",
+    icon: CreditCard,
+    group: "account",
+  },
+  {
+    id: "legal",
+    label: "Legal",
+    description: "Policies, terms, and checkout",
+    icon: Scale,
+    group: "account",
   },
 ];
 
-const SETTINGS_GROUPS: {
-  id: "store" | "selling" | "storefront";
-  label: string;
-}[] = [
-  { id: "store", label: "Store" },
-  { id: "selling", label: "Orders" },
-  { id: "storefront", label: "Storefront" },
+const SETTINGS_GROUPS: { id: SettingsGroupId; label: string }[] = [
+  { id: "store", label: "Store details" },
+  { id: "selling", label: "Selling" },
+  { id: "online", label: "Online store" },
+  { id: "account", label: "Account" },
 ];
 
 interface SettingsNavProps {
@@ -140,6 +194,11 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
               >
                 <Icon className="h-3.5 w-3.5 opacity-80" />
                 {item.label}
+                {item.comingSoon ? (
+                  <span className="rounded bg-black/[0.06] px-1 text-[9px] font-medium text-neutral-400 dark:bg-white/10">
+                    Soon
+                  </span>
+                ) : null}
               </button>
             );
           })}
@@ -176,6 +235,11 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
                         <span className="min-w-0 flex-1 truncate text-[12px] font-medium tracking-[-0.01em]">
                           {item.label}
                         </span>
+                        {item.comingSoon ? (
+                          <span className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium text-neutral-400">
+                            Soon
+                          </span>
+                        ) : null}
                       </button>
                     );
                   })}

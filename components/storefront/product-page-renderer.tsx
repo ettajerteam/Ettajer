@@ -48,6 +48,7 @@ export function ProductPageRenderer({
   const tracker = (
     <ProductViewTracker
       marketing={store.marketing}
+      storeSlug={store.slug}
       product={{ id: product.id, title: product.title, price: product.price }}
       currency={store.currency}
     />

@@ -22,7 +22,7 @@ export default async function CustomersPage() {
     <DashboardLayout>
       <DashboardHeader
         title="Customers"
-        description="People who have ordered from your store"
+        description="People who have ordered from your storefront"
       />
       <DashboardPageContent>
         <CustomersClient initialCustomers={customers} currency={store.currency} />

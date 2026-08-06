@@ -132,9 +132,13 @@ export function HomeRevenueChart({
         action={
           <div className="flex items-center gap-1.5">
             <Button
-              variant={compare ? "default" : "outline"}
+              variant="outline"
               size="sm"
-              className="h-8 rounded-lg text-xs"
+              className={cn(
+                "h-8 rounded-full border-black/[0.08] text-xs dark:border-white/10",
+                compare &&
+                  "border-transparent bg-neutral-900 text-white hover:bg-neutral-800 hover:text-white dark:bg-white dark:text-neutral-900"
+              )}
               onClick={() => setCompare((value) => !value)}
             >
               Compare
@@ -142,7 +146,7 @@ export function HomeRevenueChart({
             <Button
               variant="outline"
               size="sm"
-              className="h-8 rounded-lg text-xs"
+              className="h-8 rounded-full border-black/[0.08] text-xs dark:border-white/10"
               onClick={handleExport}
             >
               <Download className="mr-1.5 h-3.5 w-3.5" />
@@ -166,16 +170,16 @@ export function HomeRevenueChart({
           </p>
         </div>
 
-        <div className="inline-flex rounded-lg bg-neutral-100 p-0.5 dark:bg-white/5">
+        <div className="inline-flex rounded-full bg-neutral-100/90 p-0.5 dark:bg-white/5">
           {RANGES.map((item) => (
             <Link
               key={item.value}
               href={`${pathname}?range=${item.value}`}
               scroll={false}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-xs font-medium transition-all",
+                "rounded-full px-3 py-1.5 text-xs font-medium transition-all",
                 range === item.value
-                  ? "bg-white text-neutral-900 shadow-sm dark:bg-[#222] dark:text-white"
+                  ? "bg-white text-neutral-900 shadow-sm dark:bg-[#2C2C2E] dark:text-white"
                   : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
               )}
             >
@@ -196,8 +200,8 @@ export function HomeRevenueChart({
         >
           <defs>
             <linearGradient id="homeRevenueFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#007AFF" stopOpacity="0.14" />
-              <stop offset="100%" stopColor="#007AFF" stopOpacity="0" />
+              <stop offset="0%" stopColor="#1D1D1F" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="#1D1D1F" stopOpacity="0" />
             </linearGradient>
           </defs>
 
@@ -219,7 +223,7 @@ export function HomeRevenueChart({
             <path
               d={previousPath}
               fill="none"
-              stroke="#FF9500"
+              stroke="#86868B"
               strokeWidth={2}
               strokeDasharray="6 4"
               strokeLinecap="round"
@@ -230,8 +234,8 @@ export function HomeRevenueChart({
             <path
               d={revenuePath}
               fill="none"
-              stroke="#007AFF"
-              strokeWidth={2.5}
+              stroke="#1D1D1F"
+              strokeWidth={2}
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
             />
@@ -244,7 +248,7 @@ export function HomeRevenueChart({
                 x2={hoverCoord.x}
                 y1={PADDING.top}
                 y2={HEIGHT - PADDING.bottom}
-                stroke="#007AFF"
+                stroke="#D2D2D7"
                 strokeWidth={1}
                 strokeDasharray="4 4"
               />
@@ -252,7 +256,7 @@ export function HomeRevenueChart({
                 cx={hoverCoord.x}
                 cy={hoverCoord.y}
                 r={5}
-                fill="#007AFF"
+                fill="#1D1D1F"
                 stroke="white"
                 strokeWidth={2}
               />
@@ -318,12 +322,12 @@ export function HomeRevenueChart({
 
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-neutral-500">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#007AFF]" />
+          <span className="h-2 w-2 rounded-full bg-neutral-900 dark:bg-white" />
           Current period
         </span>
         {compare ? (
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-0.5 w-4 bg-[#FF9500]" />
+            <span className="h-0.5 w-4 bg-neutral-400" />
             Previous period
           </span>
         ) : null}

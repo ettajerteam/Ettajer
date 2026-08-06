@@ -158,13 +158,23 @@ export function BoldProductPage({
               dangerouslySetInnerHTML={{ __html: product.description }}
             />
           )}
-          <AddToCartButton
-            store={store}
-            product={product}
-            label="Cop it"
-            className="w-full sm:w-auto px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest text-sm text-black transition-all hover:shadow-[0_0_30px_var(--store-primary)] disabled:opacity-50"
-            style={{ backgroundColor: "var(--store-primary)" }}
-          />
+          <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row">
+            <AddToCartButton
+              store={store}
+              product={product}
+              mode="buy-now"
+              label="Buy now"
+              className="w-full sm:w-auto px-8 py-3.5 rounded-lg font-bold uppercase tracking-widest text-sm text-black transition-all hover:shadow-[0_0_30px_var(--store-primary)] disabled:opacity-50"
+              style={{ backgroundColor: "var(--store-primary)" }}
+            />
+            <AddToCartButton
+              store={store}
+              product={product}
+              mode="add"
+              label="Add to bag"
+              className="w-full sm:w-auto rounded-lg border border-white/20 bg-white/5 px-8 py-3.5 font-bold uppercase tracking-widest text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
+            />
+          </div>
         </div>
       </div>
     </div>

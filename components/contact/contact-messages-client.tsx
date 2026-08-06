@@ -69,7 +69,7 @@ export function ContactMessagesClient({ initial }: { initial: Submission[] }) {
                 {selected.phone ? ` · ${selected.phone}` : ""}
               </p>
               <p className="mt-1 text-xs text-neutral-400">
-                {new Date(selected.createdAt).toLocaleString(undefined, {
+                {new Date(selected.createdAt).toLocaleString("en", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",

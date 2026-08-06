@@ -8,7 +8,7 @@ import {
 } from "@/lib/storefront";
 import { serializePublicCategory, serializePublicCollection } from "@/lib/catalog";
 import { getStorePageBySlug } from "@/lib/pages";
-import { parsePageContent } from "@/lib/page-content";
+import { parsePageContent, pageKeywordsList } from "@/lib/page-content";
 import { applyPreviewOverrides } from "@/lib/preview-engine";
 import { parseHomeLayout, decodeLayoutFromPreview } from "@/lib/sections/parse";
 import { parsePreviewDevice } from "@/lib/builder/responsive-styles";
@@ -20,6 +20,14 @@ import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import type { ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
+
+function stripHtmlForMeta(html: string) {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 interface PageProps {
   params: { slug: string; pageSlug: string };
@@ -47,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const metaTitle = parsed.metaTitle?.trim() || page.title;
   const metaDescription =
     parsed.metaDescription?.trim() ||
-    parsed.body.slice(0, 160) ||
+    stripHtmlForMeta(parsed.body).slice(0, 160) ||
     `Read ${page.title} at ${storeData.name}`;
 
   return buildStorefrontMetadata({
@@ -55,7 +63,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     path: getStorePageUrl(storeData.slug, page.slug),
     title: metaTitle,
     description: metaDescription,
-    image: storeData.logo,
+    image: parsed.ogImage || storeData.logo,
+    keywords: pageKeywordsList(parsed.keywords),
+    noIndex: parsed.noIndex === true,
   });
 }
 
@@ -109,6 +119,7 @@ export default async function StoreCustomPage({ params, searchParams }: PageProp
   const isBold = themeId === "bold";
   const title = page?.title ?? params.pageSlug;
   const content = parsedContent?.body ?? "";
+  const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(content);
 
   return (
     <StorefrontShell store={store} preview={isPreview}>
@@ -122,14 +133,24 @@ export default async function StoreCustomPage({ params, searchParams }: PageProp
         <article className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
           {content ? (
-            <div
-              className={cn(
-                "prose prose-neutral mt-8 max-w-none",
-                isBold && "prose-invert"
-              )}
-            >
-              <p className="whitespace-pre-wrap text-base leading-relaxed">{content}</p>
-            </div>
+            looksLikeHtml ? (
+              <div
+                className={cn(
+                  "prose prose-neutral mt-8 max-w-none prose-headings:tracking-tight prose-a:text-[#007AFF]",
+                  isBold && "prose-invert"
+                )}
+                dangerouslySetInnerHTML={{ __html: content }}
+              />
+            ) : (
+              <div
+                className={cn(
+                  "prose prose-neutral mt-8 max-w-none",
+                  isBold && "prose-invert"
+                )}
+              >
+                <p className="whitespace-pre-wrap text-base leading-relaxed">{content}</p>
+              </div>
+            )
           ) : (
             <p className={cn("mt-8 text-muted-foreground", isBold && "text-zinc-400")}>
               This page has no content yet.

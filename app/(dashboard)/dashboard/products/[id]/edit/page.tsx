@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { productInclude, serializeProduct } from "@/lib/products";
 import { parseTicketPrinters } from "@/lib/ticket-printers";
 import { DashboardLayout } from "@/components/shared/dashboard-layout";
+import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
 import { ProductEditorClient } from "@/components/products/product-editor-client";
 
@@ -33,11 +34,17 @@ export default async function EditProductPage({ params }: PageProps) {
 
   return (
     <DashboardLayout>
+      <DashboardHeader
+        title="Edit product"
+        description="Update photos, pricing, details, and SEO — then publish when it looks right."
+      />
       <DashboardPageContent>
         <ProductEditorClient
           currency={store.currency}
           ticketPrinters={ticketPrinters}
           product={serializeProduct(product)}
+          storeSlug={store.slug}
+          storeName={store.name}
         />
       </DashboardPageContent>
     </DashboardLayout>

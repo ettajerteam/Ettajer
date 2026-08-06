@@ -10,9 +10,9 @@ interface PlatformLogoProps {
 }
 
 const SIZES = {
-  sm: { box: "h-10 w-10 p-2", image: 24 },
-  md: { box: "h-12 w-12 p-2.5", image: 28 },
-  lg: { box: "h-16 w-16 p-3", image: 40 },
+  sm: { box: "h-9 w-9 p-1.5", image: 22 },
+  md: { box: "h-11 w-11 p-2", image: 26 },
+  lg: { box: "h-14 w-14 p-2.5", image: 34 },
 };
 
 export function PlatformLogo({ platformId, size = "md", className }: PlatformLogoProps) {
@@ -24,7 +24,7 @@ export function PlatformLogo({ platformId, size = "md", className }: PlatformLog
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-2xl border border-neutral-200/90 bg-white shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]",
+        "flex shrink-0 items-center justify-center rounded-[10px] border border-black/[0.06] bg-white dark:border-white/10 dark:bg-white/[0.04]",
         dimensions.box,
         className
       )}

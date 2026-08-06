@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
 import { productSchema } from "@/lib/validations/product";
@@ -6,7 +7,10 @@ import { getAuthenticatedStore, serializeProduct, productInclude } from "@/lib/p
 import { validateProductIds } from "@/lib/catalog";
 import { serializeProductImagesForDb } from "@/lib/product-images";
 import { serializeProductDigitalFilesForDb } from "@/lib/product-digital-files";
+import { serializeProductSeoForDb } from "@/lib/product-seo";
+import { serializeProductCommerceForDb } from "@/lib/product-commerce";
 import { productTracksInventory, type ProductType } from "@/lib/product-types";
+import { ensureProductCodes } from "@/lib/product-codes";
 
 export async function GET(request: Request) {
   try {
@@ -28,6 +32,7 @@ export async function GET(request: Request) {
               OR: [
                 { title: { contains: search, mode: "insensitive" } },
                 { sku: { contains: search, mode: "insensitive" } },
+                { barcode: { contains: search, mode: "insensitive" } },
                 { tags: { has: search } },
               ],
             }
@@ -96,7 +101,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Invalid collection assignment" }, { status: 400 });
     }
 
-    let slug = slugify(data.title) || "product";
+    let slug = (data.slug && data.slug.trim()) || slugify(data.title) || "product";
     const slugExists = await prisma.product.findFirst({
       where: { storeId: store.id, slug },
     });
@@ -110,6 +115,12 @@ export async function POST(request: Request) {
       productType === "digital"
         ? serializeProductDigitalFilesForDb(data.digitalFiles)
         : [];
+    const seoJson = serializeProductSeoForDb(data.seo);
+    const commerceJson = serializeProductCommerceForDb(data.commerce);
+    const codes = await ensureProductCodes(store.id, {
+      sku: data.sku,
+      barcode: data.barcode,
+    });
 
     const product = await prisma.product.create({
       data: {
@@ -120,8 +131,8 @@ export async function POST(request: Request) {
         comparePrice: data.comparePrice ?? null,
         costPrice: data.costPrice ?? null,
         inventory,
-        sku: data.sku || null,
-        barcode: data.barcode || null,
+        sku: codes.sku,
+        barcode: codes.barcode,
         status: data.status,
         productType,
         copyrightOwner: data.copyrightOwner,
@@ -131,6 +142,8 @@ export async function POST(request: Request) {
         variants: data.variants,
         details,
         reviews,
+        seo: seoJson === null ? Prisma.DbNull : seoJson,
+        commerce: commerceJson === null ? Prisma.DbNull : commerceJson,
         tags: data.tags,
         ticketPrinterId: data.ticketPrinterId ?? null,
         categoryId: data.categoryId ?? null,
@@ -145,6 +158,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ product: serializeProduct(product) }, { status: 201 });
   } catch (error) {
     console.error("Product create error:", error);
-    return NextResponse.json({ message: "Failed to create product" }, { status: 500 });
+    const message =
+      error instanceof Error && error.message.includes("Unknown argument")
+        ? "Database client is out of date. Restart the dev server and try again."
+        : error instanceof Error
+          ? error.message.slice(0, 300)
+          : "Failed to create product";
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

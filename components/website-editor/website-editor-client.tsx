@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useIsXl } from "@/hooks/use-is-xl";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/shared/error-boundary";
@@ -77,11 +76,9 @@ export function WebsiteEditorClient({
   productCount = 0,
 }: WebsiteEditorClientProps) {
   const router = useRouter();
-  const isXl = useIsXl();
   const [saved, setSaved] = useState(initialStore);
   const [pages, setPages] = useState(initialPages);
   const [previewKey, setPreviewKey] = useState(0);
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [savedNavigation, setSavedNavigation] = useState<NavItem[]>([]);
   const [draftNavigation, setDraftNavigation] = useState<NavItem[]>([]);
   const [pendingWebsiteTemplateId, setPendingWebsiteTemplateId] = useState<string | null>(null);
@@ -182,8 +179,22 @@ export function WebsiteEditorClient({
   const rightPanelOpen = builderSettings.rightPanelOpen;
   const inspectorFocus = builderSettings.inspectorFocus;
 
-  const setLeftPanelOpen = (open: boolean) => setBuilderSettings({ leftPanelOpen: open });
-  const setRightPanelOpen = (open: boolean) => setBuilderSettings({ rightPanelOpen: open });
+  const setLeftPanelOpen = useCallback(
+    (open: boolean) => {
+      const current = useCentralBuilderStore.getState().builderSettings.leftPanelOpen;
+      if (current === open) return;
+      setBuilderSettings({ leftPanelOpen: open });
+    },
+    [setBuilderSettings]
+  );
+  const setRightPanelOpen = useCallback(
+    (open: boolean) => {
+      const current = useCentralBuilderStore.getState().builderSettings.rightPanelOpen;
+      if (current === open) return;
+      setBuilderSettings({ rightPanelOpen: open });
+    },
+    [setBuilderSettings]
+  );
   const setDevice = setActiveDevice;
 
   const layoutUndoAvailable = useCentralBuilderStore((s) => s.historyPast.length > 0);
@@ -707,9 +718,6 @@ export function WebsiteEditorClient({
       anyLayoutDirty={anyLayoutDirty}
       themeDirty={themeDirty}
       navigationDirty={navigationDirty}
-      isXl={isXl}
-      mobileSettingsOpen={mobileSettingsOpen}
-      onMobileSettingsOpenChange={setMobileSettingsOpen}
       storeSlug={saved.slug}
       pages={pages}
       activePage={activePage}
@@ -881,8 +889,9 @@ export function WebsiteEditorClient({
   });
 
   useEffect(() => {
-    if (selectedSectionId) setMobileSettingsOpen(true);
-  }, [selectedSectionId]);
+    if (!selectedSectionId) return;
+    setRightPanelOpen(true);
+  }, [selectedSectionId, setRightPanelOpen]);
 
   useEditorShortcuts({
     canEditSections: true,
@@ -934,7 +943,7 @@ export function WebsiteEditorClient({
   }, [draftSaveStatus]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-neutral-50 text-neutral-900">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#F5F5F7] text-neutral-900">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {a11yStatus}
       </div>
@@ -994,41 +1003,25 @@ export function WebsiteEditorClient({
         onReplaceDraftLayout={replaceDraftLayout}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
-        {/* Mount left tools once — CSS-hidden twins duplicated form ids (~30 Chrome warnings). */}
-        {isXl === false ? (
-          <aside
-            className="order-2 max-h-[42vh] w-full shrink-0 overflow-hidden border-t border-neutral-200 bg-white"
-            aria-label="Editor tools"
+      <div className="flex min-h-0 flex-1 flex-row">
+        <EditorCollapsiblePanel
+          side="left"
+          open={leftPanelOpen}
+          onOpenChange={setLeftPanelOpen}
+          collapsedContent={leftRailIcons}
+          expandedWidth="300px"
+          className="order-1 flex h-full min-h-0 flex-col"
+        >
+          <ErrorBoundary
+            fallback={
+              <div className="p-4 text-sm text-neutral-600">Left panel failed to load. Refresh the editor.</div>
+            }
           >
-            <ErrorBoundary
-              fallback={
-                <div className="p-4 text-sm text-neutral-600">Left panel failed to load. Refresh the editor.</div>
-              }
-            >
-              {leftPanelTabs}
-            </ErrorBoundary>
-          </aside>
-        ) : (
-          <EditorCollapsiblePanel
-            side="left"
-            open={leftPanelOpen}
-            onOpenChange={setLeftPanelOpen}
-            collapsedContent={leftRailIcons}
-            expandedWidth="320px"
-            className="order-2 hidden min-h-0 xl:order-1 xl:flex xl:h-full xl:flex-col"
-          >
-            <ErrorBoundary
-              fallback={
-                <div className="p-4 text-sm text-neutral-600">Left panel failed to load. Refresh the editor.</div>
-              }
-            >
-              {leftPanelTabs}
-            </ErrorBoundary>
-          </EditorCollapsiblePanel>
-        )}
+            {leftPanelTabs}
+          </ErrorBoundary>
+        </EditorCollapsiblePanel>
 
-        <main className="relative order-1 flex min-h-0 flex-1 flex-col xl:order-2" aria-label="Store preview">
+        <main className="relative order-2 flex min-h-0 flex-1 flex-col" aria-label="Store preview">
           <div className="pointer-events-none absolute bottom-4 left-4 z-30 sm:bottom-5 sm:left-5">
             <div className="pointer-events-auto">
               <EditorGettingStarted
@@ -1080,42 +1073,43 @@ export function WebsiteEditorClient({
           </ErrorBoundary>
         </main>
 
-        {isXl !== false ? (
-          <EditorCollapsiblePanel
-            side="right"
-            open={rightPanelOpen}
-            onOpenChange={setRightPanelOpen}
-            collapsedContent={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "relative h-9 w-9 rounded-lg",
-                  selectedSection && "bg-[#007AFF]/10 text-[#007AFF]"
-                )}
-                onClick={() => setRightPanelOpen(true)}
-                title="Section settings"
-                aria-label="Section settings"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                {selectedSection && (
-                  <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[#007AFF]" />
-                )}
-              </Button>
-            }
-            className="order-3 hidden min-h-0 xl:flex xl:h-full xl:flex-col"
-            expandedWidth="300px"
-          >
-            <ErrorBoundary
-              fallback={
-                <div className="p-4 text-sm text-neutral-600">Inspector failed to load. Try selecting another section.</div>
-              }
+        <EditorCollapsiblePanel
+          side="right"
+          open={rightPanelOpen}
+          onOpenChange={setRightPanelOpen}
+          collapsedContent={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "relative h-9 w-9 rounded-md text-neutral-500 hover:bg-black/[0.04] hover:text-neutral-800",
+                selectedSection &&
+                  "bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF]/12 hover:text-[#007AFF]"
+              )}
+              onClick={() => setRightPanelOpen(true)}
+              title="Section settings"
+              aria-label="Section settings"
             >
-              {inspectorContent}
-            </ErrorBoundary>
-          </EditorCollapsiblePanel>
-        ) : null}
+              <SlidersHorizontal className="h-4 w-4" />
+              {selectedSection && (
+                <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[#007AFF]" />
+              )}
+            </Button>
+          }
+          className="order-3 flex h-full min-h-0 flex-col"
+          expandedWidth="280px"
+        >
+          <ErrorBoundary
+            fallback={
+              <div className="p-4 text-sm text-neutral-600">
+                Inspector failed to load. Try selecting another section.
+              </div>
+            }
+          >
+            {inspectorContent}
+          </ErrorBoundary>
+        </EditorCollapsiblePanel>
       </div>
 
       <FullscreenPreview

@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import { parseProductImages } from "@/lib/product-images";
-import { parseShippingAddress, orderInclude } from "@/lib/orders";
+import { parseShippingAddress, orderInclude, upsertOrderCustomer } from "@/lib/orders";
+import { isProductType, productTracksInventory } from "@/lib/product-types";
+import { createStoreNotification } from "@/lib/notifications/create-store-notification";
 import type { CreateDraftInput, UpdateDraftInput } from "@/lib/validations/draft";
 import type { DraftDetail, DraftItemDetail, DraftListItem } from "@/types/drafts";
 
@@ -21,7 +23,10 @@ type DraftWithItems = {
   subtotal: number;
   shipping: number;
   tax: number;
+  discount: number;
   total: number;
+  paymentMethod: string | null;
+  merchantNote: string | null;
   createdAt: Date;
   updatedAt: Date;
   items: {
@@ -76,7 +81,10 @@ export function serializeDraftDetail(draft: DraftWithItems): DraftDetail {
     subtotal: draft.subtotal,
     shipping: draft.shipping,
     tax: draft.tax,
+    discount: draft.discount ?? 0,
     total: draft.total,
+    paymentMethod: (draft.paymentMethod as DraftDetail["paymentMethod"]) ?? "cod",
+    merchantNote: draft.merchantNote,
     items: draft.items.map(serializeDraftItem),
     createdAt: draft.createdAt.toISOString(),
     updatedAt: draft.updatedAt.toISOString(),
@@ -96,13 +104,14 @@ const draftInclude = {
 
 async function resolveDraftTotals(
   storeId: string,
-  items: { productId: string; quantity: number }[],
+  items: { productId: string; quantity: number; price?: number }[],
   shipping = 0,
-  tax = 0
+  tax = 0,
+  discount = 0
 ) {
   const products = await prisma.product.findMany({
     where: { storeId, id: { in: items.map((i) => i.productId) } },
-    select: { id: true, title: true, price: true, inventory: true },
+    select: { id: true, title: true, price: true, inventory: true, productType: true },
   });
 
   if (products.length !== items.length) {
@@ -114,16 +123,25 @@ async function resolveDraftTotals(
 
   const orderItems = items.map((item) => {
     const product = productMap.get(item.productId)!;
-    subtotal += product.price * item.quantity;
+    const type = isProductType(product.productType) ? product.productType : "physical";
+    if (productTracksInventory(type) && product.inventory < item.quantity) {
+      throw new Error(`Not enough stock for ${product.title}`);
+    }
+    const unitPrice =
+      typeof item.price === "number" && Number.isFinite(item.price) && item.price >= 0
+        ? item.price
+        : product.price;
+    subtotal += unitPrice * item.quantity;
     return {
       productId: product.id,
       quantity: item.quantity,
-      price: product.price,
+      price: unitPrice,
     };
   });
 
-  const total = subtotal + shipping + tax;
-  return { subtotal, shipping, tax, total, orderItems };
+  const safeDiscount = Math.min(Math.max(0, discount), subtotal + shipping + tax);
+  const total = Math.max(0, subtotal + shipping + tax - safeDiscount);
+  return { subtotal, shipping, tax, discount: safeDiscount, total, orderItems };
 }
 
 export async function listDrafts(storeId: string, search?: string) {
@@ -153,11 +171,12 @@ export async function getDraftForStore(draftId: string, storeId: string) {
 }
 
 export async function createDraft(storeId: string, input: CreateDraftInput) {
-  const { subtotal, shipping, tax, total, orderItems } = await resolveDraftTotals(
+  const { subtotal, shipping, tax, discount, total, orderItems } = await resolveDraftTotals(
     storeId,
     input.items,
     input.shipping,
-    input.tax
+    input.tax,
+    input.discount
   );
 
   return prisma.order.create({
@@ -168,6 +187,10 @@ export async function createDraft(storeId: string, input: CreateDraftInput) {
       subtotal,
       shipping,
       tax,
+      discount,
+      paymentMethod: input.paymentMethod ?? "cod",
+      paymentStatus: "unpaid",
+      merchantNote: input.merchantNote?.trim() || null,
       customerName: input.customerName ?? "",
       customerEmail: input.customerEmail ?? "",
       customerPhone: input.customerPhone ?? null,
@@ -188,13 +211,18 @@ export async function updateDraft(draftId: string, storeId: string, input: Updat
 
   const items =
     input.items ??
-    existing.items.map((item) => ({ productId: item.productId, quantity: item.quantity }));
+    existing.items.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      price: item.price,
+    }));
 
-  const { subtotal, shipping, tax, total, orderItems } = await resolveDraftTotals(
+  const { subtotal, shipping, tax, discount, total, orderItems } = await resolveDraftTotals(
     storeId,
     items,
     input.shipping ?? existing.shipping,
-    input.tax ?? existing.tax
+    input.tax ?? existing.tax,
+    input.discount ?? existing.discount
   );
 
   return prisma.$transaction(async (tx) => {
@@ -211,9 +239,15 @@ export async function updateDraft(draftId: string, storeId: string, input: Updat
           input.customerPhone !== undefined ? input.customerPhone : existing.customerPhone,
         shippingAddress: (input.shippingAddress ??
           existing.shippingAddress) as Prisma.InputJsonValue,
+        paymentMethod: input.paymentMethod ?? existing.paymentMethod ?? "cod",
+        merchantNote:
+          input.merchantNote !== undefined
+            ? input.merchantNote?.trim() || null
+            : existing.merchantNote,
         subtotal,
         shipping,
         tax,
+        discount,
         total,
         ...(input.items ? { items: { create: orderItems } } : {}),
       },
@@ -229,35 +263,78 @@ export async function updateDraft(draftId: string, storeId: string, input: Updat
   });
 }
 
-export async function convertDraftToOrder(draftId: string, storeId: string) {
+export async function convertDraftToOrder(
+  draftId: string,
+  storeId: string,
+  options: { paymentStatus?: "unpaid" | "paid"; notifyCustomer?: boolean } = {}
+) {
   const draft = await getDraftForStore(draftId, storeId);
   if (!draft) throw new Error("Draft not found");
   if (draft.items.length === 0) throw new Error("Add at least one product before completing");
 
-  return prisma.$transaction(async (tx) => {
+  const paymentStatus = options.paymentStatus ?? "unpaid";
+
+  const order = await prisma.$transaction(async (tx) => {
     for (const item of draft.items) {
       const product = await tx.product.findUnique({ where: { id: item.productId } });
       if (!product) throw new Error("Product no longer exists");
-      if (product.inventory < item.quantity) {
-        throw new Error(`Insufficient inventory for ${product.title}`);
+      const type = isProductType(product.productType) ? product.productType : "physical";
+      if (productTracksInventory(type)) {
+        const updated = await tx.product.updateMany({
+          where: { id: item.productId, inventory: { gte: item.quantity } },
+          data: { inventory: { decrement: item.quantity } },
+        });
+        if (updated.count === 0) {
+          throw new Error(`Insufficient inventory for ${product.title}`);
+        }
       }
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { inventory: { decrement: item.quantity } },
-      });
     }
+
+    const customer = draft.customerEmail
+      ? await upsertOrderCustomer(
+          storeId,
+          {
+            email: draft.customerEmail,
+            name: draft.customerName || "Guest",
+            phone: draft.customerPhone,
+            address: parseShippingAddress(draft.shippingAddress),
+          },
+          tx
+        )
+      : null;
 
     return tx.order.update({
       where: { id: draftId },
       data: {
         status: "pending",
+        paymentMethod: draft.paymentMethod ?? "cod",
+        paymentStatus,
+        customerId: customer?.id ?? null,
         statusHistory: {
-          create: { status: "pending", note: "Draft completed and converted to order" },
+          create: {
+            status: "pending",
+            note:
+              paymentStatus === "paid"
+                ? "Manual order created — marked as paid"
+                : "Draft completed and converted to order",
+          },
         },
       },
       include: orderInclude,
     });
   });
+
+  void createStoreNotification({
+    storeId,
+    kind: "order",
+    title: `New order ${order.orderNumber}`,
+    body: `${order.customerName} · ${order.total.toLocaleString()}`,
+    href: `/dashboard/orders/${order.id}`,
+    entityType: "order",
+    entityId: order.id,
+  });
+
+  return order;
 }
 
 export async function deleteDraft(draftId: string, storeId: string) {

@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
 import { CategoriesClient } from "@/components/categories/categories-client";
+import { CategoryTableSkeleton } from "@/components/categories/category-table-skeleton";
 
 export const metadata = { title: "Categories" };
 
@@ -27,21 +28,12 @@ export default async function DashboardCategoriesPage() {
 
   return (
     <DashboardLayout>
-      <DashboardHeader title="Categories" description="Organize products into categories" />
+      <DashboardHeader
+        title="Categories"
+        description="Organize products so shoppers can browse by type"
+      />
       <DashboardPageContent>
-        <Suspense
-          fallback={
-            <div className="space-y-6">
-              <div className="premium-skeleton h-12 w-full max-w-md animate-pulse rounded-2xl" />
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="premium-skeleton h-24 animate-pulse rounded-2xl" />
-                ))}
-              </div>
-              <div className="premium-skeleton h-96 animate-pulse rounded-2xl" />
-            </div>
-          }
-        >
+        <Suspense fallback={<CategoryTableSkeleton />}>
           <CategoriesClient initialCategories={categories.map(serializeCategory)} />
         </Suspense>
       </DashboardPageContent>

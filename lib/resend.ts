@@ -37,6 +37,8 @@ interface SendEmailParams {
   html: string;
   from?: string;
   replyTo?: string | string[];
+  /** Extra SMTP/API headers (e.g. List-Unsubscribe) */
+  headers?: Record<string, string>;
   attachments?: {
     filename: string;
     content: Buffer | string;
@@ -44,6 +46,9 @@ interface SendEmailParams {
     /** Reference in HTML as src="cid:your-id" */
     inlineContentId?: string;
   }[];
+  /** When set, route through MailHub store provider (transactional) */
+  storeId?: string | null;
+  category?: string | null;
 }
 
 export async function sendEmail({
@@ -52,8 +57,43 @@ export async function sendEmail({
   html,
   from,
   replyTo,
+  headers,
   attachments,
-}: SendEmailParams): Promise<{ success: boolean; error?: string }> {
+  storeId,
+  category,
+}: SendEmailParams): Promise<{
+  success: boolean;
+  id?: string;
+  error?: string;
+}> {
+  if (storeId) {
+    try {
+      const { sendViaMailHub } = await import("@/lib/mailhub/providers");
+      const result = await sendViaMailHub({
+        storeId,
+        purpose: "transactional",
+        category: category ?? "transactional",
+        message: {
+          to,
+          subject,
+          html,
+          from,
+          replyTo,
+          headers,
+          attachments,
+        },
+      });
+      return {
+        success: result.success,
+        id: result.id,
+        error: result.error,
+      };
+    } catch (error) {
+      console.error("[sendEmail/mailhub]", error);
+      // fall through to platform Resend
+    }
+  }
+
   if (!isResendConfigured()) {
     console.warn("Resend not configured — skipping email");
     return { success: false, error: "RESEND_API_KEY not configured" };
@@ -61,7 +101,7 @@ export async function sendEmail({
 
   try {
     const resend = getResend();
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: from ?? getEmailFrom(),
       to: Array.isArray(to) ? to : [to],
       subject,
@@ -71,6 +111,7 @@ export async function sendEmail({
           ? replyTo
           : [replyTo]
         : undefined,
+      headers,
       attachments: attachments?.map((file) => ({
         filename: file.filename,
         content: file.content,
@@ -84,7 +125,10 @@ export async function sendEmail({
       return { success: false, error: error.message };
     }
 
-    return { success: true };
+    return {
+      success: true,
+      id: typeof data?.id === "string" ? data.id : undefined,
+    };
   } catch (error) {
     console.error("Failed to send email:", error);
     return {

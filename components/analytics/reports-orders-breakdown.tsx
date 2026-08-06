@@ -1,6 +1,10 @@
-import { PieChart } from "lucide-react";
 import { OrderStatusBadge } from "@/components/orders/order-status-badge";
-import { dashboardCard, dashboardCardPad, dashboardSubtitle, dashboardTitle } from "@/lib/dashboard-ui";
+import {
+  dashboardCard,
+  dashboardKicker,
+  dashboardSubtitle,
+  dashboardTitle,
+} from "@/lib/dashboard-ui";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types";
 import type { ReportsData } from "@/lib/reports";
@@ -24,21 +28,16 @@ export function ReportsOrdersBreakdown({ ordersByStatus }: ReportsOrdersBreakdow
   const topStatus = ordersByStatus[0];
 
   return (
-    <section className={cn(dashboardCard, dashboardCardPad, "ring-1 ring-neutral-200/60 dark:ring-white/10")}>
+    <section className={cn(dashboardCard, "p-4")}>
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
-            <PieChart className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div>
-            <h2 className={dashboardTitle}>Orders by status</h2>
-            <p className={dashboardSubtitle}>Distribution for this period</p>
-          </div>
+        <div>
+          <h2 className={dashboardTitle}>Orders by status</h2>
+          <p className={dashboardSubtitle}>Distribution for this period</p>
         </div>
         {topStatus ? (
-          <div className="rounded-xl border border-neutral-200/80 bg-white/70 px-3 py-2 text-right dark:border-white/10 dark:bg-white/[0.03]">
-            <p className="text-[10px] uppercase tracking-wide text-neutral-400">Most common</p>
-            <p className="text-sm font-semibold capitalize text-neutral-900 dark:text-white">
+          <div className="text-right">
+            <p className={dashboardKicker}>Most common</p>
+            <p className="mt-0.5 text-[12px] font-semibold capitalize text-neutral-900 dark:text-white">
               {topStatus.status}
             </p>
           </div>
@@ -46,10 +45,12 @@ export function ReportsOrdersBreakdown({ ordersByStatus }: ReportsOrdersBreakdow
       </div>
 
       {ordersByStatus.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">No orders in this period</p>
+        <p className="py-8 text-center text-[12px] text-neutral-400">
+          No orders in this period
+        </p>
       ) : (
         <>
-          <div className="mb-4 flex h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-white/5">
+          <div className="mb-3 flex h-1.5 overflow-hidden rounded-full bg-black/[0.05] dark:bg-white/5">
             {ordersByStatus.map((item) => (
               <div
                 key={item.status}
@@ -61,22 +62,22 @@ export function ReportsOrdersBreakdown({ ordersByStatus }: ReportsOrdersBreakdow
             ))}
           </div>
 
-          <ul className="space-y-3">
+          <ul className="space-y-2.5">
             {ordersByStatus.map((item) => {
               const color = STATUS_COLORS[item.status] ?? "#007AFF";
               const width = `${(item.count / maxCount) * 100}%`;
 
               return (
                 <li key={item.status}>
-                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                  <div className="mb-1 flex items-center justify-between gap-2">
                     <OrderStatusBadge status={item.status as OrderStatus} />
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-[11px] tabular-nums text-neutral-400">
                       {item.count} · {item.share.toFixed(0)}%
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-white/5">
+                  <div className="h-1 overflow-hidden rounded-full bg-black/[0.05] dark:bg-white/5">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full rounded-full"
                       style={{ width, backgroundColor: color }}
                     />
                   </div>

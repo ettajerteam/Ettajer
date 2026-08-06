@@ -1,6 +1,6 @@
 import type { PublicStore } from "@/types/storefront";
 import { Suspense } from "react";
-import { getFontFamily } from "@/lib/storefront-fonts";
+import { getFontFamily, getStoreFontWeight } from "@/lib/storefront-fonts";
 import { getThemeTemplate } from "@/lib/themes";
 import {
   designTokensToCssVars,
@@ -10,6 +10,7 @@ import { getStorefrontCopy, getStorefrontDir, getStorefrontLang } from "@/lib/st
 import { StorefrontCartProvider } from "@/components/storefront/cart/storefront-cart-provider";
 import { MarketingPixels } from "@/components/storefront/marketing-pixels";
 import { UtmCapture } from "@/components/storefront/utm-capture";
+import { StorefrontAnalytics } from "@/components/storefront/storefront-analytics";
 import { PreviewAwareShell } from "@/components/storefront/preview-aware-shell";
 
 interface StorefrontShellProps {
@@ -20,6 +21,14 @@ interface StorefrontShellProps {
     value: number;
     currency: string;
     orderNumber: string;
+    contentIds?: string[];
+    numItems?: number;
+    email?: string | null;
+    phone?: string | null;
+    name?: string | null;
+    city?: string | null;
+    country?: string | null;
+    zip?: string | null;
   };
 }
 
@@ -36,6 +45,7 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
   const lang = getStorefrontLang(store.language);
   const showAnnounce =
     store.announceBarEnabled && Boolean(store.announceBarText?.trim());
+  const fontWeight = getStoreFontWeight(store.font);
 
   const inner = (
     <>
@@ -57,7 +67,16 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
       <Suspense fallback={null}>
         <UtmCapture />
       </Suspense>
-      <MarketingPixels marketing={store.marketing} purchase={purchaseEvent} />
+      {!preview ? (
+        <Suspense fallback={null}>
+          <StorefrontAnalytics storeSlug={store.slug} />
+        </Suspense>
+      ) : null}
+      <MarketingPixels
+        marketing={store.marketing}
+        storeSlug={store.slug}
+        purchase={purchaseEvent}
+      />
     </>
   );
 
@@ -75,7 +94,7 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
     <div
       lang={lang}
       dir={dir}
-      className="min-h-screen"
+      className="min-h-screen font-light antialiased"
       style={
         {
           "--store-primary": store.primaryColor,
@@ -83,6 +102,7 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
           "--store-font": getFontFamily(store.font),
           ...designTokensToCssVars(tokens),
           fontFamily: "var(--store-font)",
+          fontWeight,
           backgroundColor: store.theme === "bold" ? "#0A0A0A" : store.secondaryColor,
           color: tokens.textColor,
         } as React.CSSProperties

@@ -183,6 +183,7 @@ export type EmailCopy = {
     subtotal: string;
     shipping: string;
     shippingFree: string;
+    tax: string;
     total: string;
     footerNote: (storeName: string) => string;
   };
@@ -487,6 +488,7 @@ const EN: EmailCopy = {
     subtotal: "Subtotal",
     shipping: "Shipping",
     shippingFree: "Free",
+    tax: "Tax",
     total: "Total",
     footerNote: (storeName) => `Thank you for shopping with ${storeName}.`,
   },
@@ -534,6 +536,10 @@ const EN: EmailCopy = {
         message: "Your order has been delivered. Enjoy your purchase!",
       },
       returned: { label: "Returned", message: "Your return has been processed." },
+      refunded: {
+        label: "Refunded",
+        message: "Your refund has been processed. The amount will return shortly.",
+      },
       cancelled: {
         label: "Cancelled",
         message:
@@ -831,6 +837,7 @@ const FR: EmailCopy = {
     subtotal: "Sous-total",
     shipping: "Livraison",
     shippingFree: "Gratuit",
+    tax: "Taxe",
     total: "Total",
     footerNote: (storeName) => `Merci d'avoir acheté chez ${storeName}.`,
   },
@@ -878,6 +885,10 @@ const FR: EmailCopy = {
         message: "Votre commande a été livrée. Bon shopping !",
       },
       returned: { label: "Retournée", message: "Votre retour a été traité." },
+      refunded: {
+        label: "Remboursée",
+        message: "Votre remboursement a été traité. Le montant sera crédité sous peu.",
+      },
       cancelled: {
         label: "Annulée",
         message:
@@ -1171,6 +1182,7 @@ const AR: EmailCopy = {
     subtotal: "المجموع الفرعي",
     shipping: "الشحن",
     shippingFree: "مجاني",
+    tax: "الضريبة",
     total: "الإجمالي",
     footerNote: (storeName) => `شكراً لتسوقك من ${storeName}.`,
   },
@@ -1218,6 +1230,10 @@ const AR: EmailCopy = {
         message: "تم تسليم طلبك. نتمنى لك تسوقاً ممتعاً!",
       },
       returned: { label: "مُرتجع", message: "تمت معالجة إرجاعك." },
+      refunded: {
+        label: "مُسترد",
+        message: "تمت معالجة استردادك. سيُعاد المبلغ قريباً.",
+      },
       cancelled: {
         label: "ملغى",
         message: "تم إلغاء طلبك. تواصل مع المتجر إذا لديك أسئلة.",

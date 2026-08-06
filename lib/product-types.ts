@@ -1,4 +1,4 @@
-export const PRODUCT_STATUSES = ["draft", "active"] as const;
+export const PRODUCT_STATUSES = ["draft", "active", "archived"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
 
 export const PRODUCT_TYPES = ["physical", "digital", "service", "dropshipping"] as const;
@@ -32,7 +32,7 @@ export const PRODUCT_TYPE_OPTIONS: {
 ];
 
 export function isProductStatus(value: unknown): value is ProductStatus {
-  return value === "draft" || value === "active";
+  return value === "draft" || value === "active" || value === "archived";
 }
 
 export function isProductType(value: unknown): value is ProductType {

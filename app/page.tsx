@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import { EttajerHomePage } from "@/components/landing/ettajer-home-page";
 import { LandingLocaleProvider } from "@/components/landing/landing-locale-context";
 import { LandingLocaleShell } from "@/components/landing/landing-locale-shell";
+import { GoogleOneTapHost } from "@/components/auth/google-one-tap";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getLandingSeo } from "@/lib/landing/landing-seo";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
@@ -25,16 +26,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function HomePage() {
   const locale = await getServerLocale();
+  const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() || "";
 
   return (
     <>
       <JsonLd graph={buildHomeGraph(locale)} />
       <LandingLocaleProvider>
         <LandingLocaleShell>
+          <GoogleOneTapHost clientId={googleClientId} autoSelect context="signin" />
           <main
             className={`${outfit.variable} min-h-screen w-full max-w-full overflow-x-hidden font-[family-name:var(--font-landing)]`}
           >
-            <EttajerHomePage />
+            <EttajerHomePage googleEnabled={!!googleClientId} />
           </main>
         </LandingLocaleShell>
       </LandingLocaleProvider>

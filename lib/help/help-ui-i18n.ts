@@ -78,6 +78,36 @@ export type HelpChecklistCopy = {
   items: HelpChecklistItemCopy[];
 };
 
+export type HelpMarketingGuidesCopy = {
+  title: string;
+  subtitle: string;
+  openInDashboard: string;
+  readGuide: string;
+  guidesAria: string;
+  browseAll: string;
+  items: HelpChecklistItemCopy[];
+};
+
+export type HelpDomainGuidesCopy = {
+  title: string;
+  subtitle: string;
+  readGuide: string;
+  openDomains: string;
+  guidesAria: string;
+  browseAll: string;
+  items: HelpChecklistItemCopy[];
+};
+
+export type HelpPaymentGuidesCopy = {
+  title: string;
+  subtitle: string;
+  readGuide: string;
+  openPayments: string;
+  guidesAria: string;
+  browseAll: string;
+  items: HelpChecklistItemCopy[];
+};
+
 export type HelpArticleUiCopy = {
   getHelp: string;
   helpCenter: string;
@@ -102,6 +132,9 @@ export type HelpCopy = {
   page: HelpPageCopy;
   search: HelpSearchCopy;
   checklist: HelpChecklistCopy;
+  paymentGuides: HelpPaymentGuidesCopy;
+  marketingGuides: HelpMarketingGuidesCopy;
+  domainGuides: HelpDomainGuidesCopy;
   article: HelpArticleUiCopy;
   categories: HelpCategoryTranslations;
 };
@@ -178,16 +211,110 @@ const EN: HelpCopy = {
         description: "Upload photos, set price, and publish.",
       },
       {
-        title: "Customize your storefront",
-        description: "Edit your theme in the visual builder.",
+        title: "Share your store link",
+        description: "Send your live store on WhatsApp to get buyers.",
       },
       {
-        title: "Enable COD checkout",
-        description: "Turn on cash on delivery and verification.",
+        title: "Customize your storefront",
+        description: "Edit your theme in the visual builder (optional).",
       },
       {
         title: "Connect your domain",
-        description: "Use your own domain with free SSL.",
+        description: "Use your own domain with free SSL (later).",
+      },
+    ],
+  },
+  marketingGuides: {
+    title: "Marketing platforms",
+    subtitle: "One guide per ads and email platform — open the setup page from here.",
+    openInDashboard: "Open in dashboard",
+    readGuide: "Read guide",
+    guidesAria: "Marketing platform guides",
+    browseAll: "All marketing articles →",
+    items: [
+      {
+        title: "Meta (Facebook & Instagram)",
+        description: "Pixel, Conversions API, catalog, and ads checklist.",
+      },
+      {
+        title: "TikTok",
+        description: "TikTok Pixel for ViewContent, AddToCart, and Purchase.",
+      },
+      {
+        title: "Google Tag Manager",
+        description: "Load GTM once — fire tags from your container.",
+      },
+      {
+        title: "Pinterest",
+        description: "Pinterest Tag for browse and checkout events.",
+      },
+      {
+        title: "Snapchat",
+        description: "Snap Pixel for ads measurement and retargeting.",
+      },
+      {
+        title: "Email Marketing",
+        description: "Launch checklist from empty list to first campaign.",
+      },
+    ],
+  },
+  paymentGuides: {
+    title: "Payment platforms",
+    subtitle: "COD and PayPal now — Stripe cards in about 2 months.",
+    readGuide: "Read guide",
+    openPayments: "Open Payments",
+    guidesAria: "Payment platform guides",
+    browseAll: "All payment articles →",
+    items: [
+      {
+        title: "Cash on delivery",
+        description: "Native COD checkout — confirm buyers before you ship.",
+      },
+      {
+        title: "Stripe",
+        description: "Coming in ~2 months — visible but cannot activate yet.",
+      },
+      {
+        title: "PayPal",
+        description: "Client ID + Secret, verify, then get paid at checkout.",
+      },
+      {
+        title: "Online payments overview",
+        description: "PayPal with COD now; Stripe cards later.",
+      },
+    ],
+  },
+  domainGuides: {
+    title: "Connect your domain",
+    subtitle: "Tutorials for Namecheap, GoDaddy, Cloudflare, and more.",
+    readGuide: "Read tutorial",
+    openDomains: "Open Domains",
+    guidesAria: "Domain registrar tutorials",
+    browseAll: "All domain articles →",
+    items: [
+      {
+        title: "Namecheap",
+        description: "Add A + CNAME records in Advanced DNS.",
+      },
+      {
+        title: "GoDaddy",
+        description: "Edit DNS in My Products → DNS.",
+      },
+      {
+        title: "Cloudflare",
+        description: "DNS-only records (grey cloud) for SSL.",
+      },
+      {
+        title: "Hostinger",
+        description: "Point DNS from hPanel → Domains.",
+      },
+      {
+        title: "OVHcloud",
+        description: "Zone DNS records for .ma and EU domains.",
+      },
+      {
+        title: "Google Domains",
+        description: "Squarespace Domains DNS (ex-Google Domains).",
       },
     ],
   },
@@ -275,16 +402,110 @@ const FR: HelpCopy = {
         description: "Téléversez des photos, fixez le prix et publiez.",
       },
       {
-        title: "Personnaliser votre boutique",
-        description: "Modifiez votre thème dans l'éditeur visuel.",
+        title: "Partagez le lien de votre boutique",
+        description: "Envoyez votre boutique live sur WhatsApp pour attirer des acheteurs.",
       },
       {
-        title: "Activer le paiement COD",
-        description: "Activez le paiement à la livraison et la vérification.",
+        title: "Personnaliser votre boutique",
+        description: "Modifiez votre thème dans l'éditeur visuel (optionnel).",
       },
       {
         title: "Connecter votre domaine",
-        description: "Utilisez votre domaine avec SSL gratuit.",
+        description: "Utilisez votre domaine avec SSL gratuit (plus tard).",
+      },
+    ],
+  },
+  marketingGuides: {
+    title: "Plateformes marketing",
+    subtitle: "Un guide par plateforme pubs et e-mail — ouvrez la page de config ici.",
+    openInDashboard: "Ouvrir dans le tableau de bord",
+    readGuide: "Lire le guide",
+    guidesAria: "Guides plateformes marketing",
+    browseAll: "Tous les articles marketing →",
+    items: [
+      {
+        title: "Meta (Facebook & Instagram)",
+        description: "Pixel, Conversions API, catalogue et checklist pubs.",
+      },
+      {
+        title: "TikTok",
+        description: "Pixel TikTok pour ViewContent, AddToCart et Purchase.",
+      },
+      {
+        title: "Google Tag Manager",
+        description: "Chargez GTM une fois — déclenchez vos tags dans le conteneur.",
+      },
+      {
+        title: "Pinterest",
+        description: "Tag Pinterest pour navigation et checkout.",
+      },
+      {
+        title: "Snapchat",
+        description: "Snap Pixel pour mesure et remarketing.",
+      },
+      {
+        title: "Email Marketing",
+        description: "Checklist du lancement — liste vide à première campagne.",
+      },
+    ],
+  },
+  paymentGuides: {
+    title: "Plateformes de paiement",
+    subtitle: "COD et PayPal maintenant — cartes Stripe dans ~2 mois.",
+    readGuide: "Lire le guide",
+    openPayments: "Ouvrir Paiements",
+    guidesAria: "Guides plateformes de paiement",
+    browseAll: "Tous les articles paiement →",
+    items: [
+      {
+        title: "Paiement à la livraison",
+        description: "COD natif — confirmez les acheteurs avant d’expédier.",
+      },
+      {
+        title: "Stripe",
+        description: "Dans ~2 mois — visible mais pas encore activable.",
+      },
+      {
+        title: "PayPal",
+        description: "Client ID + Secret, vérifier, puis encaisser au checkout.",
+      },
+      {
+        title: "Vue d’ensemble paiements en ligne",
+        description: "PayPal avec COD maintenant ; Stripe plus tard.",
+      },
+    ],
+  },
+  domainGuides: {
+    title: "Connecter votre domaine",
+    subtitle: "Tutoriels Namecheap, GoDaddy, Cloudflare et plus.",
+    readGuide: "Lire le tutoriel",
+    openDomains: "Ouvrir Domaines",
+    guidesAria: "Tutoriels registrars",
+    browseAll: "Tous les articles domaines →",
+    items: [
+      {
+        title: "Namecheap",
+        description: "Ajouter A + CNAME dans Advanced DNS.",
+      },
+      {
+        title: "GoDaddy",
+        description: "Modifier le DNS dans My Products → DNS.",
+      },
+      {
+        title: "Cloudflare",
+        description: "Enregistrements DNS only (nuage gris) pour le SSL.",
+      },
+      {
+        title: "Hostinger",
+        description: "Pointer le DNS depuis hPanel → Domains.",
+      },
+      {
+        title: "OVHcloud",
+        description: "Zone DNS pour domaines .ma et UE.",
+      },
+      {
+        title: "Google Domains",
+        description: "DNS Squarespace Domains (ex-Google Domains).",
       },
     ],
   },
@@ -315,8 +536,8 @@ const FR: HelpCopy = {
       description: "Pages, sections et identité visuelle.",
     },
     "orders-cod": {
-      title: "Commandes & COD",
-      description: "Paiement, vérification et expédition.",
+      title: "Commandes & paiements",
+      description: "COD, Stripe, PayPal, checkout et expédition.",
     },
     "domains-hosting": {
       title: "Domaines & hébergement",
@@ -328,7 +549,8 @@ const FR: HelpCopy = {
     },
     marketing: {
       title: "Marketing",
-      description: "Pixels, campagnes et plateformes publicitaires.",
+      description:
+        "E-mail, pixels pubs et réductions.",
     },
     analytics: {
       title: "Analytique",
@@ -418,16 +640,110 @@ const AR: HelpCopy = {
         description: "ارفع الصور، حدّد السعر، وانشر.",
       },
       {
-        title: "تخصيص واجهة المتجر",
-        description: "عدّل القالب في المحرر المرئي.",
+        title: "شارك رابط متجرك",
+        description: "أرسل متجرك المباشر عبر واتساب لجذب المشترين.",
       },
       {
-        title: "تفعيل الدفع عند الاستلام",
-        description: "فعّل COD والتحقق من الطلبات.",
+        title: "تخصيص واجهة المتجر",
+        description: "عدّل القالب في المحرر المرئي (اختياري).",
       },
       {
         title: "ربط نطاقك",
-        description: "استخدم نطاقك مع SSL مجاني.",
+        description: "استخدم نطاقك مع SSL مجاني (لاحقاً).",
+      },
+    ],
+  },
+  marketingGuides: {
+    title: "منصات التسويق",
+    subtitle: "دليل لكل منصة إعلانات وبريد — افتح صفحة الإعداد من هنا.",
+    openInDashboard: "فتح في لوحة التحكم",
+    readGuide: "قراءة الدليل",
+    guidesAria: "أدلة منصات التسويق",
+    browseAll: "كل مقالات التسويق →",
+    items: [
+      {
+        title: "Meta (فيسبوك وإنستغرام)",
+        description: "البكسل وConversions API والكتالوج وقائمة الإعلانات.",
+      },
+      {
+        title: "TikTok",
+        description: "بكسل TikTok لـ ViewContent وAddToCart وPurchase.",
+      },
+      {
+        title: "Google Tag Manager",
+        description: "حمّل GTM مرة واحدة — شغّل الوسوم من الحاوية.",
+      },
+      {
+        title: "Pinterest",
+        description: "وسم Pinterest للتصفح وإتمام الشراء.",
+      },
+      {
+        title: "Snapchat",
+        description: "Snap Pixel للقياس وإعادة الاستهداف.",
+      },
+      {
+        title: "التسويق بالبريد",
+        description: "قائمة الإطلاق من قائمة فارغة إلى أول حملة.",
+      },
+    ],
+  },
+  paymentGuides: {
+    title: "منصات الدفع",
+    subtitle: "COD وPayPal الآن — بطاقات Stripe خلال نحو شهرين.",
+    readGuide: "قراءة الدليل",
+    openPayments: "فتح المدفوعات",
+    guidesAria: "أدلة منصات الدفع",
+    browseAll: "كل مقالات الدفع →",
+    items: [
+      {
+        title: "الدفع عند الاستلام",
+        description: "COD مدمج — أكّد المشترين قبل الشحن.",
+      },
+      {
+        title: "Stripe",
+        description: "خلال ~شهرين — يظهر لكن لا يمكن تفعيله بعد.",
+      },
+      {
+        title: "PayPal",
+        description: "Client ID والسر، تحقق، ثم استلم عند الدفع.",
+      },
+      {
+        title: "نظرة عامة على الدفع أونلاين",
+        description: "PayPal مع COD الآن؛ Stripe لاحقاً.",
+      },
+    ],
+  },
+  domainGuides: {
+    title: "ربط نطاقك",
+    subtitle: "دروس Namecheap وGoDaddy وCloudflare والمزيد.",
+    readGuide: "قراءة الدليل",
+    openDomains: "فتح النطاقات",
+    guidesAria: "دروس مسجّلي النطاقات",
+    browseAll: "كل مقالات النطاقات →",
+    items: [
+      {
+        title: "Namecheap",
+        description: "أضف سجلات A وCNAME في Advanced DNS.",
+      },
+      {
+        title: "GoDaddy",
+        description: "عدّل DNS من My Products → DNS.",
+      },
+      {
+        title: "Cloudflare",
+        description: "سجلات DNS only (سحابة رمادية) لـ SSL.",
+      },
+      {
+        title: "Hostinger",
+        description: "وجّه DNS من hPanel → Domains.",
+      },
+      {
+        title: "OVHcloud",
+        description: "سجلات المنطقة لنطاقات .ma وأوروبا.",
+      },
+      {
+        title: "Google Domains",
+        description: "DNS في Squarespace Domains (سابقاً Google).",
       },
     ],
   },
@@ -458,8 +774,8 @@ const AR: HelpCopy = {
       description: "تصميم الصفحات والأقسام وهوية العلامة.",
     },
     "orders-cod": {
-      title: "الطلبات والدفع عند الاستلام",
-      description: "الدفع والتحقق والشحن.",
+      title: "الطلبات والمدفوعات",
+      description: "COD وStripe وPayPal والدفع والشحن.",
     },
     "domains-hosting": {
       title: "النطاقات والاستضافة",
@@ -471,7 +787,7 @@ const AR: HelpCopy = {
     },
     marketing: {
       title: "التسويق",
-      description: "البكسل والحملات ومنصات الإعلان.",
+      description: "البريد وبكسل الإعلانات والخصومات.",
     },
     analytics: {
       title: "التحليلات",

@@ -60,12 +60,14 @@ model User {
   status              String         @default("active")
   role                String         @default("merchant")
   founderNumber       Int?           @unique
+  plan                String         @default("free")
   marketingEmails     Boolean        @default(false)
   termsAcceptedAt     DateTime?
   stores              Store[]
   accounts            Account[]
   sessions            Session[]
   loginAttempts       LoginAttempt[]
+  paymentAccounts     PaymentAccount[]
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @default(now()) @updatedAt
 }
@@ -94,7 +96,7 @@ model Store {
   logo           String?
   description    String?
   category       String?
-  businessModel  String?        // physical | digital | dropshipping
+  businessModel  String?        // physical | digital | dropshipping (comma-separated when multiple)
   websiteTemplateId String?
   currency       String         @default("MAD")
   primaryColor   String         @default("#007AFF")
@@ -111,6 +113,7 @@ model Store {
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   products       Product[]
   orders         Order[]
+  customers      Customer[]
   settings       StoreSettings?
   categories     Category[]
   collections    Collection[]
@@ -123,7 +126,98 @@ model Store {
   mediaFolders   MediaFolder[]
   builderComponents BuilderComponent[]
   newsletterSubscribers NewsletterSubscriber[]
+  newsletterSends       NewsletterSend[]
+  audienceSegments      AudienceSegment[]
+  emailTemplates        EmailTemplate[]
+  emailAutomations      EmailAutomation[]
+  automationExecutions  AutomationExecution[]
+  emailJobs             EmailJob[]
+  emailEvents           EmailEvent[]
+  emailSendingDomains   EmailSendingDomain[]
+  emailSuppressions     EmailSuppression[]
+  emailJourneys         EmailJourney[]
+  customerIntelligences CustomerIntelligence[]
+  productBrowseEvents   ProductBrowseEvent[]
+  emailExperiments      EmailExperiment[]
+  sendTimeProfiles      SendTimeProfile[]
+  storeEmailProviders   StoreEmailProvider[]
+  emailIdentities       EmailIdentity[]
+  emailLogs             EmailLog[]
+  emailHealth           EmailHealth?
   contactSubmissions ContactSubmission[]
+  pageViews          StorePageView[]
+  marketingEventLogs MarketingEventLog[]
+  notifications      Notification[]
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** order | order_status | message | stock | abandoned */
+  kind        String
+  title       String
+  body        String
+  href        String?
+  /** order | contact | product | abandoned */
+  entityType  String?
+  entityId    String?
+  readAt      DateTime?
+  dismissedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([storeId, readAt, dismissedAt])
+  @@index([storeId, kind])
+  @@index([storeId, kind, entityId, createdAt])
+}
+
+model StorePageView {
+  id         String   @id @default(cuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sessionId  String
+  path       String
+  referrer   String?
+  utmSource  String?
+  utmMedium  String?
+  utmCampaign String?
+  country    String?
+  city       String?
+  device     String?
+  browser    String?
+  createdAt  DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([storeId, sessionId, createdAt])
+  @@index([storeId, city, createdAt])
+}
+
+/** Server-side Meta CAPI (and similar) delivery log for merchant diagnostics. */
+model MarketingEventLog {
+  id         String   @id @default(cuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** meta | tiktok | … */
+  platform   String   @default("meta")
+  /** capi */
+  channel    String   @default("capi")
+  eventName  String
+  eventId    String?
+  /** ok | error | skipped */
+  status     String
+  /** storefront | cart | checkout */
+  source     String?
+  httpStatus Int?
+  error      String?  @db.Text
+  testMode   Boolean  @default(false)
+  /** Non-PII extras: value, currency, orderId, contentIds */
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([storeId, status, createdAt])
+  @@index([storeId, eventName, createdAt])
 }
 
 model MediaFolder {
@@ -178,7 +272,7 @@ model Product {
   inventory    Int         @default(0)
   sku          String?
   barcode      String?
-  /** draft | active — drafts stay off the storefront */
+  /** draft | active | archived — drafts stay off the storefront */
   status       String      @default("active")
   /** physical | digital | service | dropshipping */
   productType  String      @default("physical")
@@ -191,6 +285,10 @@ model Product {
   reviews      Json        @default("[]")
   /** Spec rows shown on the product page: [{ id, label, value }] */
   details      Json        @default("[]")
+  /** SEO overrides: { title?, description?, keywords? } */
+  seo          Json?
+  /** Commerce extras: vendor, shipping, tax, visibility, related products… */
+  commerce     Json?
   tags             String[]
   ticketPrinterId  String?
   storeId          String
@@ -218,6 +316,17 @@ model Order {
   tax             Float
   discount        Float                 @default(0)
   couponCode      String?
+  /** cod | stripe | other */
+  paymentMethod   String?
+  /** unpaid | paid | refunded | partially_refunded */
+  paymentStatus   String                @default("unpaid")
+  refundedAmount  Float                 @default(0)
+  /** Internal merchant notes (refunds, courier, COD confirmation) */
+  merchantNote    String?               @db.Text
+  /** Prevents double inventory restore on cancel/return/refund */
+  inventoryRestored Boolean             @default(false)
+  /** Sandbox / platform test checkout — excluded from real GMV in admin */
+  isTest          Boolean               @default(false)
   utmSource       String?
   utmMedium       String?
   utmCampaign     String?
@@ -236,7 +345,11 @@ model Order {
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
+  @@index([storeId])
+  @@index([storeId, status])
   @@index([customerId])
+  @@index([paymentStatus])
+  @@index([isTest])
 }
 
 model OrderStatusHistory {
@@ -267,13 +380,45 @@ model StoreSettings {
   paymentGateways Json    @default("{}")
   ticketPrinters         Json    @default("[]")
   marketingIntegrations  Json    @default("{}")
+  /** Welcome email + future newsletter automations */
+  newsletterAutomations  Json    @default("{}")
   customDomain           String?
+  /** Preferred public host for apex domains: "apex" | "www" (ignored for subdomains). */
+  domainPrimary          String?  @default("apex")
   seo             Json?
   navigation      Json    @default("[]")
   homeLayout      Json    @default("[]")
   productLayout   Json    @default("[]")
   collectionLayout Json   @default("[]")
   blogPostLayout  Json    @default("[]")
+}
+
+/**
+ * Merchant payment provider connections (Stripe Connect, PayPal, Payoneer…).
+ * Customer order money goes to the merchant's provider account — not Ettajer.
+ * Ettajer SaaS subscription billing stays separate (never mix).
+ */
+model PaymentAccount {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** stripe | paypal | payoneer | mangopay */
+  provider         String
+  /** External account id (e.g. Stripe acct_…) */
+  accountId        String
+  /** not_started | pending | restricted | active | disabled */
+  onboardingStatus String   @default("not_started")
+  chargesEnabled   Boolean  @default(false)
+  payoutsEnabled   Boolean  @default(false)
+  detailsSubmitted Boolean  @default(false)
+  /** Raw provider capabilities / country / email for admin debug */
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([provider, accountId])
+  @@index([onboardingStatus])
 }
 
 model BuilderComponent {
@@ -331,13 +476,22 @@ model Collection {
 
 model Customer {
   id        String   @id @default(cuid())
-  email     String   @unique
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  email     String
   name      String?
   phone     String?
   address   Json?
+  /** Merchant tags for segment filters */
+  tags      String[] @default([])
+  /** Preferred language code (e.g. en, fr, ar) */
+  language  String?
   orders    Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([storeId, email])
+  @@index([storeId])
 }
 
 model Coupon {
@@ -411,18 +565,624 @@ model StorePage {
 }
 
 model NewsletterSubscriber {
-  id        String    @id @default(cuid())
-  email     String
-  source    String?   // e.g. newsletter | collection | footer
-  status    String    @default("active") // active | unsubscribed
-  storeId   String
-  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  email            String
+  source           String?   // e.g. newsletter | collection | footer
+  /** active | unsubscribed | bounced | complained */
+  status           String    @default("active")
+  /** Merchant tags for segment filters */
+  tags             String[]  @default([])
+  /** Preferred language code (e.g. en, fr, ar) */
+  language         String?
+  /** Stable token for preferences + one-click unsubscribe links */
+  unsubscribeToken String?   @unique
+  unsubscribedAt   DateTime?
+  storeId          String
+  store            Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@unique([storeId, email])
   @@index([storeId])
   @@index([status])
+  @@index([unsubscribeToken])
+}
+
+model NewsletterSend {
+  id             String    @id @default(cuid())
+  storeId        String
+  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** Optional display name for the campaign */
+  name           String?
+  templateId     String
+  subject        String
+  recipientCount Int       @default(0)
+  sentCount      Int       @default(0)
+  failedCount    Int       @default(0)
+  deliveredCount Int       @default(0)
+  openedCount    Int       @default(0)
+  clickedCount   Int       @default(0)
+  bouncedCount   Int       @default(0)
+  /** Atlas revenue attribution (orders matched via UTM / window) */
+  attributedRevenue Float  @default(0)
+  attributedOrders  Int    @default(0)
+  attributedAt      DateTime?
+  /** utm_campaign value stamped on email links for this send */
+  attributionKey String?
+  /**
+   * draft | scheduled | sending | sent | archived | cancelled
+   * Legacy: queued→sending, completed→sent
+   */
+  status         String    @default("draft")
+  /** UTC instant when the campaign should start sending */
+  scheduledAt    DateTime?
+  /** IANA timezone used when the merchant picked scheduledAt (e.g. Africa/Casablanca) */
+  timezone       String?
+  /** Render snapshot for draft/scheduled campaigns (enqueued later) */
+  payload        Json?
+  /** When jobs were first enqueued into the email queue */
+  queuedAt       DateTime?
+  /** Audience segment ids — empty = all active subscribers. Multiple = union. */
+  segmentIds     String[]  @default([])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  emailJobs      EmailJob[]
+  emailEvents    EmailEvent[]
+
+  @@index([storeId, createdAt])
+  @@index([storeId, status])
+  @@index([status, scheduledAt])
+}
+
+/**
+ * Dynamic audience segment — filters re-evaluated at count/send time (auto-updating).
+ */
+model AudienceSegment {
+  id          String    @id @default(cuid())
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  /**
+   * JSON: { match: "all"|"any", filters: SegmentFilter[] }
+   * See lib/email-marketing/segment-types.ts
+   */
+  filters     Json
+  /** Last resolved member count (refreshed dynamically) */
+  cachedCount Int       @default(0)
+  cachedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([storeId, updatedAt])
+  @@index([storeId, name])
+}
+
+/**
+ * Durable outbound marketing email queue.
+ * Worker claims rows with status pending/scheduled/failed and availableAt <= now.
+ */
+model EmailJob {
+  id                 String    @id @default(cuid())
+  storeId            String
+  store              Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** campaign | automation */
+  kind               String
+  /** pending | scheduled | sending | sent | failed | cancelled */
+  status             String    @default("pending")
+  toEmail            String
+  subject            String
+  /** Render snapshot: template fields + store context (HTML built at send time) */
+  payload            Json
+  /** Globally unique — prevents duplicate sends */
+  idempotencyKey     String    @unique
+  newsletterSendId   String?
+  newsletterSend     NewsletterSend? @relation(fields: [newsletterSendId], references: [id], onDelete: SetNull)
+  automationTrigger  String?
+  automationExecutionId String?  @unique
+  automationExecution   AutomationExecution? @relation(fields: [automationExecutionId], references: [id], onDelete: SetNull)
+  /** Provider message id (e.g. Resend email id) for webhook correlation */
+  providerMessageId  String?
+  emailTemplateId    String?
+  scheduledAt        DateTime?
+  /** Worker may claim when availableAt <= now */
+  availableAt        DateTime  @default(now())
+  attempts           Int       @default(0)
+  maxAttempts        Int       @default(5)
+  lastError          String?   @db.Text
+  lockedAt           DateTime?
+  lockedBy           String?
+  sentAt             DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  emailEvents        EmailEvent[]
+
+  @@index([status, availableAt])
+  @@index([storeId, status, createdAt])
+  @@index([newsletterSendId, status])
+  @@index([storeId, kind, createdAt])
+  @@index([toEmail, storeId])
+  @@index([providerMessageId])
+}
+
+/**
+ * Merchant-owned email templates for Email Marketing.
+ * Cloned from the built-in gallery or created from scratch.
+ */
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  /** Built-in gallery id when cloned (promo, welcome, …) */
+  galleryId String?
+  themeId   String   @default("store")
+  subject   String
+  title     String
+  body      String   @db.Text
+  ctaLabel  String   @default("")
+  ctaUrl    String   @default("")
+  /**
+   * Draggable email blocks. Product blocks store product IDs and resolve
+   * live image/price/variant data at preview and send time.
+   * See lib/email-marketing/email-blocks.ts
+   */
+  blocks    Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  automations EmailAutomation[]
+
+  @@index([storeId, updatedAt])
+}
+
+/**
+ * One automation per customer trigger per store.
+ * Sends the linked EmailTemplate when the trigger fires.
+ */
+model EmailAutomation {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name         String
+  /** newsletter_subscribe | order_placed | abandoned_cart | customer_created */
+  trigger      String
+  enabled      Boolean  @default(false)
+  templateId   String
+  template     EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  delayMinutes Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  executions   AutomationExecution[]
+
+  @@unique([storeId, trigger])
+  @@index([storeId, enabled])
+  @@index([templateId])
+}
+
+/**
+ * One row per logical automation fire (order, cart, subscriber, customer…).
+ * Unique idempotencyKey guarantees at-most-once enqueue/send.
+ */
+model AutomationExecution {
+  id             String    @id @default(cuid())
+  storeId        String
+  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  automationId   String
+  automation     EmailAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  subscriberId   String?
+  orderId        String?
+  cartId         String?
+  customerId     String?
+  /** pending | queued | sent | failed | skipped | cancelled */
+  status         String    @default("pending")
+  /** Deterministic key: automationId + primary entity (see trigger def) */
+  idempotencyKey String    @unique
+  lastError      String?   @db.Text
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  emailJob       EmailJob?
+
+  @@index([storeId, status, createdAt])
+  @@index([automationId, status])
+  @@index([subscriberId])
+  @@index([orderId])
+  @@index([cartId])
+  @@index([customerId])
+}
+
+/**
+ * Provider-agnostic email engagement / delivery event stream.
+ * System emits sent/failed; Resend (etc.) webhooks emit delivered/opened/clicked/bounced.
+ * Idempotent via @@unique([provider, providerEventId]).
+ */
+model EmailEvent {
+  id                    String   @id @default(cuid())
+  storeId               String
+  store                 Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** sent | delivered | opened | clicked | bounced | complained | unsubscribed | failed */
+  type                  String
+  toEmail               String?
+  emailJobId            String?
+  emailJob              EmailJob? @relation(fields: [emailJobId], references: [id], onDelete: SetNull)
+  newsletterSendId      String?
+  newsletterSend        NewsletterSend? @relation(fields: [newsletterSendId], references: [id], onDelete: SetNull)
+  automationExecutionId String?
+  /** system | resend | sendgrid | ses | … */
+  provider              String   @default("system")
+  /** Provider message / email id for correlation */
+  providerMessageId     String?
+  /** Unique per provider — webhook idempotency key */
+  providerEventId       String
+  metadata              Json?
+  occurredAt            DateTime @default(now())
+  createdAt             DateTime @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([storeId, type, occurredAt])
+  @@index([storeId, occurredAt])
+  @@index([newsletterSendId, type])
+  @@index([emailJobId, type])
+  @@index([providerMessageId])
+  @@index([toEmail, storeId])
+}
+
+model EmailSendingDomain {
+  id               String    @id @default(cuid())
+  storeId          String
+  store            Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /** e.g. mail.example.com or example.com */
+  domain           String
+  /** resend | postmark | sendgrid | ses | mailgun | brevo | smtp | ettajer_managed */
+  provider         String    @default("resend")
+  /** Linked MailHub provider config (optional) */
+  storeEmailProviderId String?
+  storeEmailProvider   StoreEmailProvider? @relation(fields: [storeEmailProviderId], references: [id], onDelete: SetNull)
+  /** Provider-side domain id when synced via API */
+  providerDomainId String?
+  /** unknown | pending | verified | failed */
+  spfStatus        String    @default("pending")
+  dkimStatus       String    @default("pending")
+  dmarcStatus      String    @default("pending")
+  returnPathStatus String    @default("pending")
+  mxStatus         String    @default("unknown")
+  /** pending | verified | failed — aggregate of auth records */
+  verificationStatus String  @default("pending")
+  isDefault        Boolean   @default(false)
+  spfCheckedAt     DateTime?
+  dkimCheckedAt    DateTime?
+  dmarcCheckedAt   DateTime?
+  /** Last verification detail per record type */
+  lastCheckDetail  Json?
+  /** Expected / observed snapshots for the UI */
+  expectedRecords  Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  identities       EmailIdentity[]
+
+  @@unique([storeId, domain])
+  @@index([storeId, updatedAt])
+  @@index([storeId, provider])
+  @@index([storeId, verificationStatus])
+  @@index([storeEmailProviderId])
+}
+
+/**
+ * Project MailHub — per-store ESP / SMTP configuration.
+ * Secrets live in encryptedConfig (AES-GCM); never return plaintext to the client.
+ */
+model StoreEmailProvider {
+  id                      String   @id @default(cuid())
+  storeId                 String
+  store                   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name                    String
+  /**
+   * ettajer_managed | resend | postmark | sendgrid | ses | mailgun | brevo | smtp
+   */
+  kind                    String
+  /** draft | active | disabled */
+  status                  String   @default("draft")
+  isDefaultMarketing      Boolean  @default(false)
+  isDefaultTransactional  Boolean  @default(false)
+  /** AES-GCM ciphertext of provider secrets JSON */
+  encryptedConfig         String   @db.Text
+  /** Non-secret display hints (host, region, from domain) */
+  publicConfig            Json     @default("{}")
+  lastTestAt              DateTime?
+  lastTestOk              Boolean?
+  lastTestLatencyMs       Int?
+  lastTestError           String?  @db.Text
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  domains                 EmailSendingDomain[]
+  identities              EmailIdentity[]
+  logs                    EmailLog[]
+
+  @@index([storeId, status, updatedAt])
+  @@index([storeId, kind])
+  @@index([storeId, isDefaultMarketing])
+  @@index([storeId, isDefaultTransactional])
+}
+
+/**
+ * Verified (or pending) from-addresses for a store.
+ */
+model EmailIdentity {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  email       String
+  displayName String?
+  /** marketing | transactional | both */
+  purpose     String   @default("both")
+  /** pending | verified | failed */
+  status      String   @default("pending")
+  isDefault   Boolean  @default(false)
+  domainId    String?
+  domain      EmailSendingDomain? @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  storeEmailProviderId String?
+  storeEmailProvider   StoreEmailProvider? @relation(fields: [storeEmailProviderId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([storeId, email])
+  @@index([storeId, status])
+  @@index([storeId, isDefault])
+  @@index([domainId])
+}
+
+/**
+ * Searchable outbound email log (marketing + transactional + test).
+ */
+model EmailLog {
+  id                String   @id @default(cuid())
+  storeId           String
+  store             Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeEmailProviderId String?
+  storeEmailProvider   StoreEmailProvider? @relation(fields: [storeEmailProviderId], references: [id], onDelete: SetNull)
+  /** Provider kind string */
+  provider          String
+  toEmail           String
+  fromEmail         String
+  subject           String
+  /** marketing | transactional | test */
+  type              String
+  /** order.confirmed | campaign | automation | journey | … */
+  category          String?
+  campaignId        String?
+  automationId      String?
+  emailJobId        String?
+  /**
+   * queued | sent | delivered | opened | clicked | bounced |
+   * complained | rejected | failed
+   */
+  status            String   @default("queued")
+  providerMessageId String?
+  latencyMs         Int?
+  error             String?  @db.Text
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([storeId, createdAt])
+  @@index([storeId, status, createdAt])
+  @@index([storeId, type, createdAt])
+  @@index([storeId, toEmail])
+  @@index([providerMessageId])
+  @@index([campaignId])
+}
+
+/**
+ * Rolling deliverability health for a store (MailHub).
+ */
+model EmailHealth {
+  id               String   @id @default(cuid())
+  storeId          String   @unique
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  healthScore      Float    @default(0)
+  bounceRate       Float    @default(0)
+  complaintRate    Float    @default(0)
+  openRate         Float    @default(0)
+  clickRate        Float    @default(0)
+  domainReputation String   @default("unknown")
+  recommendations  Json     @default("[]")
+  scoredAt         DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+/**
+ * Hard suppression list — never send marketing mail to these addresses.
+ * Fed by bounce/complaint webhooks, unsubscribes, and manual merchant action.
+ */
+model EmailSuppression {
+  id         String   @id @default(cuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  email      String
+  /** bounce | complaint | unsubscribe | manual */
+  reason     String
+  /** hard | soft — soft bounces may expire */
+  bounceType String?
+  /** resend | postmark | sendgrid | ses | system | merchant */
+  source     String   @default("system")
+  metadata   Json?
+  /** Soft suppressions can expire; null = permanent */
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([storeId, email])
+  @@index([storeId, reason, createdAt])
+  @@index([storeId, expiresAt])
+  @@index([email])
+}
+
+/**
+ * Project Atlas — per-contact revenue intelligence scores (store-scoped).
+ * Recomputed by cron / on-demand; never call LLMs at send time.
+ */
+model CustomerIntelligence {
+  id                    String   @id @default(cuid())
+  storeId               String
+  store                 Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  email                 String
+  lifetimeValue         Float    @default(0)
+  averageOrderValue     Float    @default(0)
+  totalOrders           Int      @default(0)
+  lastOrderAt           DateTime?
+  daysSinceLastOrder    Int?
+  /** 0–100 */
+  churnRisk             Float    @default(0)
+  /** 0–100 likelihood to purchase soon */
+  purchasePropensity    Float    @default(0)
+  predictedNextPurchaseAt DateTime?
+  emailEngagementScore  Float    @default(0)
+  openRate              Float    @default(0)
+  clickRate             Float    @default(0)
+  favoriteCategoryIds   String[] @default([])
+  favoriteProductIds    String[] @default([])
+  /** likely_to_buy | vip | high_value | frequent | inactive | churn_risk | … */
+  predictiveLabels      String[] @default([])
+  preferredLanguage     String?
+  /** Best local hour 0–23 for send-time optimization */
+  optimalSendHour       Int?
+  optimalSendDow        Int?
+  revenueFromEmail      Float    @default(0)
+  modelVersion          String   @default("atlas-v1")
+  scoredAt              DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([storeId, email])
+  @@index([storeId, churnRisk])
+  @@index([storeId, purchasePropensity])
+  @@index([storeId, lifetimeValue])
+  @@index([storeId, scoredAt])
+}
+
+/**
+ * Product browse / view events for recommendations (multi-tenant).
+ * Anonymous until email is known; always filter by storeId.
+ */
+model ProductBrowseEvent {
+  id         String   @id @default(cuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sessionId  String
+  email      String?
+  productId  String?
+  path       String
+  createdAt  DateTime @default(now())
+
+  @@index([storeId, email, createdAt])
+  @@index([storeId, productId, createdAt])
+  @@index([storeId, sessionId, createdAt])
+}
+
+/**
+ * Visual journey / flow — channel-agnostic node graph (email first).
+ * See lib/email-marketing/atlas/journey-types.ts
+ */
+model EmailJourney {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  /** welcome | cart_recovery | win_back | vip | post_purchase | cross_sell | upsell | reorder | custom */
+  kind        String   @default("custom")
+  /** draft | active | paused | archived */
+  status      String   @default("draft")
+  /** Trigger id from journey trigger registry */
+  trigger     String
+  /** Canvas nodes JSON */
+  nodes       Json     @default("[]")
+  /** Canvas edges JSON */
+  edges       Json     @default("[]")
+  /** Goals / settings */
+  settings    Json     @default("{}")
+  enrolledCount Int    @default(0)
+  completedCount Int   @default(0)
+  revenue     Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  enrollments EmailJourneyEnrollment[]
+
+  @@index([storeId, status, updatedAt])
+  @@index([storeId, trigger])
+  @@index([storeId, kind])
+}
+
+model EmailJourneyEnrollment {
+  id           String    @id @default(cuid())
+  storeId      String
+  journeyId    String
+  journey      EmailJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  email        String
+  /** active | waiting | completed | exited | failed */
+  status       String    @default("active")
+  currentNodeId String?
+  context      Json      @default("{}")
+  nextRunAt    DateTime?
+  enteredAt    DateTime  @default(now())
+  completedAt  DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([journeyId, email])
+  @@index([storeId, status, nextRunAt])
+  @@index([journeyId, status])
+}
+
+/**
+ * AI A/B experiments for campaigns / journey emails.
+ */
+model EmailExperiment {
+  id              String   @id @default(cuid())
+  storeId         String
+  store           Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name            String
+  /** campaign | journey_node | template */
+  targetKind      String
+  targetId        String
+  /** draft | running | completed */
+  status          String   @default("draft")
+  /** subject | preview | cta | image | discount | content | layout */
+  variants        Json     @default("[]")
+  winnerVariantId String?
+  trafficSplit    Json     @default("{}")
+  metrics         Json     @default("{}")
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([storeId, status, updatedAt])
+  @@index([storeId, targetKind, targetId])
+}
+
+/**
+ * Per-subscriber send-time optimization profile.
+ */
+model SendTimeProfile {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  email        String
+  /** Hour buckets 0–23 with engagement weights */
+  hourScores   Json     @default("{}")
+  /** Dow 0–6 scores */
+  dowScores    Json     @default("{}")
+  bestHour     Int?
+  bestDow      Int?
+  timezone     String?
+  sampleSize   Int      @default(0)
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([storeId, email])
+  @@index([storeId, bestHour])
 }
 
 model ContactSubmission {

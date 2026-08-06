@@ -20,6 +20,7 @@ import {
   localizeContactValidationMessage,
 } from "@/lib/contact/contact-i18n";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/constants/support";
+import { BrandSocialLinks } from "@/components/shared/brand-social-links";
 import { HelpShell } from "@/components/help/help-shell";
 import { useHelpLocale } from "@/components/help/help-locale-provider";
 import {
@@ -37,11 +38,13 @@ const inputClassName =
 type ContactSupportPageProps = {
   initialTopic?: ContactSupportInput["topic"];
   articleRef?: string;
+  initialMessage?: string;
 };
 
 export function ContactSupportPage({
   initialTopic,
   articleRef,
+  initialMessage,
 }: ContactSupportPageProps = {}) {
   const { locale } = useHelpLocale();
   const copy = getContactCopy(locale);
@@ -53,13 +56,19 @@ export function ContactSupportPage({
   const [topic, setTopic] = useState<ContactSupportInput["topic"]>(
     initialTopic ?? topics[0].value,
   );
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialMessage ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
     if (initialTopic) setTopic(initialTopic);
   }, [initialTopic]);
+
+  useEffect(() => {
+    if (initialMessage) {
+      setMessage((current) => (current ? current : initialMessage));
+    }
+  }, [initialMessage]);
 
   useEffect(() => {
     if (articleRef) {
@@ -153,7 +162,7 @@ export function ContactSupportPage({
 
       <main className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-20">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-16">
-          {/* Sidebar — below form on mobile */}
+          {/* Sidebar â€” below form on mobile */}
           <div className="order-2 lg:order-1 lg:sticky lg:top-28 lg:self-start">
             <HelpMobileSectionLabel
               title={copy.sidebar.title}
@@ -211,6 +220,13 @@ export function ContactSupportPage({
               </Link>
             </HelpMobileGroup>
 
+            <div className="mt-5 px-1 md:mt-6">
+              <p className="mb-2 text-[13px] font-semibold text-[#8E8E93] md:text-xs md:text-neutral-500">
+                Follow Ettajer
+              </p>
+              <BrandSocialLinks />
+            </div>
+
             <HelpMobileCard className="mt-5 border border-[#007AFF]/15 bg-[#007AFF]/8 md:mt-8 md:rounded-2xl md:border-blue-100 md:bg-blue-50/60 md:shadow-none">
               <p className="text-[16px] font-semibold text-[#007AFF] md:text-sm md:font-medium md:text-blue-900">
                 {copy.sidebar.promoTitle}
@@ -224,7 +240,7 @@ export function ContactSupportPage({
             </HelpMobileCard>
           </div>
 
-          {/* Form — first on mobile */}
+          {/* Form â€” first on mobile */}
           <div className="order-1 lg:order-2 overflow-hidden rounded-[0.875rem] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_28px_rgba(0,0,0,0.08)] md:rounded-3xl md:border md:border-neutral-200 md:shadow-sm">
             {status === "success" ? (
               <div className="flex flex-col items-center px-5 py-12 text-center md:px-10 md:py-16">

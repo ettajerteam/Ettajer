@@ -3,22 +3,17 @@
 import {
   DollarSign,
   ShoppingBag,
-  Package,
   Users,
-  Percent,
-  Receipt,
+  UserRound,
 } from "lucide-react";
 import type { HomeKpiCardData } from "@/types/dashboard";
 import { HomeKpiCard } from "./home-kpi-card";
-import { HomeSectionHeader } from "./home-section-header";
 
 const ICONS = {
   revenue: DollarSign,
   orders: ShoppingBag,
-  "products-sold": Package,
   visitors: Users,
-  conversion: Percent,
-  aov: Receipt,
+  customers: UserRound,
 } as const;
 
 interface HomeKpiGridProps {
@@ -29,8 +24,10 @@ interface HomeKpiGridProps {
 export function HomeKpiGrid({ kpis, rangeLabel }: HomeKpiGridProps) {
   return (
     <section aria-label="Business KPIs">
-      <HomeSectionHeader title="Performance" description={rangeLabel} compact />
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+        {rangeLabel}
+      </p>
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {kpis.map((kpi) => {
           const Icon = ICONS[kpi.id as keyof typeof ICONS] ?? DollarSign;
           return <HomeKpiCard key={kpi.id} data={kpi} icon={Icon} />;

@@ -59,14 +59,23 @@ export function InspectorPanel({
 
   return (
     <Tabs defaultValue="content" className="flex w-full flex-col gap-0">
-      <TabsList className="grid h-8 w-full shrink-0 grid-cols-3 rounded-lg bg-neutral-100 p-0.5">
-        <TabsTrigger value="content" className="rounded-md text-xs">
+      <TabsList className="grid h-8 w-full shrink-0 grid-cols-3 rounded-[10px] border border-black/[0.06] bg-white p-0.5">
+        <TabsTrigger
+          value="content"
+          className="rounded-md text-[11px] font-medium data-[state=active]:bg-[#F5F5F7] data-[state=active]:text-neutral-900 data-[state=active]:shadow-none"
+        >
           Content
         </TabsTrigger>
-        <TabsTrigger value="style" className="rounded-md text-xs">
+        <TabsTrigger
+          value="style"
+          className="rounded-md text-[11px] font-medium data-[state=active]:bg-[#F5F5F7] data-[state=active]:text-neutral-900 data-[state=active]:shadow-none"
+        >
           Style
         </TabsTrigger>
-        <TabsTrigger value="more" className="gap-1 rounded-md text-xs">
+        <TabsTrigger
+          value="more"
+          className="gap-1 rounded-md text-[11px] font-medium data-[state=active]:bg-[#F5F5F7] data-[state=active]:text-neutral-900 data-[state=active]:shadow-none"
+        >
           <Settings2 className="h-3 w-3" />
           More
         </TabsTrigger>

@@ -21,6 +21,20 @@ export interface StoreMenuDestination {
 
 export const STORE_MENU_CORE: StoreMenuDestination[] = [
   { id: "home", label: "Home", href: "/", group: "core", description: "Store homepage" },
+  {
+    id: "bag",
+    label: "Bag / Cart",
+    href: "/cart",
+    group: "core",
+    description: "Opens the shopping bag so customers can checkout",
+  },
+  {
+    id: "checkout",
+    label: "Checkout",
+    href: "/checkout",
+    group: "core",
+    description: "Checkout page (customers need items in the bag first)",
+  },
 ];
 
 function managedHref(slug: string): string {
@@ -96,6 +110,7 @@ export function defaultNavigation(locale?: string): NavItem[] {
       ],
     },
     { id: "collections", label: t.collections, href: "/collections" },
+    { id: "checkout", label: t.checkout, href: "/checkout" },
   ];
 }
 

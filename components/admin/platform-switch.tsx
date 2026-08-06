@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
 import { ArrowLeftRight, LayoutDashboard, Store } from "lucide-react";
@@ -32,37 +31,30 @@ export function PlatformSwitch({ mode, collapsed = false }: PlatformSwitchProps)
   const href = isMerchant ? "/admin" : "/dashboard";
   const label = isMerchant ? "Platform admin" : "Merchant dashboard";
   const Icon = isMerchant ? LayoutDashboard : Store;
-  const hint = isMerchant ? "Ettajer control panel" : "Your test store";
+  const hint = isMerchant ? "Control panel" : "Your store";
 
   return (
     <Link
       href={href}
       className={cn(
-        "group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-all",
-        isMerchant
-          ? "border-violet-200/80 bg-violet-50/80 text-violet-900 hover:border-violet-300 hover:bg-violet-100/80 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-100 dark:hover:bg-violet-500/15"
-          : "border-[#007AFF]/20 bg-[#007AFF]/5 text-[#007AFF] hover:border-[#007AFF]/35 hover:bg-[#007AFF]/10 dark:border-[#007AFF]/25 dark:bg-[#007AFF]/10",
-        collapsed && "justify-center px-2"
+        "group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-200",
+        "border border-black/[0.06] bg-white hover:bg-black/[0.02] dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.06]",
+        collapsed && "justify-center px-0"
       )}
       title={collapsed ? label : undefined}
     >
-      <span
-        className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-          isMerchant
-            ? "bg-violet-600 text-white shadow-sm shadow-violet-600/30"
-            : "bg-[#007AFF] text-white shadow-sm shadow-[#007AFF]/30"
-        )}
-      >
-        <Icon className="h-4 w-4" />
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#007AFF]/10 text-[#007AFF]">
+        <Icon className="h-3 w-3" />
       </span>
       {!collapsed && (
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5 font-semibold leading-tight">
-            {label}
-            <ArrowLeftRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:rotate-180" />
+          <span className="flex items-center gap-1 font-medium leading-tight text-neutral-900 dark:text-white">
+            <span className="truncate">{label}</span>
+            <ArrowLeftRight className="h-3 w-3 shrink-0 text-neutral-400 transition-transform group-hover:rotate-180" />
           </span>
-          <span className="block truncate text-[11px] opacity-70">{hint}</span>
+          <span className="block truncate text-[10px] text-neutral-400">
+            {hint}
+          </span>
         </span>
       )}
     </Link>

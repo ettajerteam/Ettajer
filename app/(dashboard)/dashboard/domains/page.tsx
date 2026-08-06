@@ -6,6 +6,10 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
 import { DomainsPageClient } from "@/components/domains/domains-page-client";
+import {
+  DOMAIN_PAGE_TIPS,
+  DomainTipsFooter,
+} from "@/components/shared/dashboard-tips-button";
 
 export const metadata = { title: "Domains" };
 
@@ -22,8 +26,12 @@ export default async function DashboardDomainsPage() {
   return (
     <DashboardLayout>
       <DashboardHeader
-        title="Online Store"
-        description="Your storefront address"
+        title="Domains"
+        description="Connect a custom domain to your storefront"
+        tips={DOMAIN_PAGE_TIPS}
+        tipsTitle="Domain tips"
+        tipsDescription="Get your custom hostname live with SSL."
+        tipsFooter={<DomainTipsFooter />}
       />
       <DashboardPageContent>
         <DomainsPageClient store={serializeStoreWithSettings(store)} />

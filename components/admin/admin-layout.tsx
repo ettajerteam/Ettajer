@@ -6,19 +6,19 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Menu, RefreshCw, Shield } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import { Button } from "@/components/ui/button";
 import { useSidebarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 function SidebarFallback() {
-  return <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[284px] p-3 lg:flex" />;
+  return (
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-[220px] border-r border-black/[0.06] bg-[#F5F5F7] lg:flex dark:border-white/10 dark:bg-[#111111]" />
+  );
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isCollapsed } = useSidebarStore();
+  const { isCollapsed, toggle } = useSidebarStore();
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { toggle } = useSidebarStore();
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
 
@@ -31,54 +31,61 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={cn("min-h-screen", isDark ? "bg-black" : "bg-neutral-100/90")}>
+    <div className={cn("min-h-screen", isDark ? "bg-[#0a0a0a]" : "bg-[#F5F5F7]")}>
       <Suspense fallback={<SidebarFallback />}>
         <AdminSidebar />
       </Suspense>
       <div
         className={cn(
-          "min-h-screen p-3 pl-0 transition-all duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]",
-          isCollapsed ? "lg:pl-[96px]" : "lg:pl-[284px]"
+          "min-h-screen transition-[padding] duration-300",
+          "[transition-timing-function:cubic-bezier(0.32,0.72,0,1)]",
+          isCollapsed ? "lg:pl-[72px]" : "lg:pl-[220px]"
         )}
       >
         <div
           className={cn(
-            "flex min-h-[calc(100vh-24px)] flex-col overflow-hidden rounded-2xl",
-            isDark
-              ? "bg-[#121212] text-white"
-              : "bg-white text-foreground border border-black/5 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_24px_55px_-38px_rgba(15,23,42,0.45)]"
+            "flex min-h-screen flex-col overflow-hidden",
+            isDark ? "bg-[#121212] text-white" : "bg-white text-foreground"
           )}
         >
-          <header className="sticky top-0 z-30 border-b border-neutral-200/90 bg-[#FAFAFA]/95 px-6 py-2.5 backdrop-blur-xl dark:border-white/10 dark:bg-[#121212]/95">
-            <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-[14px] lg:hidden"
+          <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-[#121212]/90">
+            <div className="flex h-11 items-center justify-between gap-3 px-4 sm:px-5">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <button
+                  type="button"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 lg:hidden dark:hover:bg-white/10 dark:hover:text-white"
                   onClick={toggle}
                   aria-label="Open navigation"
                 >
-                  <Menu className="h-5 w-5" />
-                </Button>
-                <div className="flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
-                  <Shield className="h-4 w-4" />
-                  Platform admin — private
+                  <Menu className="h-4 w-4" />
+                </button>
+                <div className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-neutral-600 dark:text-neutral-300">
+                  <Shield className="h-3.5 w-3.5 shrink-0 text-[#007AFF]" />
+                  <span className="truncate">Platform admin</span>
+                  <span className="hidden text-neutral-300 sm:inline dark:text-neutral-600">
+                    ·
+                  </span>
+                  <span className="hidden truncate text-neutral-400 sm:inline">
+                    Private control panel
+                  </span>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-lg"
+              <button
+                type="button"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
                 onClick={handleRefresh}
                 disabled={refreshing}
                 aria-label="Refresh"
               >
-                <RefreshCw className={cn("h-[1.125rem] w-[1.125rem]", refreshing && "animate-spin")} />
-              </Button>
+                <RefreshCw
+                  className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+                />
+              </button>
             </div>
           </header>
-          <div className="flex-1 overflow-auto bg-[#FAFAFA] dark:bg-[#0a0a0a]">{children}</div>
+          <div className="flex-1 overflow-auto bg-[#F5F5F7] dark:bg-[#0a0a0a]">
+            {children}
+          </div>
         </div>
       </div>
     </div>

@@ -156,15 +156,15 @@ function LayerRow({
         aria-expanded={hasChildren ? !isCollapsed : undefined}
         tabIndex={isActive ? 0 : -1}
         className={cn(
-          "group flex items-center gap-0.5 rounded-md border py-1 pr-1 transition-all duration-150",
+          "group flex items-center gap-0.5 rounded-[8px] border py-1.5 pr-1.5 transition-colors duration-150",
           isDragging && "opacity-40",
           isActive
-            ? "border-[#007AFF]/40 bg-[#007AFF]/[0.08]"
-            : "border-transparent hover:bg-neutral-50",
+            ? "border-[#007AFF]/25 bg-[#007AFF]/[0.08]"
+            : "border-transparent hover:bg-[#F5F5F7]",
           !node.visible && isSection && "opacity-60",
-          isSection && "mt-1 first:mt-0"
+          isSection && "mt-0.5 first:mt-0"
         )}
-        style={{ paddingLeft: Math.max(depth, 0) * 12 + 2 }}
+        style={{ paddingLeft: Math.max(depth, 0) * 12 + 4 }}
         draggable={isSection && node.draggable}
         onDragStart={() => isSection && onDragStart(node.id)}
         onDragOver={(e) => {
@@ -192,19 +192,19 @@ function LayerRow({
       >
         {isSection ? (
           <GripVertical
-            className="h-3.5 w-3.5 shrink-0 cursor-grab text-neutral-300 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+            className="h-3.5 w-3.5 shrink-0 cursor-grab text-neutral-400 opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
             aria-hidden
           />
         ) : (
-          <span className="w-0 shrink-0" />
+          <span className="w-3.5 shrink-0" />
         )}
 
         <button
           type="button"
           onClick={() => (hasChildren ? onToggleExpand(node.id) : undefined)}
           className={cn(
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors",
-            hasChildren ? "hover:bg-neutral-100" : "pointer-events-none"
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded-md transition-colors",
+            hasChildren ? "hover:bg-black/[0.04]" : "pointer-events-none"
           )}
           aria-label={isCollapsed ? "Expand" : "Collapse"}
           tabIndex={hasChildren ? 0 : -1}
@@ -232,8 +232,8 @@ function LayerRow({
         >
           <span
             className={cn(
-              "flex h-5 w-5 shrink-0 items-center justify-center rounded",
-              isActive ? "bg-[#007AFF]/15 text-[#007AFF]" : "bg-neutral-100 text-neutral-500"
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded-md",
+              isActive ? "bg-[#007AFF]/15 text-[#007AFF]" : "bg-[#F5F5F7] text-neutral-500"
             )}
           >
             <Icon className="h-3 w-3" />
@@ -528,11 +528,11 @@ export function EditorLayersPanel({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2 px-0.5">
-        <p className="text-xs font-semibold text-neutral-800">
+        <p className="text-[13px] font-semibold tracking-[-0.01em] text-neutral-900">
           Layers
-          <span className="ml-1.5 font-normal text-neutral-400">({sections.length})</span>
+          <span className="ml-1.5 text-[12px] font-normal text-neutral-400">({sections.length})</span>
         </p>
         <EditorHelpTooltip text="Drag to reorder. Click a section to edit it on the right. Press / to search." />
       </div>
@@ -545,8 +545,8 @@ export function EditorLayersPanel({
           autoComplete="off"
           value={layerQuery}
           onChange={(e) => setLayerQuery(e.target.value)}
-          placeholder="Search layers & content…"
-          className="h-8 rounded-lg border-neutral-200 bg-white text-xs"
+          placeholder="Search layers…"
+          className="h-8 rounded-full border-0 bg-[#F5F5F7] text-[12px] shadow-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/20"
           aria-label="Search layers and content"
         />
         {layerQuery.trim() && contentHits.length > 0 ? (
@@ -557,7 +557,7 @@ export function EditorLayersPanel({
       </div>
 
       <div
-        className="rounded-lg border border-neutral-200 bg-white"
+        className="rounded-[12px] border border-black/[0.06] bg-white p-1"
         role="tree"
         aria-label="Page layers"
         aria-live="polite"

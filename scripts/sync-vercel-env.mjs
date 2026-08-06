@@ -17,21 +17,37 @@ const ENV_FILE = path.join(ROOT, ".env");
 
 const KEYS = [
   "DATABASE_URL",
+  "DIRECT_URL",
   "NEXTAUTH_SECRET",
   "NEXTAUTH_URL",
+  "NEXT_PUBLIC_APP_URL",
   "NEXT_PUBLIC_SITE_URL",
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
+  "META_APP_ID",
+  "META_APP_SECRET",
+  "META_LOGIN_CONFIG_ID",
+  "META_OAUTH_REDIRECT_URI",
+  "META_GRAPH_VERSION",
+  "PINTEREST_APP_ID",
+  "PINTEREST_APP_SECRET",
+  "PINTEREST_OAUTH_REDIRECT_URI",
+  "CRON_SECRET",
   "RESEND_API_KEY",
   "EMAIL_FROM",
   "SUPPORT_EMAIL",
   "ADMIN_EMAILS",
   "NEXT_PUBLIC_GA_MEASUREMENT_ID",
+  "NEXT_PUBLIC_GTM_ID",
   "GA4_PROPERTY_ID",
   "SEARCH_CONSOLE_SITE_URL",
   "ETTAJER_LAUNCH_TARGET",
+  "ETTAJER_LAUNCH_PROGRESS",
+  "NEXT_PUBLIC_ETTAJER_LAUNCH_PROGRESS",
   "UPLOADTHING_TOKEN",
   "UPLOADTHING_APP_ID",
+  "NEXT_PUBLIC_UPLOADTHING_APP_ID",
+  "BLOB_READ_WRITE_TOKEN",
   "VERCEL_TOKEN",
   "VERCEL_PROJECT_ID",
   "VERCEL_TEAM_ID",
@@ -63,6 +79,10 @@ function parseEnvFile(filePath) {
 }
 
 function runVercelEnvAdd(key, value, target) {
+  // Prefer logged-in CLI session; an expired VERCEL_TOKEN in .env breaks sync.
+  const childEnv = { ...process.env };
+  delete childEnv.VERCEL_TOKEN;
+
   const result = spawnSync(
     "vercel",
     ["env", "add", key, target, "--force", "--yes"],
@@ -71,6 +91,7 @@ function runVercelEnvAdd(key, value, target) {
       encoding: "utf8",
       stdio: ["pipe", "pipe", "pipe"],
       shell: process.platform === "win32",
+      env: childEnv,
     },
   );
 
@@ -93,6 +114,11 @@ const env = parseEnvFile(ENV_FILE);
 if (target === "production") {
   env.NEXTAUTH_URL = siteUrlOverride || "https://www.ettajer.com";
   env.NEXT_PUBLIC_SITE_URL = siteUrlOverride || "https://www.ettajer.com";
+  env.NEXT_PUBLIC_APP_URL = siteUrlOverride || "https://www.ettajer.com";
+  if (!env.META_OAUTH_REDIRECT_URI?.trim()) {
+    env.META_OAUTH_REDIRECT_URI =
+      "https://www.ettajer.com/api/marketing/meta/oauth/callback";
+  }
 }
 
 let ok = 0;

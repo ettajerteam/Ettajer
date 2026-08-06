@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   CreditCard,
   History,
+  Mail,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -74,6 +75,13 @@ export const adminNavItems: AdminNavItem[] = [
     href: "/admin/payments",
     icon: CreditCard,
     description: "Orders & revenue",
+  },
+  {
+    id: "email",
+    label: "Email",
+    href: "/admin/email",
+    icon: Mail,
+    description: "MailHub platform health",
   },
 ];
 

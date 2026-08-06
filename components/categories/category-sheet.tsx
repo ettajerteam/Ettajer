@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -23,22 +23,31 @@ interface CategorySheetProps {
   onSuccess: () => void;
 }
 
-export function CategorySheet({ open, onOpenChange, category, onSuccess }: CategorySheetProps) {
+export function CategorySheet({
+  open,
+  onOpenChange,
+  category,
+  onSuccess,
+}: CategorySheetProps) {
   const [loading, setLoading] = useState(false);
-  const isEditing = !!category;
+  const isEditing = Boolean(category);
   const formId = "category-form";
 
   const handleSubmit = async (data: CategoryFormValues) => {
     setLoading(true);
     try {
-      const url = isEditing ? `/api/categories/${category.id}` : "/api/categories";
+      const url = isEditing ? `/api/categories/${category!.id}` : "/api/categories";
       const res = await fetch(url, {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message ?? "Failed to save category");
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof result.message === "string" ? result.message : "Failed to save category"
+        );
+      }
 
       toast.success(isEditing ? "Category updated" : "Category created");
       onOpenChange(false);
@@ -52,19 +61,29 @@ export function CategorySheet({ open, onOpenChange, category, onSuccess }: Categ
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full flex-col overflow-hidden p-0 sm:max-w-xl">
-        <SheetHeader className="shrink-0 border-b border-border/80 px-6 pb-5 pt-6">
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-            <SheetTitle className="text-xl font-semibold tracking-[-0.02em]">
-              {isEditing ? "Edit category" : "Add category"}
-            </SheetTitle>
-            <SheetDescription className="mt-1">
-              {isEditing ? "Update category details" : "Create a new product category"}
-            </SheetDescription>
-          </motion.div>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col overflow-hidden border-l border-black/[0.06] bg-[#F7F8FA]/95 p-0 backdrop-blur-2xl dark:border-white/10 dark:bg-neutral-950/95 sm:max-w-xl"
+      >
+        <SheetHeader className="shrink-0 space-y-0 border-b border-black/[0.06] px-5 py-5 text-left dark:border-white/10 sm:px-6">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#007AFF]/12 text-[#007AFF]">
+              <FolderOpen className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <SheetTitle className="text-[17px] font-semibold text-foreground">
+                {isEditing ? "Edit category" : "Create category"}
+              </SheetTitle>
+              <SheetDescription className="mt-1 text-[13px] leading-normal text-muted-foreground">
+                {isEditing
+                  ? "Update the name, cover, and visibility of this category."
+                  : "Organize products so shoppers can browse by type."}
+              </SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="product-editor-shell flex-1 overflow-y-auto px-5 py-5 sm:px-6">
           <CategoryForm
             key={category?.id ?? "new"}
             initialData={category ?? undefined}
@@ -73,11 +92,22 @@ export function CategorySheet({ open, onOpenChange, category, onSuccess }: Categ
           />
         </div>
 
-        <SheetFooter className="shrink-0 border-t border-border/80 bg-background/90 px-6 py-4 backdrop-blur-xl">
-          <Button variant="outline" className="rounded-xl" onClick={() => onOpenChange(false)} disabled={loading}>
+        <SheetFooter className="shrink-0 gap-2 border-t border-black/[0.06] bg-white/80 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-neutral-950/80 sm:flex-row sm:justify-end sm:space-x-0 sm:px-6">
+          <Button
+            type="button"
+            variant="ghost"
+            className="product-editor-btn-soft h-10 rounded-full px-5"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
             Cancel
           </Button>
-          <Button type="submit" form={formId} className="rounded-xl" loading={loading}>
+          <Button
+            type="submit"
+            form={formId}
+            className="product-editor-btn-soft-primary h-10 rounded-full px-5"
+            loading={loading}
+          >
             {isEditing ? "Save changes" : "Create category"}
           </Button>
         </SheetFooter>

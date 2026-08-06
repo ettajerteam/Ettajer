@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { SignupForm } from "@/components/auth/signup-form";
+import { GoogleOneTapHost } from "@/components/auth/google-one-tap";
 import { getAuthProviders } from "@/lib/auth-providers";
 import { getAuthSeo } from "@/lib/auth/auth-seo";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
@@ -19,20 +20,27 @@ export async function generateMetadata(): Promise<Metadata> {
 
 function SignupFallback() {
   return (
-    <div className="animate-pulse rounded-[18px] border border-black/[0.04] bg-white px-10 py-12">
-      <div className="mx-auto mb-3 h-8 w-56 rounded-lg bg-[#f5f5f7]" />
-      <div className="mx-auto mb-9 h-4 w-64 rounded bg-[#f5f5f7]" />
-      <div className="mb-7 h-[50px] rounded-[12px] bg-[#f5f5f7]" />
-      <div className="h-[50px] rounded-[12px] bg-[#f5f5f7]" />
+    <div className="animate-pulse rounded-2xl border border-white/90 bg-white px-4 py-5 shadow-sm sm:rounded-xl">
+      <div className="mx-auto mb-2 h-10 w-10 rounded-lg bg-[#f5f5f7]" />
+      <div className="mx-auto mb-4 h-6 w-40 rounded-md bg-[#f5f5f7]" />
+      <div className="mb-2 grid grid-cols-2 gap-2">
+        <div className="h-11 rounded-xl bg-[#f5f5f7] sm:h-9" />
+        <div className="h-11 rounded-xl bg-[#f5f5f7] sm:h-9" />
+      </div>
+      <div className="mb-2 h-11 rounded-xl bg-[#f5f5f7] sm:h-9" />
+      <div className="mb-2 h-11 rounded-xl bg-[#f5f5f7] sm:h-9" />
+      <div className="h-11 rounded-xl bg-[#f5f5f7] sm:h-9" />
     </div>
   );
 }
 
 export default function SignupPage() {
   const providers = getAuthProviders();
+  const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() || "";
 
   return (
     <AuthLayout variant="signin">
+      <GoogleOneTapHost clientId={googleClientId} autoSelect={false} context="signup" />
       <Suspense fallback={<SignupFallback />}>
         <SignupForm providers={providers} />
       </Suspense>

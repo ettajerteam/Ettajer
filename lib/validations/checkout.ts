@@ -1,14 +1,10 @@
 import { z } from "zod";
 import { createOrderSchema } from "@/lib/validations/order";
 
-export const checkoutSchema = createOrderSchema
-  .extend({
-    shippingMethod: z.enum(["standard", "express"]),
-    paymentMethod: z.enum(["cod", "stripe"]),
-  })
-  .extend({
-    customerPhone: z.string().min(1, "Phone is required").max(30),
-  });
+export const checkoutSchema = createOrderSchema.extend({
+  shippingMethod: z.enum(["standard", "express"]),
+  paymentMethod: z.enum(["cod", "stripe", "paypal"]),
+});
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
@@ -23,6 +19,8 @@ export const addToCartSchema = z.object({
   quantity: z.number().int().min(1).default(1),
   inventory: z.number().int().min(0),
   variant: z.record(z.string()).optional().nullable(),
+  /** Shared with browser Pixel for Meta event deduplication */
+  eventId: z.string().min(1).max(120).optional(),
 });
 
 export const updateCartSchema = z.object({

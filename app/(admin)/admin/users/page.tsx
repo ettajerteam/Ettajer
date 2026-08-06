@@ -14,13 +14,19 @@ export default async function AdminUsersPage() {
     id: user.id,
     email: user.email,
     name: user.name,
+    image: user.image,
     status: user.status,
     role: user.role,
     founderNumber: user.founderNumber,
     emailVerified: user.emailVerified,
     lastLoginAt: user.lastLoginAt,
+    lastLoginIp: user.lastLoginIp,
+    failedLoginAttempts: user.failedLoginAttempts,
+    lockedUntil: user.lockedUntil,
     createdAt: user.createdAt,
     storeCount: user._count.stores,
+    productCount: user.stores.reduce((n, s) => n + s._count.products, 0),
+    orderCount: user.stores.reduce((n, s) => n + s._count.orders, 0),
   }));
 
   return (
@@ -28,7 +34,7 @@ export default async function AdminUsersPage() {
       <div className={adminPage}>
         <AdminPageHeader
           title="Users"
-          description="All platform accounts. Activate founders or review merchant activity."
+          description="Every platform account — filter by status or role, then open a profile for stores, logins, and support."
         />
         <AdminUsersTable users={rows} />
       </div>

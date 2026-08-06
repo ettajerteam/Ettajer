@@ -12,6 +12,12 @@ export const faqList: FaqItem[] = [
       "Most merchants go live in under five minutes. Sign up, add products, enable COD checkout, and publish your storefront. WhatsApp and SMS verification can be turned on immediately — no payment gateway or developer required.",
   },
   {
+    category: "Payments",
+    question: "Can I accept cards and PayPal?",
+    answer:
+      "Yes. In Settings → Payments, connect Stripe for cards (Apple Pay / Google Pay) and PayPal with your Client ID and Secret. Money goes to your Stripe or PayPal account — Ettajer never holds customer funds. Keep COD on for cash-on-delivery buyers.",
+  },
+  {
     category: "COD",
     question: "How does Ettajer reduce fake COD orders?",
     answer:
@@ -33,12 +39,12 @@ export const faqList: FaqItem[] = [
     category: "Pricing",
     question: "Do you charge transaction fees?",
     answer:
-      "Growth and Business plans include 0% Ettajer transaction fees — you keep more of every COD and card sale. Starter includes a small platform fee. Card processing fees from Stripe still apply only if you accept online payments.",
+      "Growth and Business plans include 0% Ettajer transaction fees — you keep more of every COD and online sale. Starter includes a small platform fee. Stripe and PayPal still charge their own processing fees when customers pay online; COD has no card fees.",
   },
   {
     category: "Growth",
     question: "What makes Ettajer better for Morocco than Shopify?",
     answer:
-      "Ettajer is built around COD: localized checkout fields, WhatsApp verification, fake order protection, address validation, and order automation out of the box. No plugins, no workarounds — just a storefront and admin designed for how Moroccan merchants actually sell.",
+      "Ettajer is built around COD plus optional Stripe and PayPal: localized checkout fields, WhatsApp verification, fake order protection, address validation, and order automation out of the box. No plugins, no workarounds — just a storefront and admin designed for how Moroccan merchants actually sell.",
   },
 ];

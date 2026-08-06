@@ -8,6 +8,7 @@ import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
 import { CollectionsClient } from "@/components/collections/collections-client";
+import { CollectionTableSkeleton } from "@/components/collections/collection-table-skeleton";
 
 export const metadata = { title: "Collections" };
 
@@ -38,24 +39,16 @@ export default async function DashboardCollectionsPage() {
 
   return (
     <DashboardLayout>
-      <DashboardHeader title="Collections" description="Curate product collections for your store" />
+      <DashboardHeader
+        title="Collections"
+        description="Group products for campaigns, menus, and featured storefront blocks"
+      />
       <DashboardPageContent>
-        <Suspense
-          fallback={
-            <div className="space-y-6">
-              <div className="premium-skeleton h-12 w-full max-w-md animate-pulse rounded-2xl" />
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="premium-skeleton h-24 animate-pulse rounded-2xl" />
-                ))}
-              </div>
-              <div className="premium-skeleton h-96 animate-pulse rounded-2xl" />
-            </div>
-          }
-        >
+        <Suspense fallback={<CollectionTableSkeleton />}>
           <CollectionsClient
             initialCollections={collections.map(serializeCollection)}
             products={products.map(serializeProduct)}
+            currency={store.currency}
           />
         </Suspense>
       </DashboardPageContent>

@@ -55,7 +55,7 @@ export const COOKIES_SECTIONS_FR: CookiesSection[] = [
       {
         name: "session / jeton d'authentification",
         purpose: "Vous maintient connecté et vérifie les requêtes authentifiées vers votre compte",
-        duration: "Session ou jusqu'à 30 jours si « Se souvenir de moi » est activé",
+        duration: "Session ou jusqu'à 90 jours si « Se souvenir de moi » est activé",
         type: "Essentiel",
       },
       {

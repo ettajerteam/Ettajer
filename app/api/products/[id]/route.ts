@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils";
 import { productSchema } from "@/lib/validations/product";
@@ -6,7 +7,12 @@ import { getAuthenticatedStore, serializeProduct, productInclude } from "@/lib/p
 import { validateProductIds } from "@/lib/catalog";
 import { serializeProductImagesForDb } from "@/lib/product-images";
 import { serializeProductDigitalFilesForDb } from "@/lib/product-digital-files";
+import { serializeProductSeoForDb } from "@/lib/product-seo";
+import { serializeProductCommerceForDb } from "@/lib/product-commerce";
 import type { ProductType } from "@/lib/product-types";
+import { productTracksInventory } from "@/lib/product-types";
+import { ensureProductCodes } from "@/lib/product-codes";
+import { createStoreNotification } from "@/lib/notifications/create-store-notification";
 
 interface RouteParams {
   params: { id: string };
@@ -68,7 +74,8 @@ async function updateProduct(request: Request, productId: string) {
     return NextResponse.json({ message: "Invalid collection assignment" }, { status: 400 });
   }
 
-  let slug = slugify(data.title) || existing.slug;
+  let slug =
+    (data.slug && data.slug.trim()) || slugify(data.title) || existing.slug;
   if (slug !== existing.slug) {
     const slugExists = await prisma.product.findFirst({
       where: { storeId: store.id, slug },
@@ -78,11 +85,22 @@ async function updateProduct(request: Request, productId: string) {
     }
   }
 
-  const productType = data.productType as ProductType;
+  // Product type is immutable after create
+  const productType = (existing.productType as ProductType) || (data.productType as ProductType);
   const digitalFiles =
     productType === "digital"
       ? serializeProductDigitalFilesForDb(data.digitalFiles)
       : [];
+  const seoJson = serializeProductSeoForDb(data.seo);
+  const commerceJson = serializeProductCommerceForDb(data.commerce);
+  const codes = await ensureProductCodes(
+    store.id,
+    {
+      sku: data.sku || existing.sku,
+      barcode: data.barcode || existing.barcode,
+    },
+    existing.id
+  );
 
   const product = await prisma.product.update({
     where: { id: existing.id },
@@ -94,8 +112,8 @@ async function updateProduct(request: Request, productId: string) {
       comparePrice: data.comparePrice ?? null,
       costPrice: data.costPrice ?? null,
       inventory: data.inventory,
-      sku: data.sku || null,
-      barcode: data.barcode || null,
+      sku: codes.sku,
+      barcode: codes.barcode,
       status: data.status,
       productType,
       copyrightOwner: data.copyrightOwner,
@@ -105,6 +123,8 @@ async function updateProduct(request: Request, productId: string) {
       variants: data.variants,
       details,
       reviews,
+      seo: seoJson === null ? Prisma.DbNull : seoJson,
+      commerce: commerceJson === null ? Prisma.DbNull : commerceJson,
       tags: data.tags,
       ticketPrinterId: data.ticketPrinterId ?? null,
       categoryId: data.categoryId ?? null,
@@ -114,6 +134,37 @@ async function updateProduct(request: Request, productId: string) {
     },
     include: productInclude,
   });
+
+  if (
+    productTracksInventory(productType) &&
+    product.status === "active" &&
+    typeof data.inventory === "number" &&
+    data.inventory !== existing.inventory
+  ) {
+    const prev = existing.inventory;
+    const next = data.inventory;
+    if (next <= 0 && prev > 0) {
+      void createStoreNotification({
+        storeId: store.id,
+        kind: "stock",
+        title: "Out of stock",
+        body: `${product.title} has 0 left`,
+        href: `/dashboard/products/${product.id}/edit`,
+        entityType: "product",
+        entityId: product.id,
+      });
+    } else if (next <= 5 && prev > 5) {
+      void createStoreNotification({
+        storeId: store.id,
+        kind: "stock",
+        title: "Low stock",
+        body: `${product.title} has ${next} left`,
+        href: `/dashboard/products/${product.id}/edit`,
+        entityType: "product",
+        entityId: product.id,
+      });
+    }
+  }
 
   return NextResponse.json({ product: serializeProduct(product) });
 }

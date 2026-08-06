@@ -6,7 +6,6 @@ import { Copy, Link2, BarChart3, Target, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MarketingSectionNav } from "@/components/marketing/marketing-section-nav";
 import { dashboardCard, dashboardCardPad } from "@/lib/dashboard-ui";
 import { formatCurrency } from "@/lib/utils";
 import { buildTrackedUrl } from "@/lib/marketing-attribution-stats";
@@ -56,8 +55,6 @@ export function MarketingAttributionClient({
 
   return (
     <div className="space-y-4">
-      <MarketingSectionNav />
-
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;

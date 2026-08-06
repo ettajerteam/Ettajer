@@ -12,7 +12,7 @@ export async function recordOutboundSupportMessage(params: {
 }) {
   return prisma.supportMessage.create({
     data: {
-      name: "Ettajer Support",
+      name: "Ettajer team",
       email: params.email.trim(),
       topic: params.topic,
       message: params.message,

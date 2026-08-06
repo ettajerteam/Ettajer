@@ -48,9 +48,11 @@ export function HomeGoalTracker({
   const onTrack = progress >= 70;
 
   return (
-    <div className="rounded-lg border border-neutral-200/80 bg-neutral-50/50 px-3 py-2.5 dark:border-white/10 dark:bg-white/[0.02]">
+    <div className="rounded-2xl border border-black/[0.06] bg-neutral-50/80 px-4 py-3 dark:border-white/[0.08] dark:bg-white/[0.03]">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-neutral-700 dark:text-neutral-200">Goal · {rangeLabel}</p>
+        <p className="text-xs font-medium text-neutral-700 dark:text-neutral-200">
+          Monthly goal · {rangeLabel}
+        </p>
         {editing ? (
           <div className="flex items-center gap-1">
             <Input
@@ -74,13 +76,17 @@ export function HomeGoalTracker({
 
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-200 dark:bg-white/10">
         <div
-          className={cn("h-full rounded-full", onTrack ? "bg-emerald-500" : "bg-[#007AFF]")}
+          className={cn("h-full rounded-full", onTrack ? "bg-neutral-900" : "bg-neutral-400")}
           style={{ width: `${progress}%` }}
         />
       </div>
 
       <p className="mt-1.5 text-[11px] text-neutral-500">
         {formatCurrency(currentRevenue, currency)} of {formatCurrency(goal, currency)}
+        {" · "}
+        <span className="font-medium text-neutral-700 dark:text-neutral-200">
+          {Math.round(progress)}%
+        </span>
         {progress < 100 ? ` · ${formatCurrency(remaining, currency)} left` : " · goal reached"}
       </p>
     </div>

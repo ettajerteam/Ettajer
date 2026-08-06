@@ -8,7 +8,7 @@ interface HomeSparklineProps {
   className?: string;
 }
 
-export function HomeSparkline({ points, color = "#007AFF", className }: HomeSparklineProps) {
+export function HomeSparkline({ points, color = "#1D1D1F", className }: HomeSparklineProps) {
   if (!points || points.length < 2) {
     return <div className={cn("h-8 w-20", className)} />;
   }

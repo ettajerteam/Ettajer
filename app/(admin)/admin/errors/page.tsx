@@ -4,9 +4,17 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import {
   AdminEmptyState,
   AdminPageHeader,
+  AdminSectionTitle,
+  AdminStatCard,
   AdminTableShell,
   adminPage,
+  adminTd,
+  adminTh,
+  adminThead,
+  adminTr,
 } from "@/components/admin/admin-ui";
+import { cn } from "@/lib/utils";
+import { homeCard, homeCardPad } from "@/components/dashboard/home/home-ui";
 
 export const metadata = { title: "Errors — Platform Admin" };
 
@@ -31,73 +39,109 @@ export default async function AdminErrorsPage() {
           description="Failed logins and application errors across the platform."
         />
 
-        <div className="space-y-6">
-          <section>
-            <h2 className="mb-2 text-sm font-semibold">Application errors</h2>
-            {appErrors.length === 0 ? (
-              <AdminEmptyState message="No application errors recorded." />
-            ) : (
-              <div className="space-y-2">
-                {appErrors.map((row) => (
-                  <div
-                    key={row.id}
-                    className="rounded-xl border border-rose-200/80 bg-rose-50/50 p-4 dark:border-rose-500/20 dark:bg-rose-500/5"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">
-                        {row.source}
-                      </p>
-                      <p className="text-xs text-neutral-500">{formatDate(row.createdAt)}</p>
-                    </div>
-                    <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
-                      {row.message}
-                    </p>
-                    {row.path ? (
-                      <p className="mt-1 text-xs text-neutral-500">{row.path}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-sm font-semibold">Failed login attempts</h2>
-            {loginErrors.length === 0 ? (
-              <AdminEmptyState message="No failed login attempts recorded." />
-            ) : (
-              <AdminTableShell>
-                <table className="w-full min-w-[920px] text-left text-sm">
-                  <thead className="border-b bg-neutral-50/80 text-xs uppercase tracking-wide text-neutral-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Email</th>
-                      <th className="px-4 py-3 font-medium">Reason</th>
-                      <th className="px-4 py-3 font-medium">IP</th>
-                      <th className="px-4 py-3 font-medium">When</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loginErrors.map((row) => (
-                      <tr key={row.id} className="border-b last:border-0">
-                        <td className="px-4 py-3">
-                          <p>{row.email}</p>
-                          {row.user?.name ? (
-                            <p className="text-xs text-neutral-500">{row.user.name}</p>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-rose-700">
-                          {row.reason ?? row.action}
-                        </td>
-                        <td className="px-4 py-3 text-xs">{row.ipAddress ?? "—"}</td>
-                        <td className="px-4 py-3 text-xs">{formatDate(row.createdAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </AdminTableShell>
-            )}
-          </section>
+        <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+          <AdminStatCard
+            label="App errors"
+            value={appErrors.length}
+            accent={appErrors.length > 0 ? "rose" : "default"}
+            hint="Recent recorded"
+          />
+          <AdminStatCard
+            label="Failed logins"
+            value={loginErrors.length}
+            accent={loginErrors.length > 0 ? "amber" : "default"}
+            hint="Latest attempts"
+          />
+          <AdminStatCard
+            label="Status"
+            value={appErrors.length + loginErrors.length === 0 ? "Clear" : "Needs review"}
+            accent={
+              appErrors.length + loginErrors.length === 0 ? "emerald" : "rose"
+            }
+          />
         </div>
+
+        <section>
+          <AdminSectionTitle title="Application errors" />
+          {appErrors.length === 0 ? (
+            <AdminEmptyState message="No application errors recorded." />
+          ) : (
+            <div className="space-y-2">
+              {appErrors.map((row) => (
+                <div
+                  key={row.id}
+                  className={cn(
+                    homeCard,
+                    homeCardPad,
+                    "border-rose-200/70 dark:border-rose-500/20"
+                  )}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-[12px] font-semibold text-rose-700 dark:text-rose-300">
+                      {row.source}
+                    </p>
+                    <p className="text-[10px] text-neutral-400">
+                      {formatDate(row.createdAt)}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-[12px] text-neutral-700 dark:text-neutral-300">
+                    {row.message}
+                  </p>
+                  {row.path ? (
+                    <p className="mt-1 font-mono text-[10px] text-neutral-400">
+                      {row.path}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <AdminSectionTitle title="Failed login attempts" />
+          {loginErrors.length === 0 ? (
+            <AdminEmptyState message="No failed login attempts recorded." />
+          ) : (
+            <AdminTableShell>
+              <table className="w-full min-w-[920px] text-left text-[12px]">
+                <thead className={adminThead}>
+                  <tr>
+                    <th className={adminTh}>Email</th>
+                    <th className={adminTh}>Reason</th>
+                    <th className={adminTh}>IP</th>
+                    <th className={adminTh}>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loginErrors.map((row) => (
+                    <tr key={row.id} className={adminTr}>
+                      <td className={adminTd}>
+                        <p className="font-medium text-neutral-900 dark:text-white">
+                          {row.email}
+                        </p>
+                        {row.user?.name ? (
+                          <p className="text-[11px] text-neutral-400">
+                            {row.user.name}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className={cn(adminTd, "text-[11px] text-rose-600")}>
+                        {row.reason ?? row.action}
+                      </td>
+                      <td className={cn(adminTd, "font-mono text-[11px]")}>
+                        {row.ipAddress ?? "—"}
+                      </td>
+                      <td className={cn(adminTd, "text-[11px] text-neutral-400")}>
+                        {formatDate(row.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </AdminTableShell>
+          )}
+        </section>
       </div>
     </AdminLayout>
   );

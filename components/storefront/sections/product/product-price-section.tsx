@@ -8,7 +8,6 @@ import type { BlockRenderProps } from "@/lib/builder/types";
 export function ProductPriceSection({ store, product, settings }: BlockRenderProps) {
   const s = settings as ProductPriceSectionSettings;
   const isBold = store.theme === "bold";
-  const isModern = store.theme === "modern";
   const price = product?.price ?? 29.99;
   const comparePrice = product?.comparePrice;
   const layout = s.layout ?? "default";
@@ -17,15 +16,25 @@ export function ProductPriceSection({ store, product, settings }: BlockRenderPro
   const savings = hasCompare ? Math.round(((comparePrice! - price) / comparePrice!) * 100) : 0;
   const savedAmount = hasCompare ? comparePrice! - price : 0;
 
+  const saveBadge = (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-md",
+        isBold
+          ? "border border-emerald-400/20 bg-emerald-400/15 text-emerald-200"
+          : "border border-emerald-500/15 bg-emerald-50/80 text-emerald-800"
+      )}
+    >
+      −{savings}%
+    </span>
+  );
+
   if (layout === "badge") {
     return (
       <ProductSectionShell>
         <div className="flex flex-wrap items-center gap-2.5">
           <span
-            className={cn(
-              "inline-flex items-center px-3.5 py-1.5 text-sm font-semibold text-white",
-              isModern ? "rounded-sm" : "rounded-full"
-            )}
+            className="inline-flex items-center rounded-full px-4 py-2 text-[15px] font-medium text-white shadow-[0_10px_28px_-14px_rgba(0,0,0,0.35)]"
             style={{ backgroundColor: "var(--store-primary)" }}
           >
             {formatCurrency(price, store.currency)}
@@ -35,17 +44,7 @@ export function ProductPriceSection({ store, product, settings }: BlockRenderPro
               <span className={cn("text-sm line-through", isBold ? "text-white/35" : "text-neutral-400")}>
                 {formatCurrency(comparePrice!, store.currency)}
               </span>
-              {savings > 0 ? (
-                <span
-                  className={cn(
-                    "px-2 py-0.5 text-[11px] font-semibold",
-                    isModern ? "rounded-sm" : "rounded-full",
-                    isBold ? "bg-emerald-500/20 text-emerald-300" : "bg-emerald-50 text-emerald-800"
-                  )}
-                >
-                  −{savings}%
-                </span>
-              ) : null}
+              {savings > 0 ? saveBadge : null}
             </>
           ) : null}
         </div>
@@ -56,7 +55,7 @@ export function ProductPriceSection({ store, product, settings }: BlockRenderPro
   if (layout === "stacked") {
     return (
       <ProductSectionShell>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {hasCompare ? (
             <span className={cn("block text-sm line-through", isBold ? "text-white/35" : "text-neutral-400")}>
               {formatCurrency(comparePrice!, store.currency)}
@@ -64,9 +63,8 @@ export function ProductPriceSection({ store, product, settings }: BlockRenderPro
           ) : null}
           <span
             className={cn(
-              "block text-3xl font-semibold tabular-nums tracking-tight sm:text-[2.15rem]",
-              isModern && "font-medium",
-              isBold && "font-bold text-white"
+              "block text-[2rem] font-medium tabular-nums tracking-[-0.03em] sm:text-[2.25rem]",
+              isBold && "text-white"
             )}
             style={isBold ? undefined : { color: "var(--store-primary)" }}
           >
@@ -85,12 +83,11 @@ export function ProductPriceSection({ store, product, settings }: BlockRenderPro
   return (
     <ProductSectionShell>
       <div className="space-y-2">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
           <span
             className={cn(
-              "text-[1.85rem] font-semibold tabular-nums tracking-tight sm:text-[2rem]",
-              isModern && "font-medium",
-              isBold && "font-bold text-white"
+              "text-[2rem] font-medium tabular-nums tracking-[-0.03em] sm:text-[2.15rem]",
+              isBold && "text-white"
             )}
             style={isBold ? undefined : { color: "var(--store-primary)" }}
           >
@@ -101,24 +98,14 @@ export function ProductPriceSection({ store, product, settings }: BlockRenderPro
               {formatCurrency(comparePrice!, store.currency)}
             </span>
           ) : null}
-          {hasCompare && savings > 0 ? (
-            <span
-              className={cn(
-                "inline-flex items-center px-2 py-0.5 text-[11px] font-semibold",
-                isModern ? "rounded-sm" : "rounded-full",
-                isBold ? "bg-emerald-500/20 text-emerald-300" : "bg-emerald-50 text-emerald-800"
-              )}
-            >
-              −{savings}%
-            </span>
-          ) : null}
+          {hasCompare && savings > 0 ? saveBadge : null}
         </div>
         {hasCompare && savedAmount > 0 ? (
-          <p className={cn("text-[12px]", isBold ? "text-white/45" : "text-neutral-500")}>
+          <p className={cn("text-[13px]", isBold ? "text-white/45" : "text-neutral-500")}>
             You save {formatCurrency(savedAmount, store.currency)} vs original price
           </p>
         ) : (
-          <p className={cn("text-[12px]", isBold ? "text-white/40" : "text-neutral-400")}>
+          <p className={cn("text-[13px]", isBold ? "text-white/40" : "text-neutral-500")}>
             Pay on delivery · No upfront payment
           </p>
         )}

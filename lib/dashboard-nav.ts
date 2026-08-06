@@ -1,6 +1,5 @@
 "use client";
 
-import type { LucideIcon } from "lucide-react";
 import {
   Home,
   ShoppingBag,
@@ -9,7 +8,9 @@ import {
   BarChart3,
   Megaphone,
   Store,
+  MessageSquare,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export interface NavLink {
   id: string;
@@ -68,6 +69,12 @@ export const mainNav: NavSection = {
       href: "/dashboard/customers",
     },
     {
+      id: "messages",
+      label: "Messages",
+      icon: MessageSquare,
+      href: "/dashboard/messages",
+    },
+    {
       id: "analytics",
       label: "Analytics",
       icon: BarChart3,
@@ -83,10 +90,7 @@ export const mainNav: NavSection = {
       children: [
         { id: "marketing-integrations", label: "Integrations", href: "/dashboard/marketing" },
         { id: "marketing-discounts", label: "Discounts", href: "/dashboard/marketing/discounts" },
-        { id: "marketing-campaigns", label: "Campaigns", href: "/dashboard/marketing/campaigns" },
-        { id: "marketing-newsletter", label: "Newsletter", href: "/dashboard/marketing/newsletter" },
-        { id: "marketing-messages", label: "Messages", href: "/dashboard/marketing/messages" },
-        { id: "marketing-attribution", label: "Attribution", href: "/dashboard/marketing/attribution" },
+        { id: "marketing-email", label: "Email", href: "/dashboard/marketing/email" },
       ],
     },
     {
@@ -99,7 +103,6 @@ export const mainNav: NavSection = {
         { id: "store-blog", label: "Blog posts", href: "/dashboard/blog" },
         { id: "store-pages", label: "Pages", href: "/dashboard/pages" },
         { id: "store-navigation", label: "Navigation", href: "/dashboard/navigation" },
-        { id: "store-preferences", label: "Preferences", href: "/dashboard/settings" },
       ],
     },
   ],
@@ -107,41 +110,62 @@ export const mainNav: NavSection = {
 
 export const allNavSections = [mainNav];
 
-const RESERVED_CHILD_SEGMENTS = ["drafts", "abandoned", "returns", "inventory"];
+/**
+ * When an index nav link (e.g. /dashboard/marketing) has sibling routes under it
+ * (e.g. /dashboard/marketing/discounts), those first segments must not keep the
+ * index link active — otherwise Discounts + Integrations both look selected.
+ */
+function buildReservedChildSegmentsByBase(): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
 
-function isReservedChildPath(pathname: string, basePath: string): boolean {
-  if (!pathname.startsWith(`${basePath}/`)) return false;
-  const remainder = pathname.slice(basePath.length + 1);
-  const firstSegment = remainder.split("/")[0];
-  return RESERVED_CHILD_SEGMENTS.includes(firstSegment);
+  for (const section of allNavSections) {
+    for (const group of section.items) {
+      const hrefs = (group.children ?? []).map((c) => c.href.split("?")[0]!);
+      for (const href of hrefs) {
+        for (const other of hrefs) {
+          if (href === other) continue;
+          if (!other.startsWith(`${href}/`)) continue;
+          const segment = other.slice(href.length + 1).split("/")[0];
+          if (!segment) continue;
+          const set = map.get(href) ?? new Set<string>();
+          set.add(segment);
+          map.set(href, set);
+        }
+      }
+    }
+  }
+
+  return map;
 }
 
-export function isNavLinkActive(pathname: string, href: string, search = ""): boolean {
-  const [path, queryString] = href.split("?");
-  const currentParams = new URLSearchParams(search);
-  const targetParams = queryString ? new URLSearchParams(queryString) : null;
+const reservedChildSegmentsByBase = buildReservedChildSegmentsByBase();
 
-  const pathMatches =
-    pathname === path ||
-    (path !== "/dashboard" &&
-      pathname.startsWith(`${path}/`) &&
-      !isReservedChildPath(pathname, path));
+export function isNavLinkActive(
+  pathname: string,
+  href: string | undefined,
+  search = ""
+): boolean {
+  if (!href || href === "#") return false;
+  const [pathPart, queryPart] = href.split("?");
+  const base = pathPart!;
 
-  if (!pathMatches) return false;
-
-  if (path === "/dashboard" && !targetParams) {
-    return pathname === "/dashboard";
-  }
-
-  if (targetParams) {
-    const keys = Array.from(targetParams.keys());
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i];
-      if (currentParams.get(key) !== targetParams.get(key)) return false;
+  if (queryPart) {
+    const want = new URLSearchParams(queryPart);
+    const have = new URLSearchParams(search);
+    for (const [k, v] of Array.from(want.entries())) {
+      if (have.get(k) !== v) return false;
     }
-    return pathname === path;
+    return pathname === base || pathname.startsWith(`${base}/`);
   }
 
+  if (pathname === base) return true;
+  if (!pathname.startsWith(`${base}/`)) return false;
+
+  const reserved = reservedChildSegmentsByBase.get(base);
+  if (!reserved?.size) return true;
+
+  const nextSegment = pathname.slice(base.length + 1).split("/")[0];
+  if (nextSegment && reserved.has(nextSegment)) return false;
   return true;
 }
 
@@ -150,8 +174,8 @@ export function sectionHasActiveChild(
   search: string,
   group: NavGroup
 ): boolean {
-  if (group.href && isNavLinkActive(pathname, group.href, search)) {
-    return true;
-  }
-  return group.children?.some((c) => isNavLinkActive(pathname, c.href, search)) ?? false;
+  if (group.href && isNavLinkActive(pathname, group.href, search)) return true;
+  return (group.children ?? []).some((c) =>
+    isNavLinkActive(pathname, c.href, search)
+  );
 }

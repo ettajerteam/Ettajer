@@ -604,7 +604,7 @@ export const techTemplate: WebsiteTemplateDefinition = {
     tplSection("tech-pdp-price", "product-price", { padding: "0.5rem 2rem" }),
     tplSection("tech-pdp-variants", "product-variants", { padding: "0.5rem 2rem" }),
     tplSection("tech-pdp-buy", "product-buy-button", {
-      buttonText: "Add to cart",
+      buttonText: "Buy now",
       padding: "1rem 2rem 1rem",
     }),
     tplSection("tech-pdp-trust", "rich-text", {

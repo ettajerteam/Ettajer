@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,7 +10,6 @@ import {
   LogOut,
   PanelLeft,
   PanelLeftClose,
-  Shield,
   X,
 } from "lucide-react";
 import {
@@ -25,7 +25,9 @@ import { cn } from "@/lib/utils";
 import { adminNavItems, isAdminNavActive } from "@/lib/admin/admin-nav";
 import { PlatformSwitch } from "@/components/admin/platform-switch";
 
-const panelSpring = { type: "spring" as const, damping: 30, stiffness: 340 };
+const BRAND_ICON = "/brand/App-Logo.png";
+const ease = [0.32, 0.72, 0, 1] as const;
+const panelSpring = { type: "spring" as const, damping: 32, stiffness: 380 };
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -33,59 +35,86 @@ export function AdminSidebar() {
   const { isOpen, isCollapsed, setOpen, toggleCollapsed } = useSidebarStore();
 
   const sidebarContent = (
-    <div className="flex h-full flex-col text-muted-foreground">
-      <div className={cn("relative shrink-0 px-3 pt-4 pb-3", isCollapsed && "px-2")}>
-        <Link
-          href="/admin"
-          className={cn("flex items-center gap-2.5 min-w-0 group", isCollapsed && "justify-center")}
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-600 shadow-sm shadow-violet-600/30">
-            <Shield className="h-[18px] w-[18px] text-white" />
-          </div>
-          {!isCollapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-bold truncate leading-tight text-foreground">Ettajer Admin</p>
-              <p className="text-[11px] truncate text-muted-foreground/70">Platform control</p>
-            </div>
+    <div className="flex h-full flex-col">
+      <div className={cn("shrink-0 px-3 pb-2 pt-3", isCollapsed && "px-2")}>
+        <div
+          className={cn(
+            "flex items-center gap-1.5",
+            isCollapsed && "flex-col gap-2"
           )}
-        </Link>
-        {!isCollapsed && (
+        >
+          <Link
+            href="/admin"
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1 py-1 transition-colors duration-200 hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
+              isCollapsed && "justify-center px-0"
+            )}
+          >
+            <div className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-[8px] bg-white ring-1 ring-black/[0.06] dark:bg-white/95">
+              <Image
+                src={BRAND_ICON}
+                alt="Ettajer"
+                width={22}
+                height={22}
+                className="h-[22px] w-[22px] object-contain"
+                priority
+              />
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-semibold tracking-[-0.01em] text-neutral-900 dark:text-white">
+                  Ettajer Admin
+                </p>
+                <p className="truncate text-[10px] text-neutral-400">
+                  Platform
+                </p>
+              </div>
+            )}
+          </Link>
+
+          {!isCollapsed && (
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 lg:flex dark:hover:bg-white/10 dark:hover:text-white"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose className="h-3.5 w-3.5" />
+            </button>
+          )}
           <button
             type="button"
-            onClick={toggleCollapsed}
-            className="hidden lg:flex absolute right-3 top-4 h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Collapse sidebar"
+            onClick={() => setOpen(false)}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] lg:hidden"
           >
-            <PanelLeftClose className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="lg:hidden absolute right-3 top-4 h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        </div>
       </div>
 
       {isCollapsed && (
-        <div className="hidden lg:flex justify-center pb-2">
+        <div className="hidden justify-center pb-2 lg:flex">
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 dark:hover:bg-white/10"
             aria-label="Expand sidebar"
           >
-            <PanelLeft className="h-4 w-4" />
+            <PanelLeft className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
 
-      <div className={cn("px-2 pb-3", isCollapsed && "px-1.5")}>
+      <div className={cn("px-2 pb-2", isCollapsed && "px-1.5")}>
         <PlatformSwitch mode="admin" collapsed={isCollapsed} />
       </div>
 
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2 space-y-0.5">
+      <nav className="flex-1 space-y-px overflow-x-hidden overflow-y-auto px-2 pb-2">
+        {!isCollapsed && (
+          <p className="px-2.5 pb-1 pt-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+            Control
+          </p>
+        )}
         {adminNavItems.map((item) => {
           const active = isAdminNavActive(pathname, item.href);
           return (
@@ -95,27 +124,26 @@ export function AdminSidebar() {
               onClick={() => setOpen(false)}
               title={isCollapsed ? item.label : undefined}
               className={cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                "group/item relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-200",
                 isCollapsed && "justify-center px-0",
                 active
-                  ? "font-semibold text-foreground"
-                  : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "font-medium text-neutral-900 dark:text-white"
+                  : "font-normal text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
               )}
             >
               {active && (
                 <motion.span
                   layoutId="admin-sidebar-active-pill"
-                  className="absolute inset-0 rounded-lg bg-violet-500/10 ring-1 ring-violet-500/20"
+                  className="absolute inset-0 rounded-md bg-black/[0.05] dark:bg-white/[0.08]"
                   transition={panelSpring}
                 />
               )}
-              {active && !isCollapsed && (
-                <span className="absolute left-0 top-1/2 z-10 h-5 w-1 -translate-y-1/2 rounded-r-full bg-violet-600" />
-              )}
               <item.icon
                 className={cn(
-                  "relative z-10 h-[18px] w-[18px] shrink-0",
-                  active && "text-violet-600"
+                  "relative z-10 h-3.5 w-3.5 shrink-0 transition-colors duration-200",
+                  active
+                    ? "text-[#007AFF]"
+                    : "text-neutral-400 group-hover/item:text-neutral-500"
                 )}
                 strokeWidth={active ? 2.25 : 1.75}
               />
@@ -127,45 +155,63 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="shrink-0 p-2 border-t border-border">
+      <div className="shrink-0 border-t border-black/[0.06] p-2 dark:border-white/10">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
               className={cn(
-                "w-full flex items-center gap-3 rounded-lg p-2 transition-colors text-left hover:bg-muted",
+                "flex w-full items-center gap-2 rounded-lg p-1.5 text-left transition-colors duration-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.05]",
                 isCollapsed && "justify-center"
               )}
             >
-              <Avatar className="h-8 w-8 shrink-0">
+              <Avatar className="h-7 w-7 shrink-0">
                 <AvatarImage src={session?.user?.image ?? undefined} />
-                <AvatarFallback className="text-xs font-bold bg-violet-600 text-white">
-                  {session?.user?.name?.[0] ?? session?.user?.email?.[0]?.toUpperCase() ?? "A"}
+                <AvatarFallback className="bg-[#007AFF] text-[9px] font-semibold text-white">
+                  {session?.user?.name?.[0] ??
+                    session?.user?.email?.[0]?.toUpperCase() ??
+                    "A"}
                 </AvatarFallback>
               </Avatar>
               {!isCollapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate text-foreground">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-medium text-neutral-900 dark:text-white">
                     {session?.user?.name ?? "Admin"}
                   </p>
-                  <p className="text-[11px] truncate text-muted-foreground/70">{session?.user?.email}</p>
+                  <p className="truncate text-[10px] text-neutral-400">
+                    {session?.user?.email}
+                  </p>
                 </div>
               )}
-              {!isCollapsed && <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />}
+              {!isCollapsed && (
+                <ChevronDown className="h-3 w-3 shrink-0 text-neutral-400" />
+              )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64 rounded-xl p-0">
-            <div className="px-4 py-3 border-b">
-              <p className="text-sm font-semibold truncate">{session?.user?.name ?? "Admin"}</p>
-              <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
+          <DropdownMenuContent
+            align="start"
+            side="top"
+            sideOffset={6}
+            className="w-56 rounded-xl border-black/[0.06] p-0 shadow-lg dark:border-white/10"
+          >
+            <div className="border-b border-black/[0.06] px-3 py-2.5 dark:border-white/10">
+              <p className="truncate text-[12px] font-medium">
+                {session?.user?.name ?? "Admin"}
+              </p>
+              <p className="truncate text-[10px] text-neutral-400">
+                {session?.user?.email}
+              </p>
             </div>
             <div className="p-1">
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="rounded-lg text-[12px]">
                 <Link href="/dashboard">Merchant dashboard</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
-                <LogOut className="h-4 w-4 mr-2" />
+              <DropdownMenuItem
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="rounded-lg text-[12px] text-red-600 focus:bg-red-50 focus:text-red-600 dark:text-red-400 dark:focus:bg-red-500/10 dark:focus:text-red-400"
+              >
+                <LogOut className="mr-2 h-3.5 w-3.5" />
                 Sign out
               </DropdownMenuItem>
             </div>
@@ -176,16 +222,17 @@ export function AdminSidebar() {
   );
 
   const panelClass = cn(
-    "relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(15,23,42,0.05),0_20px_45px_-34px_rgba(15,23,42,0.45)]",
-    isCollapsed ? "w-[80px]" : "w-[268px]"
+    "flex h-full w-full flex-col overflow-hidden",
+    "border-r border-black/[0.06] bg-[#F5F5F7] dark:border-white/10 dark:bg-[#111111]"
   );
 
   return (
     <>
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 hidden h-screen p-3 transition-all duration-300 lg:flex",
-          isCollapsed ? "w-[96px]" : "w-[284px]"
+          "fixed inset-y-0 left-0 z-40 hidden transition-[width] duration-300 lg:flex",
+          "[transition-timing-function:cubic-bezier(0.32,0.72,0,1)]",
+          isCollapsed ? "w-[72px]" : "w-[220px]"
         )}
       >
         <div className={panelClass}>{sidebarContent}</div>
@@ -198,17 +245,18 @@ export function AdminSidebar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-sm lg:hidden"
+              transition={{ duration: 0.2, ease }}
+              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] lg:hidden"
               onClick={() => setOpen(false)}
             />
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={panelSpring}
-              className="fixed left-0 top-0 z-50 h-screen w-[284px] p-3 lg:hidden"
+              transition={{ duration: 0.28, ease }}
+              className="fixed inset-y-0 left-0 z-50 w-[220px] lg:hidden"
             >
-              <div className={cn(panelClass, "w-full")}>{sidebarContent}</div>
+              <div className={panelClass}>{sidebarContent}</div>
             </motion.aside>
           </>
         )}

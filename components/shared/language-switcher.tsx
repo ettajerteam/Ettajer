@@ -67,18 +67,36 @@ export function LanguageSwitcher({
 
   if (variant === "footer") {
     return (
-      <div className={cn("flex flex-col items-center gap-2.5 sm:flex-row sm:gap-3", className)}>
-        {label ? (
-          <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-            {label}
-          </span>
-        ) : null}
-        <LandingIosSegmentedControl
-          options={[...LANGUAGE_OPTIONS]}
-          value={value}
-          onChange={onChange}
-          className="origin-center scale-[0.92] sm:origin-end"
-        />
+      <div
+        className={cn("inline-flex items-center gap-x-1.5", className)}
+        role="group"
+        aria-label={ariaLabel}
+      >
+        {LANGUAGE_OPTIONS.map((option, index) => {
+          const active = value === option.value;
+          return (
+            <span key={option.value} className="inline-flex items-center gap-x-1.5">
+              {index > 0 ? (
+                <span className="text-neutral-300" aria-hidden>
+                  ·
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => onChange(option.value)}
+                aria-pressed={active}
+                className={cn(
+                  "font-medium transition-colors",
+                  active
+                    ? "text-neutral-800"
+                    : "text-neutral-500 hover:text-neutral-800",
+                )}
+              >
+                {option.label}
+              </button>
+            </span>
+          );
+        })}
       </div>
     );
   }

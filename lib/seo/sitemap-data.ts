@@ -1,5 +1,6 @@
 import { HELP_ARTICLES, HELP_CATEGORIES } from "@/lib/help/help-data";
 import { prisma } from "@/lib/db";
+import { parsePageContent } from "@/lib/page-content";
 import { absoluteUrl } from "@/lib/seo/site-config";
 import {
   getStoreBlogPostUrl,
@@ -23,9 +24,13 @@ export const PUBLIC_STATIC_PATHS = [
   "/privacy",
   "/terms",
   "/cookies",
+  "/data-deletion",
   "/help",
   "/contact",
   "/founder-card",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/knowledge.json",
 ] as const;
 
 export function getPublicSitemapEntries(): { url: string; lastModified?: Date }[] {
@@ -81,7 +86,7 @@ export async function getStorefrontSitemapEntries(): Promise<
       },
       storePages: {
         where: { status: "published" },
-        select: { slug: true, updatedAt: true },
+        select: { slug: true, updatedAt: true, content: true },
       },
     },
     orderBy: { updatedAt: "desc" },
@@ -133,6 +138,8 @@ export async function getStorefrontSitemapEntries(): Promise<
     for (const page of store.storePages) {
       // Skip system route slugs that have dedicated app routes if duplicated
       if (["products", "collections", "blog", "search"].includes(page.slug)) continue;
+      const parsed = parsePageContent(page.content);
+      if (parsed.noIndex) continue;
       entries.push({
         url: absoluteUrl(getStorePageUrl(store.slug, page.slug)),
         lastModified: page.updatedAt,

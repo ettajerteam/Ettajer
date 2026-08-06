@@ -6,7 +6,12 @@ import {
   AdminPageHeader,
   AdminTableShell,
   adminPage,
+  adminTd,
+  adminTh,
+  adminThead,
+  adminTr,
 } from "@/components/admin/admin-ui";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Activity — Platform Admin" };
 
@@ -35,24 +40,26 @@ export default async function AdminActivityPage() {
           <AdminEmptyState message="No admin actions logged yet." />
         ) : (
           <AdminTableShell>
-            <table className="w-full min-w-[880px] text-left text-sm">
-              <thead className="border-b bg-neutral-50/80 text-xs uppercase tracking-wide text-neutral-500">
+            <table className="w-full min-w-[880px] text-left text-[12px]">
+              <thead className={adminThead}>
                 <tr>
-                  <th className="px-4 py-3 font-medium">When</th>
-                  <th className="px-4 py-3 font-medium">Actor</th>
-                  <th className="px-4 py-3 font-medium">Action</th>
-                  <th className="px-4 py-3 font-medium">Target</th>
+                  <th className={adminTh}>When</th>
+                  <th className={adminTh}>Actor</th>
+                  <th className={adminTh}>Action</th>
+                  <th className={adminTh}>Target</th>
                 </tr>
               </thead>
               <tbody>
                 {activity.map((row) => (
-                  <tr key={row.id} className="border-b last:border-0 align-top">
-                    <td className="px-4 py-3 text-xs text-neutral-500">
+                  <tr key={row.id} className={cn(adminTr, "align-top")}>
+                    <td className={cn(adminTd, "text-[11px] text-neutral-400")}>
                       {formatDate(row.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-xs">{row.actorEmail}</td>
-                    <td className="px-4 py-3 font-medium">{row.action}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-500">
+                    <td className={cn(adminTd, "text-[11px]")}>{row.actorEmail}</td>
+                    <td className={cn(adminTd, "font-medium text-neutral-900 dark:text-white")}>
+                      {row.action}
+                    </td>
+                    <td className={cn(adminTd, "text-[11px] text-neutral-400")}>
                       {row.targetType ?? "—"}
                       {row.targetId ? ` · ${row.targetId.slice(0, 8)}…` : ""}
                     </td>

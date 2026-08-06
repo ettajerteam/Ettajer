@@ -146,12 +146,21 @@ export function ModernProductPage({
               dangerouslySetInnerHTML={{ __html: product.description }}
             />
           )}
-          <AddToCartButton
-            store={store}
-            product={product}
-            className="w-full sm:w-auto px-12 py-4 text-sm font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: "var(--store-primary)" }}
-          />
+          <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row">
+            <AddToCartButton
+              store={store}
+              product={product}
+              mode="buy-now"
+              className="w-full sm:w-auto px-12 py-4 text-sm font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: "var(--store-primary)" }}
+            />
+            <AddToCartButton
+              store={store}
+              product={product}
+              mode="add"
+              className="w-full sm:w-auto border border-neutral-300 px-12 py-4 text-sm font-bold uppercase tracking-widest text-neutral-800 transition hover:bg-neutral-50 disabled:opacity-50"
+            />
+          </div>
         </div>
       </div>
     </div>

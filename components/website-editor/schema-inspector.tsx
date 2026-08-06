@@ -22,7 +22,7 @@ import {
   SharedStylePanel,
   emphasizedGroupsForFocus,
 } from "./style-editors";
-
+import { cn } from "@/lib/utils";
 export { hasSchemaFields, SchemaFieldRenderer };
 
 interface SchemaDrivenInspectorProps {
@@ -261,9 +261,13 @@ export function SchemaDrivenInspector({
 
   return (
     <Tabs defaultValue="content" className="flex w-full flex-col gap-0">
-      <TabsList className={`grid h-8 w-full shrink-0 rounded-lg bg-neutral-100 p-0.5 ${gridClass}`}>
+      <TabsList className={cn(`grid h-8 w-full shrink-0 rounded-[10px] border border-black/[0.06] bg-white p-0.5`, gridClass)}>
         {visibleTabs.map((tab) => (
-          <TabsTrigger key={tab.id} value={tab.id} className="gap-1 rounded-md text-xs">
+          <TabsTrigger
+            key={tab.id}
+            value={tab.id}
+            className="gap-1 rounded-md text-[11px] font-medium data-[state=active]:bg-[#F5F5F7] data-[state=active]:text-neutral-900 data-[state=active]:shadow-none"
+          >
             {tab.icon}
             {tab.label}
           </TabsTrigger>

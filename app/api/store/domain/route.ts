@@ -6,24 +6,32 @@ import { prisma } from "@/lib/db";
 import { serializeStoreWithSettings } from "@/lib/store-settings";
 import { isPlatformHost, normalizeCustomDomain } from "@/lib/storefront-urls";
 import {
+  apexRoot,
   detectDomainMode,
-  isApexHostname,
   isValidHostname,
+  parseDomainPrimary,
+  type DomainPrimary,
 } from "@/lib/domains/hostname";
 import {
   addVercelDomain,
-  addVercelWwwRedirect,
   isVercelDomainsConfigured,
   removeVercelDomain,
+  syncApexWwwRedirect,
 } from "@/lib/domains/vercel";
 import { checkDomainDns, getDnsTargets } from "@/lib/domains/dns-check";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const bodySchema = z.object({
-  domain: z.string().max(253).nullable(),
-});
+const bodySchema = z
+  .object({
+    domain: z.string().max(253).nullable().optional(),
+    domainPrimary: z.enum(["apex", "www"]).optional(),
+  })
+  .refine(
+    (d) => d.domain !== undefined || d.domainPrimary !== undefined,
+    { message: "Nothing to update" }
+  );
 
 async function getOwnedStore(userId: string) {
   return prisma.store.findFirst({
@@ -32,7 +40,16 @@ async function getOwnedStore(userId: string) {
   });
 }
 
-/** Connect or remove a custom domain for the merchant store. */
+function revalidateDomainPaths(store: { id: string; slug: string | null }) {
+  revalidatePath("/dashboard/domains");
+  revalidatePath("/dashboard/settings");
+  if (store.slug) {
+    revalidatePath(`/store/${store.slug}`);
+    revalidatePath(`/store/${store.slug}`, "layout");
+  }
+}
+
+/** Connect, remove, or update primary host preference for a custom domain. */
 export async function PUT(request: Request) {
   try {
     const session = await auth();
@@ -51,12 +68,25 @@ export async function PUT(request: Request) {
     }
 
     const previous = normalizeCustomDomain(store.settings?.customDomain);
-    const nextRaw = parsed.data.domain;
-    const next = nextRaw == null || nextRaw.trim() === ""
-      ? null
-      : normalizeCustomDomain(nextRaw);
+    const previousPrimary = parseDomainPrimary(store.settings?.domainPrimary);
+    const updatingDomain = parsed.data.domain !== undefined;
+    const next = updatingDomain
+      ? parsed.data.domain == null || parsed.data.domain.trim() === ""
+        ? null
+        : normalizeCustomDomain(parsed.data.domain)
+      : previous;
 
-    if (next) {
+    let nextPrimary: DomainPrimary | null = previousPrimary;
+    if (parsed.data.domainPrimary !== undefined) {
+      nextPrimary = parsed.data.domainPrimary;
+    }
+    if (next && apexRoot(next)) {
+      nextPrimary = nextPrimary ?? "apex";
+    } else {
+      nextPrimary = null;
+    }
+
+    if (updatingDomain && next) {
       if (!isValidHostname(next)) {
         return NextResponse.json(
           { message: "Enter a valid domain like shop.yourbrand.com" },
@@ -84,7 +114,6 @@ export async function PUT(request: Request) {
         );
       }
 
-      // Provision on Vercel first so traffic + SSL can work
       const added = await addVercelDomain(next);
       if (!added.ok) {
         return NextResponse.json(
@@ -93,34 +122,52 @@ export async function PUT(request: Request) {
         );
       }
 
-      if (isApexHostname(next)) {
-        // Best-effort www → apex redirect; don't fail the whole connect
-        await addVercelWwwRedirect(next);
+      const apex = apexRoot(next);
+      if (apex) {
+        await syncApexWwwRedirect(apex, nextPrimary ?? "apex");
       }
 
       if (previous && previous !== next) {
         await removeVercelDomain(previous);
-        if (isApexHostname(previous)) {
-          await removeVercelDomain(`www.${previous}`);
+        const prevApex = apexRoot(previous);
+        if (prevApex) {
+          await removeVercelDomain(`www.${prevApex}`);
+          if (previous !== prevApex) await removeVercelDomain(prevApex);
         }
       }
-    } else if (previous) {
+    } else if (updatingDomain && previous && !next) {
       await removeVercelDomain(previous);
-      if (isApexHostname(previous)) {
-        await removeVercelDomain(`www.${previous}`);
+      const prevApex = apexRoot(previous);
+      if (prevApex) {
+        await removeVercelDomain(`www.${prevApex}`);
+        if (previous !== prevApex) await removeVercelDomain(prevApex);
       }
+      nextPrimary = null;
+    } else if (!updatingDomain && next && apexRoot(next)) {
+      // Preference-only update for an apex domain
+      await syncApexWwwRedirect(apexRoot(next)!, nextPrimary ?? "apex");
+    } else if (!updatingDomain && (!next || !apexRoot(next))) {
+      return NextResponse.json(
+        { message: "Primary redirect is only available for root domains" },
+        { status: 400 }
+      );
     }
+
+    const settingsData = {
+      customDomain: next,
+      domainPrimary: next && apexRoot(next) ? nextPrimary ?? "apex" : null,
+    };
 
     if (store.settings) {
       await prisma.storeSettings.update({
         where: { storeId: store.id },
-        data: { customDomain: next },
+        data: settingsData,
       });
     } else {
       await prisma.storeSettings.create({
         data: {
           storeId: store.id,
-          customDomain: next,
+          ...settingsData,
         },
       });
     }
@@ -130,12 +177,7 @@ export async function PUT(request: Request) {
       include: { settings: true },
     });
 
-    revalidatePath("/dashboard/domains");
-    revalidatePath("/dashboard/settings");
-    if (store.slug) {
-      revalidatePath(`/store/${store.slug}`);
-      revalidatePath(`/store/${store.slug}`, "layout");
-    }
+    revalidateDomainPaths(store);
 
     const dns = next ? await checkDomainDns(next) : null;
     const targets = getDnsTargets();

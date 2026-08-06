@@ -6,6 +6,8 @@ import type { OrderDetail } from "@/types/orders";
 import type { TicketPrinter } from "@/lib/ticket-printers";
 import { groupOrderItemsByPrinter } from "@/lib/ticket-printers";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { dashboardCard, dashboardTitle, dashboardSubtitle } from "@/lib/dashboard-ui";
 
 interface OrderTicketPrintersProps {
   order: OrderDetail;
@@ -24,14 +26,14 @@ export function OrderTicketPrinters({ order, printers }: OrderTicketPrintersProp
   if (groups.length === 0) return null;
 
   return (
-    <section className="premium-card p-6">
-      <div className="mb-4 flex items-start justify-between gap-3">
+    <section className={cn(dashboardCard, "p-4")}>
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <Ticket className="h-4 w-4 text-[#007AFF]" />
-            <h3 className="text-lg font-semibold tracking-[-0.02em]">Product tickets</h3>
+          <div className="flex items-center gap-1.5">
+            <Ticket className="h-3.5 w-3.5 text-neutral-400" />
+            <h3 className={dashboardTitle}>Product tickets</h3>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className={cn(dashboardSubtitle, "mt-0.5")}>
             Print kitchen or station tickets grouped by printer.
           </p>
         </div>
@@ -39,28 +41,30 @@ export function OrderTicketPrinters({ order, printers }: OrderTicketPrintersProp
           <Button
             variant="outline"
             size="sm"
-            className="h-8 shrink-0 rounded-lg"
+            className="h-7 shrink-0 rounded-md border-black/[0.06] px-2 text-[11px] dark:border-white/10"
             onClick={() => openTicket(`/api/orders/${order.id}/ticket?all=1`)}
           >
-            <Printer className="mr-1.5 h-3.5 w-3.5" />
+            <Printer className="mr-1.5 h-3 w-3" />
             Print all
           </Button>
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {groups.map((group) => (
           <div
             key={group.printerId ?? "unassigned"}
-            className="rounded-xl border border-border/80 bg-muted/20 p-4"
+            className="rounded-[10px] border border-black/[0.05] bg-[#F5F5F7]/70 p-3 dark:border-white/10 dark:bg-white/[0.03]"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-medium">{group.printerName}</p>
+                <p className="text-[12px] font-medium text-neutral-900 dark:text-white">
+                  {group.printerName}
+                </p>
                 {group.printerLocation && (
-                  <p className="text-xs text-muted-foreground">{group.printerLocation}</p>
+                  <p className="text-[10px] text-neutral-400">{group.printerLocation}</p>
                 )}
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-0.5 text-[10px] text-neutral-400">
                   {group.items.length} item{group.items.length === 1 ? "" : "s"}
                 </p>
               </div>
@@ -68,19 +72,19 @@ export function OrderTicketPrinters({ order, printers }: OrderTicketPrintersProp
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 rounded-lg"
+                  className="h-7 rounded-md border-black/[0.06] px-2 text-[11px] dark:border-white/10"
                   onClick={() =>
                     openTicket(`/api/orders/${order.id}/ticket?printer=${group.printerId}`)
                   }
                 >
-                  <Printer className="mr-1.5 h-3.5 w-3.5" />
+                  <Printer className="mr-1.5 h-3 w-3" />
                   Print
                 </Button>
               ) : (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 rounded-lg text-muted-foreground"
+                  className="h-7 rounded-md px-2 text-[11px] text-neutral-400"
                   onClick={() => openTicket(`/api/orders/${order.id}/ticket?printer=`)}
                 >
                   Print unassigned
@@ -88,20 +92,25 @@ export function OrderTicketPrinters({ order, printers }: OrderTicketPrintersProp
               )}
             </div>
 
-            <ul className="mt-3 space-y-2 border-t border-border/60 pt-3">
+            <ul className="mt-2 space-y-1.5 border-t border-black/[0.05] pt-2 dark:border-white/10">
               {group.items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 text-sm">
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 text-[12px]"
+                >
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{item.title}</p>
+                    <p className="truncate font-medium text-neutral-900 dark:text-white">
+                      {item.title}
+                    </p>
                     {item.variant && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] text-neutral-400">
                         {Object.entries(item.variant)
                           .map(([key, value]) => `${key}: ${value}`)
                           .join(" · ")}
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 text-muted-foreground">×{item.quantity}</span>
+                  <span className="shrink-0 text-neutral-400">×{item.quantity}</span>
                 </li>
               ))}
             </ul>
@@ -110,7 +119,7 @@ export function OrderTicketPrinters({ order, printers }: OrderTicketPrintersProp
       </div>
 
       {!hasAssignedItems && (
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-2.5 text-[10px] text-neutral-400">
           Assign printers to products in{" "}
           <Link href="/dashboard/products" className="text-[#007AFF] hover:underline">
             Products

@@ -19,9 +19,16 @@ import { cn } from "@/lib/utils";
 interface StoreWebsiteAccessProps {
   storeSlug: string;
   storeName?: string;
-  /** compact = header chip; card = dashboard panel; inline = settings row */
   variant?: "compact" | "card" | "inline";
   className?: string;
+  labels?: {
+    yourWebsite?: string;
+    liveStorefront?: string;
+    openLiveStore?: string;
+    copyLink?: string;
+    copied?: string;
+    shareWhatsApp?: string;
+  };
 }
 
 async function copyText(text: string) {
@@ -30,11 +37,9 @@ async function copyText(text: string) {
 
 function useLiveStoreUrls(storeSlug: string, storeName?: string) {
   const path = getStoreUrl(storeSlug);
-  // Seed with a hydration-safe absolute URL (same on server + first client paint).
   const [absolute, setAbsolute] = useState(() => getAbsoluteStoreUrl(storeSlug));
 
   useEffect(() => {
-    // Align share/copy links with the browser origin after mount.
     setAbsolute(`${window.location.origin}${path}`);
   }, [path]);
 
@@ -52,9 +57,18 @@ export function StoreWebsiteAccess({
   storeName,
   variant = "compact",
   className,
+  labels,
 }: StoreWebsiteAccessProps) {
   const [copied, setCopied] = useState(false);
   const { path, absolute, whatsapp, qr } = useLiveStoreUrls(storeSlug, storeName);
+  const t = {
+    yourWebsite: labels?.yourWebsite ?? "Your website",
+    liveStorefront: labels?.liveStorefront ?? "Live storefront",
+    openLiveStore: labels?.openLiveStore ?? "Open live store",
+    copyLink: labels?.copyLink ?? "Copy link",
+    copied: labels?.copied ?? "Copied",
+    shareWhatsApp: labels?.shareWhatsApp ?? "Share on WhatsApp",
+  };
 
   async function handleCopy() {
     try {
@@ -73,7 +87,7 @@ export function StoreWebsiteAccess({
         <Button
           variant="outline"
           size="sm"
-          className="h-9 rounded-lg border-neutral-200 bg-white px-3 text-xs font-medium dark:border-white/10 dark:bg-[#161616]"
+          className="h-9 rounded-full border-black/[0.08] bg-white px-3.5 text-xs font-medium dark:border-white/10 dark:bg-[#161616]"
           asChild
         >
           <Link href={path} target="_blank" rel="noopener noreferrer">
@@ -84,10 +98,9 @@ export function StoreWebsiteAccess({
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-lg text-neutral-500"
+          className="h-9 w-9 rounded-full text-neutral-500"
           onClick={() => void handleCopy()}
           aria-label="Copy store link"
-          title="Copy store link"
         >
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
@@ -96,9 +109,8 @@ export function StoreWebsiteAccess({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-lg text-neutral-500"
+              className="h-9 w-9 rounded-full text-neutral-500"
               aria-label="Share store"
-              title="Share store"
             >
               <Share2 className="h-3.5 w-3.5" />
             </Button>
@@ -126,15 +138,20 @@ export function StoreWebsiteAccess({
         >
           {absolute}
         </code>
-        <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" asChild>
+        <Button variant="outline" size="sm" className="h-8 rounded-full text-xs" asChild>
           <Link href={path} target="_blank" rel="noopener noreferrer">
             Open
           </Link>
         </Button>
-        <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={() => void handleCopy()}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-full text-xs"
+          onClick={() => void handleCopy()}
+        >
           {copied ? "Copied" : "Copy"}
         </Button>
-        <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" asChild>
+        <Button variant="outline" size="sm" className="h-8 rounded-full text-xs" asChild>
           <a href={whatsapp} target="_blank" rel="noopener noreferrer">
             WhatsApp
           </a>
@@ -146,41 +163,58 @@ export function StoreWebsiteAccess({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#161616]",
+        "rounded-[12px] border border-black/[0.06] bg-white p-4 dark:border-white/[0.08] dark:bg-[#1C1C1E]",
         className
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-            Your website
+          <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-neutral-400">
+            {t.yourWebsite}
           </p>
-          <p className="mt-1 text-sm font-semibold text-neutral-900 dark:text-white">
-            {storeName ?? "Live storefront"}
+          <p className="mt-1 text-[13px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+            {storeName ?? t.liveStorefront}
           </p>
-          <p className="mt-1 truncate font-mono text-xs text-neutral-500" suppressHydrationWarning>
+          <p
+            className="mt-1 truncate font-mono text-[11px] text-neutral-400"
+            suppressHydrationWarning
+          >
             {absolute}
           </p>
         </div>
-        <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-white/10">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-black/[0.06] bg-[#F5F5F7] dark:border-white/10 dark:bg-white/[0.04]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qr} alt="Store QR code" className="h-full w-full object-contain p-1" />
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button size="sm" className="h-9 rounded-lg bg-[#007AFF] text-xs hover:bg-[#0066d6]" asChild>
+      <div className="mt-3.5 flex flex-wrap gap-1.5">
+        <Button
+          size="sm"
+          className="h-7 rounded-md border border-black/[0.06] bg-[#F5F5F7] px-2.5 text-[11px] font-medium text-neutral-700 shadow-none hover:bg-neutral-200/80 dark:border-white/10 dark:bg-white/[0.08] dark:text-neutral-100 dark:hover:bg-white/[0.12]"
+          asChild
+        >
           <Link href={path} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-            Open live site
+            <ExternalLink className="mr-1.5 h-3 w-3" />
+            {t.openLiveStore}
           </Link>
         </Button>
-        <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs" onClick={() => void handleCopy()}>
-          {copied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
-          {copied ? "Copied" : "Copy link"}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 rounded-md border-black/[0.08] text-[11px] dark:border-white/10"
+          onClick={() => void handleCopy()}
+        >
+          {copied ? <Check className="mr-1.5 h-3 w-3" /> : <Copy className="mr-1.5 h-3 w-3" />}
+          {copied ? t.copied : t.copyLink}
         </Button>
-        <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs" asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 rounded-md border-black/[0.08] text-[11px] dark:border-white/10"
+          asChild
+        >
           <a href={whatsapp} target="_blank" rel="noopener noreferrer">
-            Share on WhatsApp
+            {t.shareWhatsApp}
           </a>
         </Button>
       </div>
@@ -206,10 +240,10 @@ function StoreShareDialogContent({
   copied: boolean;
 }) {
   return (
-    <DialogContent className="max-w-sm">
+    <DialogContent className="max-w-sm rounded-2xl">
       <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <QrCode className="h-4 w-4 text-[#007AFF]" />
+        <DialogTitle className="flex items-center gap-2 text-[17px]">
+          <QrCode className="h-4 w-4 text-neutral-500" />
           Share your website
         </DialogTitle>
         <DialogDescription>
@@ -219,26 +253,29 @@ function StoreShareDialogContent({
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col items-center gap-4">
-        <div className="rounded-xl border border-neutral-200 bg-white p-3">
+        <div className="rounded-2xl border border-black/[0.06] bg-white p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qr} alt="QR code" width={160} height={160} className="h-40 w-40" />
         </div>
         <p
-          className="w-full break-all rounded-lg bg-neutral-50 px-3 py-2 text-center font-mono text-[11px] text-neutral-600"
+          className="w-full break-all rounded-xl bg-neutral-50 px-3 py-2 text-center font-mono text-[11px] text-neutral-600"
           suppressHydrationWarning
         >
           {absolute}
         </p>
         <div className="flex w-full flex-wrap gap-2">
-          <Button className="flex-1 rounded-lg bg-[#007AFF] hover:bg-[#0066d6]" asChild>
+          <Button
+            className="flex-1 rounded-full bg-neutral-900 text-white hover:bg-neutral-800"
+            asChild
+          >
             <Link href={path} target="_blank" rel="noopener noreferrer">
               Open
             </Link>
           </Button>
-          <Button variant="outline" className="flex-1 rounded-lg" onClick={onCopy}>
+          <Button variant="outline" className="flex-1 rounded-full" onClick={onCopy}>
             {copied ? "Copied" : "Copy"}
           </Button>
-          <Button variant="outline" className="flex-1 rounded-lg" asChild>
+          <Button variant="outline" className="flex-1 rounded-full" asChild>
             <a href={whatsapp} target="_blank" rel="noopener noreferrer">
               WhatsApp
             </a>

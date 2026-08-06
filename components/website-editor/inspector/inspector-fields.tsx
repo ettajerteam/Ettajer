@@ -41,7 +41,7 @@ export function InspectorFieldGroup({
   return (
     <div
       className={cn(
-        "space-y-2 rounded-lg border border-neutral-100 bg-white p-2.5",
+        "space-y-2 rounded-[10px] border border-black/[0.06] bg-white p-2.5",
         emphasized && "border-[#007AFF]/20 bg-[#007AFF]/[0.02]",
         className
       )}
@@ -49,9 +49,9 @@ export function InspectorFieldGroup({
       <div className={cn(collapsible && "cursor-pointer select-none")} onClick={collapsible ? () => setOpen((o) => !o) : undefined}>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-xs font-medium text-neutral-700">{title}</p>
+            <p className="text-[11px] font-medium tracking-[-0.01em] text-neutral-700">{title}</p>
             {description && open ? (
-              <p className="mt-0.5 text-[11px] text-neutral-400">{description}</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-neutral-400">{description}</p>
             ) : null}
           </div>
           {collapsible ? (

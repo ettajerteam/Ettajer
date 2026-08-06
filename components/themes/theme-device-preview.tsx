@@ -1,25 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import {
-  ExternalLink,
-  Maximize2,
-  RefreshCw,
-} from "lucide-react";
+import { ExternalLink, Maximize2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { EditorPreviewSkeleton } from "@/components/website-editor/editor-skeleton";
 import { buildPreviewUrl, type PreviewPage, type PreviewPaths } from "@/lib/preview-engine";
 import {
   dashboardCard,
-  dashboardCardPad,
-  dashboardKicker,
   dashboardPill,
   dashboardPillActive,
   dashboardPillGroup,
   dashboardPillInactive,
-  dashboardSubtitle,
   dashboardTitle,
 } from "@/lib/dashboard-ui";
 import type { StoreThemeSettings } from "@/types/storefront";
@@ -44,23 +36,23 @@ const PREVIEW_PAGES: { id: PreviewPage; label: string }[] = [
   { id: "collection", label: "Collection" },
 ];
 
-const MOBILE_VIEWPORT_W = 390;
-const MOBILE_VIEWPORT_H = 844;
+const STAGE_H = 380;
+const MOBILE_W = 390;
+const MOBILE_H = 844;
+const PHONE_FRAME_W = 132;
 
-function PreviewSkeleton({ tone = "light" }: { tone?: "light" | "dark" }) {
+const textBtn =
+  "h-7 rounded-md px-2 text-[11px] font-medium text-neutral-500 hover:bg-transparent hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white";
+
+function PreviewSkeleton() {
   return (
-    <div
-      className={cn(
-        "absolute inset-0 z-20 overflow-hidden",
-        tone === "dark" ? "bg-neutral-950" : "bg-white"
-      )}
-    >
+    <div className="absolute inset-0 z-20 overflow-hidden bg-white">
       <EditorPreviewSkeleton device="desktop" className="h-full min-h-full" />
     </div>
   );
 }
 
-function ScaledMobileIframe({
+function ScaledPhoneIframe({
   src,
   iframeKey,
   onLoad,
@@ -77,12 +69,13 @@ function ScaledMobileIframe({
   useEffect(() => {
     const el = shellRef.current;
     if (!el) return;
-
     const update = () => {
       const w = el.clientWidth;
-      if (w > 0) setScale(w / MOBILE_VIEWPORT_W);
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) {
+        setScale(Math.min(w / MOBILE_W, h / MOBILE_H));
+      }
     };
-
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
@@ -91,12 +84,12 @@ function ScaledMobileIframe({
 
   return (
     <div ref={shellRef} className="relative h-full w-full overflow-hidden bg-white">
-      {loading && <PreviewSkeleton />}
+      {loading ? <PreviewSkeleton /> : null}
       <div
         className="absolute left-0 top-0 origin-top-left"
         style={{
-          width: MOBILE_VIEWPORT_W,
-          height: MOBILE_VIEWPORT_H,
+          width: MOBILE_W,
+          height: MOBILE_H,
           transform: `scale(${scale})`,
         }}
       >
@@ -104,8 +97,9 @@ function ScaledMobileIframe({
           key={iframeKey}
           src={src}
           title="Mobile store preview"
-          className="h-full w-full border-0 bg-white"
-          style={{ width: MOBILE_VIEWPORT_W, height: MOBILE_VIEWPORT_H }}
+          className="pointer-events-none h-full w-full border-0 bg-white"
+          style={{ width: MOBILE_W, height: MOBILE_H }}
+          scrolling="no"
           onLoad={onLoad}
         />
       </div>
@@ -113,6 +107,7 @@ function ScaledMobileIframe({
   );
 }
 
+/** Fixed dual preview: desktop ~half + small phone beside — no stage scroll. */
 export function ThemeDevicePreview({
   storeSlug,
   draft,
@@ -136,9 +131,9 @@ export function ThemeDevicePreview({
         previewPaths,
         page === "home" ? homeLayout : null,
         null,
-        "desktop",
+        "desktop"
       ),
-    [storeSlug, draft, page, previewPaths, homeLayout],
+    [storeSlug, draft, page, previewPaths, homeLayout]
   );
 
   const mobileUrl = useMemo(
@@ -150,17 +145,14 @@ export function ThemeDevicePreview({
         previewPaths,
         page === "home" ? homeLayout : null,
         null,
-        "mobile",
+        "mobile"
       ),
-    [storeSlug, draft, page, previewPaths, homeLayout],
+    [storeSlug, draft, page, previewPaths, homeLayout]
   );
 
   const [debouncedDesktop, setDebouncedDesktop] = useState(desktopUrl);
   const [debouncedMobile, setDebouncedMobile] = useState(mobileUrl);
-
-  const accent = draft.primaryColor ?? "#007AFF";
-  const isLoading = loadingDesktop || loadingMobile;
-  const activePageLabel = PREVIEW_PAGES.find((p) => p.id === page)?.label ?? "Home";
+  const loading = loadingDesktop || loadingMobile;
 
   const handleRefresh = useCallback(() => {
     setLoadingDesktop(true);
@@ -174,7 +166,7 @@ export function ThemeDevicePreview({
     const timer = window.setTimeout(() => {
       setDebouncedDesktop(desktopUrl);
       setDebouncedMobile(mobileUrl);
-    }, 350);
+    }, 280);
     return () => window.clearTimeout(timer);
   }, [desktopUrl, mobileUrl]);
 
@@ -184,246 +176,121 @@ export function ThemeDevicePreview({
   }, [refreshKey]);
 
   function pageAvailable(p: PreviewPage) {
-    if (p === "home") return true;
-    if (p === "product") return true;
     if (p === "category") return !!previewPaths?.category;
-    if (p === "collection") return true;
-    return false;
+    return true;
   }
 
   return (
     <section
       className={cn(
         embedded ? "relative" : dashboardCard,
-        "overflow-hidden",
-        !embedded && "relative",
+        "overflow-hidden font-[family-name:var(--font-inter),-apple-system,BlinkMacSystemFont,sans-serif]"
       )}
     >
-      <div
-        className={cn(
-          dashboardCardPad,
-          "relative border-b border-neutral-100",
-          embedded && "pb-3",
-        )}
-      >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className={dashboardKicker}>Preview</p>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium",
-                  isLoading
-                    ? "bg-neutral-100 text-neutral-600"
-                    : "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100",
-                )}
-              >
-                <span
+      <div className="flex flex-col gap-2 border-b border-black/[0.05] px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+        <div className="flex items-center gap-2">
+          <h2 className={dashboardTitle}>Preview</h2>
+          <span className="text-[10px] text-neutral-400">{loading ? "Updating…" : "Ready"}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className={dashboardPillGroup}>
+            {PREVIEW_PAGES.map((p) => {
+              const available = pageAvailable(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={!available}
+                  onClick={() => setPage(p.id)}
                   className={cn(
-                    "h-1.5 w-1.5 rounded-full",
-                    isLoading ? "animate-pulse bg-neutral-400" : "bg-emerald-500",
+                    dashboardPill,
+                    page === p.id
+                      ? dashboardPillActive
+                      : available
+                        ? dashboardPillInactive
+                        : "cursor-not-allowed text-neutral-300"
                   )}
-                />
-                {isLoading ? "Updating" : "Ready"}
-              </span>
-            </div>
-            <h2 className={cn(dashboardTitle, "mt-1")}>
-              Desktop & mobile · {activePageLabel}
-            </h2>
-            <p className={cn(dashboardSubtitle, "mt-0.5")}>
-              How customers see this page before you publish.
-            </p>
-          </div>
-
-          <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-            <div className={cn(dashboardPillGroup, "flex-wrap")}>
-              {PREVIEW_PAGES.map((p) => {
-                const available = pageAvailable(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    disabled={!available}
-                    onClick={() => setPage(p.id)}
-                    className={cn(
-                      dashboardPill,
-                      page === p.id
-                        ? cn(dashboardPillActive, "bg-neutral-900 text-white ring-0")
-                        : available
-                          ? dashboardPillInactive
-                          : "cursor-not-allowed text-muted-foreground/35",
-                    )}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-md"
-                onClick={handleRefresh}
-                title="Refresh preview"
-              >
-                <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin")} />
-              </Button>
-              {onFullscreen && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-md"
-                  onClick={onFullscreen}
-                  title="Fullscreen"
                 >
-                  <Maximize2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" className="h-8 rounded-md px-2.5" asChild>
-                <Link href={debouncedDesktop} target="_blank">
-                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                  Open
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 rounded-md px-2.5" asChild>
-                <Link href={`/store/${storeSlug}`} target="_blank" rel="noopener noreferrer">
-                  Live
-                </Link>
-              </Button>
-            </div>
+                  {p.label}
+                </button>
+              );
+            })}
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-md text-neutral-500"
+            onClick={handleRefresh}
+            title="Refresh"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+          </Button>
+          {onFullscreen ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-md text-neutral-500"
+              onClick={onFullscreen}
+              title="Fullscreen"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
+          ) : null}
+          <Button variant="ghost" className={textBtn} asChild>
+            <Link href={debouncedDesktop} target="_blank">
+              <ExternalLink className="mr-1 h-3 w-3" />
+              Open
+            </Link>
+          </Button>
         </div>
       </div>
 
+      {/* Fixed stage — no scroll */}
       <div
-        className={cn(
-          "relative overflow-hidden bg-neutral-100",
-          embedded ? "px-2 pb-6 pt-5 sm:px-4" : "px-4 pb-8 pt-6 sm:px-6 sm:pb-10 sm:pt-8",
-        )}
+        className="flex items-center justify-center gap-4 overflow-hidden bg-[#F5F5F7] px-4 py-4 dark:bg-white/[0.02] sm:gap-5 sm:px-6"
+        style={{ height: STAGE_H }}
       >
+        {/* Desktop ~ half */}
+        <div
+          className="relative h-full min-w-0 flex-1 overflow-hidden rounded-[10px] border border-black/[0.06] bg-white dark:border-white/10"
+          style={{ maxWidth: "65%" }}
+        >
+          <div className="flex h-7 shrink-0 items-center gap-1.5 border-b border-black/[0.05] bg-[#FAFAFA] px-2.5 dark:border-white/10 dark:bg-white/[0.04]">
+            <span className="h-1.5 w-1.5 rounded-full bg-neutral-300" />
+            <span className="h-1.5 w-1.5 rounded-full bg-neutral-300" />
+            <span className="h-1.5 w-1.5 rounded-full bg-neutral-300" />
+            <span className="ml-1 truncate font-mono text-[10px] text-neutral-400">
+              /store/{storeSlug}
+            </span>
+          </div>
+          <div className="relative overflow-hidden" style={{ height: `calc(100% - 1.75rem)` }}>
+            {loadingDesktop ? <PreviewSkeleton /> : null}
+            <iframe
+              key={`d-${refreshKey}-${iframeKey}-${debouncedDesktop}`}
+              src={debouncedDesktop}
+              title="Desktop store preview"
+              className="absolute inset-0 h-full w-full border-0"
+              scrolling="no"
+              onLoad={() => setLoadingDesktop(false)}
+            />
+          </div>
+        </div>
 
-        <div className="relative mx-auto w-full max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-            className="relative"
-          >
-            {/* —— Laptop —— */}
-            <div className="relative mx-auto w-full">
-              {/* Lid */}
-              <div className="relative overflow-hidden rounded-t-2xl border border-neutral-700/80 bg-gradient-to-b from-neutral-600 via-neutral-800 to-neutral-900 p-[10px] shadow-[0_40px_80px_-28px_rgba(15,23,42,0.55)] ring-1 ring-white/10 sm:rounded-t-[1.35rem] sm:p-3">
-                {/* Camera notch */}
-                <div className="absolute left-1/2 top-1.5 z-20 flex -translate-x-1/2 items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-neutral-950 ring-1 ring-neutral-600/80" />
-                </div>
-
-                {/* Browser chrome */}
-                <div className="mb-2 flex items-center gap-2 rounded-lg bg-neutral-950/40 px-2.5 py-1.5 ring-1 ring-white/5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57] shadow-[inset_0_-1px_1px_rgba(0,0,0,0.25)]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e] shadow-[inset_0_-1px_1px_rgba(0,0,0,0.25)]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#28c840] shadow-[inset_0_-1px_1px_rgba(0,0,0,0.25)]" />
-                  </div>
-                  <div className="mx-auto flex min-w-0 max-w-md flex-1 items-center justify-center gap-1.5 rounded-md bg-neutral-800/90 px-3 py-1 ring-1 ring-white/5">
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/90" />
-                    <span className="truncate font-mono text-[10px] text-neutral-400">
-                      ettajer.com/store/{storeSlug}
-                    </span>
-                  </div>
-                  <span className="hidden text-[9px] font-medium uppercase tracking-wider text-neutral-500 sm:inline">
-                    Desktop
-                  </span>
-                </div>
-
-                {/* Screen */}
-                <div className="relative aspect-[16/10] overflow-hidden rounded-md bg-white shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]">
-                  {loadingDesktop && <PreviewSkeleton />}
-                  <iframe
-                    key={`desktop-${refreshKey}-${iframeKey}-${debouncedDesktop}`}
-                    src={debouncedDesktop}
-                    title="Desktop store preview"
-                    className="absolute inset-0 h-full w-full border-0"
-                    onLoad={() => setLoadingDesktop(false)}
-                  />
-                  {/* Glass glare */}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-transparent" />
-                </div>
-              </div>
-
-              {/* Hinge */}
-              <div className="relative h-2.5 bg-gradient-to-b from-neutral-700 to-neutral-800">
-                <div className="absolute inset-x-[18%] top-0 h-px bg-white/10" />
-                <div className="absolute inset-x-[22%] bottom-0 h-px bg-black/40" />
-              </div>
-
-              {/* Base / palm rest */}
-              <div className="relative mx-auto w-[108%] -translate-x-[3.7%]">
-                <div className="h-3 rounded-b-xl bg-gradient-to-b from-neutral-700 via-neutral-800 to-neutral-900 shadow-[0_18px_36px_-12px_rgba(0,0,0,0.45)] ring-1 ring-black/30">
-                  <div className="mx-auto h-full w-[18%] max-w-[120px] rounded-b-md bg-gradient-to-b from-neutral-600/40 to-transparent" />
-                </div>
-                {/* Desk reflection */}
-                <div className="mx-auto mt-1 h-6 w-[92%] rounded-[100%] bg-black/20 blur-xl" />
-              </div>
-            </div>
-
-            {/* —— Phone —— */}
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.92 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.55, delay: 0.1, ease: [0.32, 0.72, 0, 1] }}
-              className="absolute bottom-[6%] right-[2%] z-30 w-[30%] min-w-[118px] max-w-[168px] sm:right-[4%] sm:bottom-[8%] sm:max-w-[190px] lg:right-[6%] lg:max-w-[210px]"
-            >
-              {/* Soft phone glow */}
-              <div
-                className="pointer-events-none absolute -inset-6 -z-10 rounded-full blur-2xl"
-                style={{ background: `${accent}33` }}
-              />
-
-              <div className="relative">
-                {/* Side buttons */}
-                <div className="absolute -left-[3px] top-[18%] h-7 w-[3px] rounded-l-sm bg-neutral-700" />
-                <div className="absolute -left-[3px] top-[28%] h-10 w-[3px] rounded-l-sm bg-neutral-700" />
-                <div className="absolute -left-[3px] top-[42%] h-10 w-[3px] rounded-l-sm bg-neutral-700" />
-                <div className="absolute -right-[3px] top-[30%] h-14 w-[3px] rounded-r-sm bg-neutral-700" />
-
-                {/* Body */}
-                <div className="overflow-hidden rounded-[2rem] border-[3px] border-neutral-800 bg-neutral-950 p-[5px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.08)] sm:rounded-[2.25rem] sm:border-[4px] sm:p-1.5">
-                  {/* Inner bezel */}
-                  <div className="relative overflow-hidden rounded-[1.55rem] bg-black sm:rounded-[1.75rem]">
-                    {/* Dynamic Island */}
-                    <div className="absolute left-1/2 top-2 z-30 flex -translate-x-1/2 items-center justify-center">
-                      <div className="flex h-[18px] w-[72px] items-center justify-end rounded-full bg-black px-1.5 ring-1 ring-white/5 sm:h-5 sm:w-[84px]">
-                        <span className="h-2 w-2 rounded-full bg-neutral-900 ring-1 ring-neutral-700" />
-                      </div>
-                    </div>
-
-                    {/* Screen */}
-                    <div className="relative aspect-[9/19.5] overflow-hidden bg-white">
-                      <ScaledMobileIframe
-                        src={debouncedMobile}
-                        iframeKey={`mobile-${refreshKey}-${iframeKey}-${debouncedMobile}`}
-                        loading={loadingMobile}
-                        onLoad={() => setLoadingMobile(false)}
-                      />
-                      {/* Status / home fade */}
-                      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-8 bg-gradient-to-b from-black/20 to-transparent" />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-1.5 z-20 flex justify-center">
-                        <span className="h-1 w-16 rounded-full bg-neutral-900/80 sm:w-20" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Phone label */}
-                <p className="mt-2 text-center text-[9px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
-                  Mobile
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
+        {/* Small phone */}
+        <div
+          className="relative h-full shrink-0 overflow-hidden rounded-[18px] border-[3px] border-neutral-800 bg-neutral-900 shadow-sm"
+          style={{ width: PHONE_FRAME_W }}
+        >
+          <div className="absolute left-1/2 top-1.5 z-10 h-1 w-8 -translate-x-1/2 rounded-full bg-neutral-700" />
+          <div className="h-full overflow-hidden rounded-[14px] bg-white pt-3">
+            <ScaledPhoneIframe
+              src={debouncedMobile}
+              iframeKey={`m-${refreshKey}-${iframeKey}-${debouncedMobile}`}
+              loading={loadingMobile}
+              onLoad={() => setLoadingMobile(false)}
+            />
+          </div>
         </div>
       </div>
     </section>

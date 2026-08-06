@@ -17,4 +17,4 @@ export interface ServerCart {
 }
 
 export type ShippingMethod = "standard" | "express";
-export type PaymentMethod = "cod" | "stripe";
+export type PaymentMethod = "cod" | "stripe" | "paypal";

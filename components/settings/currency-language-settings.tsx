@@ -123,8 +123,8 @@ export function CurrencyLanguageSettings({
 
   return (
     <SettingsPanel
-      title="Currency & language"
-      description="How prices appear and which language your storefront uses."
+      title="Languages"
+      description="Store currency and storefront language."
       onSave={onSave}
       saving={saving}
       dirty={dirty}

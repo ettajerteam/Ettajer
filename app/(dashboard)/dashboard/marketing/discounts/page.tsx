@@ -22,7 +22,10 @@ export default async function MarketingDiscountsPage() {
 
   return (
     <DashboardLayout>
-      <DashboardHeader title="Marketing" description="Discounts, promotions, and ad platform links" />
+      <DashboardHeader
+        title="Discounts"
+        description="Promo codes for checkout — percentage or fixed, with limits and expiry"
+      />
       <DashboardPageContent>
         <MarketingClient
           initial={coupons.map(serializeCoupon)}

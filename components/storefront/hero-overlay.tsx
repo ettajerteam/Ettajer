@@ -20,6 +20,8 @@ interface HeroOverlayProps {
   imageAlt: string;
   alignment: "left" | "center" | "right";
   minHeight?: string;
+  /** Applied at max-md when set (e.g. Aura promo 70svh on phones). */
+  mobileMinHeight?: string;
   backgroundColor?: string;
   textStyle?: React.CSSProperties;
   ctaClassName: string;
@@ -27,6 +29,11 @@ interface HeroOverlayProps {
 }
 
 const ease = [0.22, 1, 0.36, 1] as const;
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
+};
 
 export function HeroOverlay({
   brandName,
@@ -43,6 +50,7 @@ export function HeroOverlay({
   imageAlt,
   alignment,
   minHeight,
+  mobileMinHeight,
   backgroundColor,
   textStyle,
   ctaClassName,
@@ -53,10 +61,16 @@ export function HeroOverlay({
 
   return (
     <section
-      className="relative flex w-full items-end overflow-hidden"
+      className={cn(
+        "relative flex w-full items-end overflow-hidden",
+        mobileMinHeight && "max-md:[min-height:var(--hero-mh-m)]"
+      )}
       style={{
         minHeight: minHeight ?? "100svh",
         backgroundColor: backgroundColor ?? "#0a0a0a",
+        ...(mobileMinHeight
+          ? ({ "--hero-mh-m": mobileMinHeight } as React.CSSProperties)
+          : {}),
       }}
     >
       <motion.div
@@ -87,13 +101,13 @@ export function HeroOverlay({
 
       <div
         className={cn(
-          "relative z-10 mx-auto w-full max-w-7xl px-6 pb-16 pt-32 sm:px-10 sm:pb-24 sm:pt-36 lg:px-16 lg:pb-28",
+          "relative z-10 mx-auto w-full max-w-7xl px-5 pb-12 pt-28 sm:px-10 sm:pb-20 sm:pt-36 lg:px-16 lg:pb-28",
           textAlign
         )}
       >
         <motion.div
           className={cn(
-            "flex max-w-3xl flex-col gap-6 sm:gap-7",
+            "flex max-w-3xl flex-col gap-4 sm:gap-6",
             alignment === "center" && "mx-auto items-center",
             alignment === "right" && "ml-auto items-end"
           )}
@@ -104,27 +118,27 @@ export function HeroOverlay({
             visible: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
           }}
         >
-          {showBrand ? (
-            <motion.p
-              variants={{
-                hidden: { opacity: 0, y: 16 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
-              }}
-              className="text-[13px] font-semibold tracking-[0.28em] text-white/90 uppercase sm:text-sm"
+          {(showBrand || eyebrow) && (
+            <motion.div
+              variants={fadeUp}
+              className={cn(
+                "flex flex-col gap-2",
+                alignment === "center" && "items-center",
+                alignment === "right" && "items-end"
+              )}
             >
-              {brandName}
-            </motion.p>
-          ) : eyebrow ? (
-            <motion.p
-              variants={{
-                hidden: { opacity: 0, y: 16 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
-              }}
-              className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70"
-            >
-              {eyebrow}
-            </motion.p>
-          ) : null}
+              {showBrand ? (
+                <p className="text-[15px] font-semibold tracking-[0.32em] text-white uppercase sm:text-base sm:tracking-[0.34em]">
+                  {brandName}
+                </p>
+              ) : null}
+              {eyebrow ? (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/65 sm:text-[11px]">
+                  {eyebrow}
+                </p>
+              ) : null}
+            </motion.div>
+          )}
 
           <motion.div
             variants={{
@@ -134,7 +148,7 @@ export function HeroOverlay({
           >
             <h1
               className={cn(
-                "whitespace-pre-line text-5xl font-semibold leading-[0.94] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl xl:text-[5.25rem]",
+                "whitespace-pre-line text-4xl font-semibold leading-[0.96] tracking-[-0.04em] text-white sm:text-5xl lg:text-7xl xl:text-[5.25rem]",
                 alignment === "center" && "text-balance"
               )}
               style={textStyle}
@@ -156,7 +170,7 @@ export function HeroOverlay({
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.75, ease } },
               }}
-              className="max-w-md text-[15px] font-light leading-relaxed text-white/75 sm:text-base"
+              className="max-w-md text-[14px] font-light leading-relaxed text-white/75 sm:text-[15px] sm:leading-relaxed"
               style={textStyle}
             >
               {subheadline}
@@ -165,12 +179,9 @@ export function HeroOverlay({
 
           {(ctaText || secondaryCtaText) && (
             <motion.div
-              variants={{
-                hidden: { opacity: 0, y: 16 },
-                visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease } },
-              }}
+              variants={fadeUp}
               className={cn(
-                "mt-1 flex flex-wrap items-center gap-x-6 gap-y-3",
+                "mt-1 flex flex-wrap items-center gap-x-5 gap-y-3 sm:gap-x-6",
                 alignment === "center" && "justify-center",
                 alignment === "right" && "justify-end"
               )}

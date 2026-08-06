@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { LandingMobileGroup } from "@/components/landing/landing-mobile-ui";
 import { useLandingLocale } from "@/components/landing/landing-locale-context";
 import { LandingArrowForward, LandingChevronForward } from "@/components/landing/landing-direction-icon";
+import { ContinueWithGoogleButton } from "@/components/auth/continue-with-google-button";
 
 const NAV_LOGO = "/brand/Ettajer-logo-black-text-Next-to-the-icon.png";
 const IOS_BLUE = "#007AFF";
@@ -44,9 +45,11 @@ const MOBILE_SUPPORT_ICONS = [
 export function LandingMobileNavBar({
   language,
   onLanguageChange,
+  googleEnabled = false,
 }: {
   language: string;
   onLanguageChange: (value: string) => void;
+  googleEnabled?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -113,6 +116,7 @@ export function LandingMobileNavBar({
                   language={language}
                   onLanguageChange={onLanguageChange}
                   onClose={closeMenu}
+                  googleEnabled={googleEnabled}
                 />
               ) : null}
             </AnimatePresence>,
@@ -127,10 +131,12 @@ function LandingMobileMenu({
   language,
   onLanguageChange,
   onClose,
+  googleEnabled = false,
 }: {
   language: string;
   onLanguageChange: (value: string) => void;
   onClose: () => void;
+  googleEnabled?: boolean;
 }) {
   const { copy } = useLandingLocale();
   const mn = copy.mobileNav;
@@ -234,6 +240,15 @@ function LandingMobileMenu({
               {mn.account}
             </p>
             <LandingMobileGroup>
+              {googleEnabled ? (
+                <div className="border-b border-[#E5E5EA] px-4 py-3">
+                  <ContinueWithGoogleButton
+                    className="h-11 w-full rounded-[0.75rem]"
+                    label={copy.nav.continueGoogle}
+                    callbackUrl="/dashboard"
+                  />
+                </div>
+              ) : null}
               <Link
                 href="/signup"
                 onClick={onClose}

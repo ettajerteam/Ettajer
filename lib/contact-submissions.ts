@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { createStoreNotification } from "@/lib/notifications/create-store-notification";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,7 +24,7 @@ export async function createContactSubmission(options: {
   if (!message || message.length > 5000) throw new Error("Invalid message");
   if (phone && phone.length > 40) throw new Error("Invalid phone");
 
-  return prisma.contactSubmission.create({
+  const row = await prisma.contactSubmission.create({
     data: {
       storeId: options.storeId,
       name,
@@ -33,6 +34,18 @@ export async function createContactSubmission(options: {
       status: "new",
     },
   });
+
+  void createStoreNotification({
+    storeId: options.storeId,
+    kind: "message",
+    title: `Message from ${name}`,
+    body: message.slice(0, 140),
+    href: "/dashboard/messages",
+    entityType: "contact",
+    entityId: row.id,
+  });
+
+  return row;
 }
 
 export async function listContactSubmissions(storeId: string) {

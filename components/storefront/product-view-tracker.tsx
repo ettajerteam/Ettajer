@@ -6,6 +6,7 @@ import { trackViewContent } from "@/lib/marketing-events";
 
 interface ProductViewTrackerProps {
   marketing: PublicMarketingIntegrations;
+  storeSlug: string;
   product: {
     id: string;
     title: string;
@@ -14,7 +15,12 @@ interface ProductViewTrackerProps {
   currency: string;
 }
 
-export function ProductViewTracker({ marketing, product, currency }: ProductViewTrackerProps) {
+export function ProductViewTracker({
+  marketing,
+  storeSlug,
+  product,
+  currency,
+}: ProductViewTrackerProps) {
   const tracked = useRef(false);
 
   useEffect(() => {
@@ -25,8 +31,9 @@ export function ProductViewTracker({ marketing, product, currency }: ProductView
       title: product.title,
       price: product.price,
       currency,
+      storeSlug,
     });
-  }, [marketing, product.id, product.title, product.price, currency]);
+  }, [marketing, storeSlug, product.id, product.title, product.price, currency]);
 
   return null;
 }

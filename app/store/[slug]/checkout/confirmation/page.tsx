@@ -8,6 +8,8 @@ import {
   serializePublicStore,
 } from "@/lib/storefront";
 import { getPublicOrder, serializeOrderDetail } from "@/lib/orders";
+import { fulfillStripePaidOrder } from "@/lib/payments/stripe-fulfill";
+import { retrieveStripeCheckoutSession } from "@/lib/payments/stripe-checkout";
 import { formatCurrency } from "@/lib/utils";
 import { applyPreviewOverrides } from "@/lib/preview-engine";
 import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
@@ -22,6 +24,7 @@ interface PageProps {
   params: { slug: string };
   searchParams: {
     order?: string;
+    session_id?: string;
     preview?: string;
     theme?: string;
     primary?: string;
@@ -52,6 +55,26 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pa
   const storeData = await getStoreBySlug(params.slug);
   if (!storeData) notFound();
 
+  // Complete Stripe payment if returning from Checkout
+  if (searchParams.session_id) {
+    try {
+      const session = await retrieveStripeCheckoutSession(searchParams.session_id);
+      const orderId =
+        session.metadata?.orderId ||
+        (typeof session.client_reference_id === "string"
+          ? session.client_reference_id
+          : null);
+      if (orderId) {
+        await fulfillStripePaidOrder({
+          orderId,
+          sessionId: searchParams.session_id,
+        });
+      }
+    } catch (err) {
+      console.error("Stripe confirmation fulfill failed:", err);
+    }
+  }
+
   const order = await getPublicOrder(params.slug, orderNumber);
   if (!order) notFound();
 
@@ -61,7 +84,10 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pa
   );
   const detail = serializeOrderDetail(order);
   const isPreview = searchParams.preview === "true";
-  const isCod = store.checkout.cashOnDelivery;
+  const isCod = detail.paymentMethod === "cod";
+  const isStripe = detail.paymentMethod === "stripe";
+  const isPaypal = detail.paymentMethod === "paypal";
+  const isPaid = detail.paymentStatus === "paid";
 
   return (
     <StorefrontShell
@@ -71,6 +97,14 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pa
         value: detail.total,
         currency: store.currency,
         orderNumber: detail.orderNumber,
+        contentIds: detail.items.map((item) => item.productId).filter(Boolean),
+        numItems: detail.items.reduce((sum, item) => sum + item.quantity, 0),
+        email: detail.customerEmail,
+        phone: detail.customerPhone,
+        name: detail.customerName,
+        city: detail.shippingAddress?.city ?? null,
+        country: detail.shippingAddress?.country ?? null,
+        zip: detail.shippingAddress?.postalCode ?? null,
       }}
     >
       <div className="min-h-screen bg-white">
@@ -83,11 +117,32 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pa
           </p>
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Thank you</h1>
           <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-neutral-500">
-            We’ve emailed{" "}
-            <span className="font-medium text-neutral-700">{detail.customerEmail}</span>
-            {isCod
-              ? ". Have cash ready for the courier when your package arrives."
-              : ". We’ll update you when your order ships."}
+            {store.checkout.successMessage?.trim()
+              ? store.checkout.successMessage
+              : (
+                  <>
+                    {detail.customerEmail &&
+                    !detail.customerEmail.startsWith("guest@") ? (
+                      <>
+                        We’ve emailed{" "}
+                        <span className="font-medium text-neutral-700">
+                          {detail.customerEmail}
+                        </span>
+                        {isCod
+                          ? ". Have cash ready for the courier when your package arrives."
+                          : isPaid
+                            ? ". Your payment was received — we’ll update you when your order ships."
+                            : ". We’ll update you when your order ships."}
+                      </>
+                    ) : isCod ? (
+                      "Have cash ready for the courier when your package arrives."
+                    ) : isPaid ? (
+                      "Your payment was received — we’ll update you when your order ships."
+                    ) : (
+                      "We’ll update you when your order ships."
+                    )}
+                  </>
+                )}
           </p>
 
           <div className="mt-10 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-5 text-left sm:p-6">
@@ -110,6 +165,14 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pa
                   <span className="inline-flex items-center gap-1 font-medium text-neutral-800">
                     <Banknote className="h-3.5 w-3.5" />
                     Cash on delivery
+                  </span>
+                </div>
+              ) : isStripe || isPaypal ? (
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Payment</span>
+                  <span className="font-medium text-neutral-800">
+                    {isStripe ? "Card (Stripe)" : "PayPal"}
+                    {isPaid ? " · Paid" : " · Pending"}
                   </span>
                 </div>
               ) : null}

@@ -11,6 +11,7 @@ import { ReportsRevenueChart } from "@/components/analytics/reports-revenue-char
 import { ReportsToolbar } from "@/components/analytics/reports-toolbar";
 import { ReportsTopProducts } from "@/components/analytics/reports-top-products";
 import { ReportsTopRegions } from "@/components/analytics/reports-top-regions";
+import { dashboardStack } from "@/lib/dashboard-ui";
 
 interface ReportsClientProps {
   data: ReportsData;
@@ -61,7 +62,7 @@ export function ReportsClient({ data }: ReportsClientProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={dashboardStack}>
       <ReportsToolbar
         rangeLabel={data.rangeLabel}
         lastUpdated={data.lastUpdated}
@@ -94,7 +95,7 @@ export function ReportsClient({ data }: ReportsClientProps) {
         peakLabel={data.peakLabel}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         <ReportsTopProducts products={data.topProducts} currency={data.currency} />
         <ReportsTopRegions regions={data.topRegions} currency={data.currency} />
       </div>

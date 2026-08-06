@@ -22,32 +22,32 @@ export function ReportsToolbar({
   onExport,
 }: ReportsToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
       <AnalyticsSectionNav />
 
-      <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-        <div className="hidden rounded-xl border border-neutral-200/80 bg-white/80 px-3 py-1.5 text-[11px] text-neutral-500 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03] lg:block">
+      <div className="flex flex-wrap items-center gap-1.5 self-end sm:self-auto">
+        <p className="hidden text-[11px] text-neutral-400 lg:block" suppressHydrationWarning>
           {rangeLabel} · Updated {formatRelativeTime(lastUpdated)}
-        </div>
+        </p>
 
         <Button
           variant="outline"
           size="sm"
-          className="h-8 rounded-lg border-neutral-200/80 bg-white/80 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.03]"
+          className="h-7 rounded-md border-black/[0.06] px-2.5 text-[12px] dark:border-white/10"
           onClick={onExport}
         >
-          <Download className="mr-1.5 h-3.5 w-3.5" />
+          <Download className="mr-1 h-3 w-3" />
           Export
         </Button>
 
         <Button
           variant="outline"
           size="sm"
-          className="h-8 rounded-lg border-neutral-200/80 bg-white/80 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.03]"
+          className="h-7 rounded-md border-black/[0.06] px-2.5 text-[12px] dark:border-white/10"
           onClick={onRefresh}
           disabled={refreshing}
         >
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", refreshing && "animate-spin")} />
+          <RefreshCw className={cn("mr-1 h-3 w-3", refreshing && "animate-spin")} />
           Refresh
         </Button>
       </div>

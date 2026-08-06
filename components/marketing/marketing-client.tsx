@@ -1,64 +1,59 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  Plus,
-  Trash2,
+  Copy,
+  MoreHorizontal,
   Pencil,
+  Plus,
+  Search,
   Tag,
-  Percent,
-  Calendar,
-  Hash,
-  TrendingDown,
+  Trash2,
+  X,
+  CircleOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MarketingSectionNav } from "@/components/marketing/marketing-section-nav";
-import { dashboardCard, dashboardCardPad } from "@/lib/dashboard-ui";
-import { formatCurrency, cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ProductsEmptyState } from "@/components/products/products-empty-state";
+import { DiscountSheet } from "@/components/marketing/discount-sheet";
+import { cn, formatCurrency } from "@/lib/utils";
+import {
+  dashboardCard,
+  dashboardKicker,
+  dashboardMetric,
+  dashboardPill,
+  dashboardPillActive,
+  dashboardPillGroup,
+  dashboardPillInactive,
+  dashboardStack,
+  dashboardSubtitle,
+  dashboardTitle,
+} from "@/lib/dashboard-ui";
 import type { CouponRow, CouponStats } from "@/lib/marketing";
 import { getCouponStatus } from "@/lib/marketing";
+
+type StatusFilter = "all" | "active" | "expired" | "depleted";
 
 interface MarketingClientProps {
   initial: CouponRow[];
   stats: CouponStats;
   currency: string;
 }
-
-interface CouponFormState {
-  code: string;
-  type: "percentage" | "fixed";
-  value: string;
-  minPurchase: string;
-  maxDiscount: string;
-  usageLimit: string;
-  expiresAt: string;
-}
-
-const EMPTY_FORM: CouponFormState = {
-  code: "",
-  type: "percentage",
-  value: "",
-  minPurchase: "",
-  maxDiscount: "",
-  usageLimit: "",
-  expiresAt: "",
-};
 
 function formatDiscount(coupon: CouponRow, currency: string) {
   if (coupon.type === "percentage") {
@@ -74,14 +69,18 @@ function formatDiscount(coupon: CouponRow, currency: string) {
 function StatusBadge({ status }: { status: ReturnType<typeof getCouponStatus> }) {
   const styles = {
     active: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-    expired: "bg-muted text-muted-foreground",
+    expired: "bg-[#F5F5F7] text-neutral-500 dark:bg-white/[0.08] dark:text-neutral-400",
     depleted: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
   };
-  const labels = { active: "Active", expired: "Expired", depleted: "Limit reached" };
+  const labels = {
+    active: "Active",
+    expired: "Expired",
+    depleted: "Limit reached",
+  };
   return (
     <span
       className={cn(
-        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        "inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-medium",
         styles[status]
       )}
     >
@@ -90,283 +89,465 @@ function StatusBadge({ status }: { status: ReturnType<typeof getCouponStatus> })
   );
 }
 
-export function MarketingClient({ initial, stats, currency }: MarketingClientProps) {
-  const [coupons, setCoupons] = useState(initial);
-  const [form, setForm] = useState<CouponFormState>(EMPTY_FORM);
-  const [editing, setEditing] = useState<CouponRow | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
+const primaryBtnClass =
+  "h-7 rounded-md bg-[#007AFF] px-2.5 text-[12px] font-medium text-white shadow-none [background-image:none] hover:scale-100 hover:bg-[#0071EB] hover:shadow-none";
 
-  const statCards = useMemo(
-    () => [
-      { label: "Total codes", value: stats.totalCoupons.toString(), icon: Tag },
-      { label: "Active", value: stats.activeCoupons.toString(), icon: Percent },
-      { label: "Redemptions", value: stats.totalRedemptions.toString(), icon: Hash },
-      {
-        label: "Discount given",
-        value: formatCurrency(stats.revenueDiscounted, currency),
-        icon: TrendingDown,
-      },
-    ],
-    [stats, currency]
-  );
+export function MarketingClient({
+  initial,
+  stats: initialStats,
+  currency,
+}: MarketingClientProps) {
+  const [coupons, setCoupons] = useState(initial);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<CouponRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CouponRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [discountGiven] = useState(initialStats.revenueDiscounted);
+  const [redemptions, setRedemptions] = useState(initialStats.totalRedemptions);
+
+  useEffect(() => {
+    setCoupons(initial);
+  }, [initial]);
+
+  useEffect(() => {
+    setRedemptions(initialStats.totalRedemptions);
+  }, [initialStats.totalRedemptions]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return coupons.filter((coupon) => {
+      const status = getCouponStatus(coupon);
+      if (statusFilter !== "all" && status !== statusFilter) return false;
+      if (!q) return true;
+      return coupon.code.toLowerCase().includes(q);
+    });
+  }, [coupons, search, statusFilter]);
+
+  const hasFilters = Boolean(search.trim()) || statusFilter !== "all";
+
+  const liveStats = useMemo(() => {
+    let active = 0;
+    let redemptionsFromCodes = 0;
+    for (const coupon of coupons) {
+      if (getCouponStatus(coupon) === "active") active += 1;
+      redemptionsFromCodes += coupon.usedCount;
+    }
+    return {
+      total: coupons.length,
+      active,
+      redemptions: Math.max(redemptions, redemptionsFromCodes),
+      discountGiven,
+    };
+  }, [coupons, redemptions, discountGiven]);
+
+  const statItems = [
+    { label: "Codes", value: liveStats.total.toLocaleString() },
+    { label: "Active", value: liveStats.active.toLocaleString() },
+    { label: "Redemptions", value: liveStats.redemptions.toLocaleString() },
+    {
+      label: "Discount given",
+      value: formatCurrency(liveStats.discountGiven, currency),
+    },
+  ];
 
   function openCreate() {
     setEditing(null);
-    setForm(EMPTY_FORM);
-    setDialogOpen(true);
+    setSheetOpen(true);
   }
 
   function openEdit(coupon: CouponRow) {
     setEditing(coupon);
-    setForm({
-      code: coupon.code,
-      type: coupon.type as "percentage" | "fixed",
-      value: String(coupon.value),
-      minPurchase: coupon.minPurchase != null ? String(coupon.minPurchase) : "",
-      maxDiscount: coupon.maxDiscount != null ? String(coupon.maxDiscount) : "",
-      usageLimit: coupon.usageLimit != null ? String(coupon.usageLimit) : "",
-      expiresAt: coupon.expiresAt ? coupon.expiresAt.slice(0, 10) : "",
-    });
-    setDialogOpen(true);
+    setSheetOpen(true);
   }
 
-  function closeDialog() {
-    setDialogOpen(false);
-    setEditing(null);
-    setForm(EMPTY_FORM);
-  }
-
-  async function handleSave() {
-    if (!form.code.trim() || !form.value) return;
-    setSaving(true);
+  async function copyCode(code: string) {
     try {
-      const payload = {
-        code: form.code.trim(),
-        type: form.type,
-        value: Number(form.value),
-        minPurchase: form.minPurchase ? Number(form.minPurchase) : undefined,
-        maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : undefined,
-        usageLimit: form.usageLimit ? Number(form.usageLimit) : undefined,
-        expiresAt: form.expiresAt || undefined,
-      };
-
-      const res = await fetch(
-        editing ? `/api/marketing?id=${editing.id}` : "/api/marketing",
-        {
-          method: editing ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed");
-
-      if (editing) {
-        setCoupons((prev) => prev.map((c) => (c.id === editing.id ? data.coupon : c)));
-        toast.success("Discount updated");
-      } else {
-        setCoupons((prev) => [data.coupon, ...prev]);
-        toast.success("Discount created");
-      }
-      closeDialog();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed");
-    } finally {
-      setSaving(false);
+      await navigator.clipboard.writeText(code);
+      toast.success("Code copied");
+    } catch {
+      toast.error("Could not copy code");
     }
   }
 
-  async function handleDelete(id: string) {
-    const res = await fetch(`/api/marketing?id=${id}`, { method: "DELETE" });
-    if (res.ok) {
-      setCoupons((prev) => prev.filter((c) => c.id !== id));
-      toast.success("Deleted");
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/marketing?id=${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          typeof data.message === "string" ? data.message : "Failed to delete"
+        );
+      }
+      setCoupons((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      toast.success("Discount deleted");
+      setDeleteTarget(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Delete failed");
+    } finally {
+      setDeleting(false);
     }
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("all");
+  }
+
+  const statusPills: { id: StatusFilter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "active", label: "Active" },
+    { id: "expired", label: "Expired" },
+    { id: "depleted", label: "Limit reached" },
+  ];
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search codes…"
+          className="h-7 w-40 rounded-md border border-black/[0.06] bg-[#F5F5F7] pl-7 pr-7 text-[12px] outline-none focus:ring-1 focus:ring-[#007AFF]/30 sm:w-52 dark:border-white/10 dark:bg-white/[0.05]"
+        />
+        {search ? (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            className="absolute right-1.5 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-neutral-400 hover:bg-black/[0.05]"
+            aria-label="Clear search"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        ) : null}
+      </div>
+
+      <div className={dashboardPillGroup}>
+        {statusPills.map((pill) => (
+          <button
+            key={pill.id}
+            type="button"
+            onClick={() => setStatusFilter(pill.id)}
+            className={cn(
+              dashboardPill,
+              statusFilter === pill.id
+                ? dashboardPillActive
+                : dashboardPillInactive
+            )}
+          >
+            {pill.label}
+          </button>
+        ))}
+      </div>
+
+      <Button type="button" onClick={openCreate} className={primaryBtnClass}>
+        <Plus className="mr-1 h-3 w-3" />
+        New discount
+      </Button>
+    </div>
+  );
+
+  function RowActions({ coupon }: { coupon: CouponRow }) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-md text-neutral-400 hover:text-neutral-700"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">Actions</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44 text-[12px]">
+          <DropdownMenuItem onClick={() => void copyCode(coupon.code)}>
+            <Copy className="mr-2 h-3.5 w-3.5" />
+            Copy code
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => openEdit(coupon)}>
+            <Pencil className="mr-2 h-3.5 w-3.5" />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-red-600 focus:text-red-600"
+            onClick={() => setDeleteTarget(coupon)}
+          >
+            <Trash2 className="mr-2 h-3.5 w-3.5" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <MarketingSectionNav />
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className={dashboardCard}>
-              <div className={`${dashboardCardPad} flex items-center gap-3`}>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#007AFF]/10">
-                  <Icon className="h-4 w-4 text-[#007AFF]" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  <p className="text-lg font-semibold tracking-tight">{stat.value}</p>
-                </div>
-              </div>
+    <div className={dashboardStack}>
+      {coupons.length > 0 || hasFilters ? (
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          {statItems.map((stat) => (
+            <div key={stat.label} className={cn(dashboardCard, "px-3.5 py-3")}>
+              <p className={dashboardKicker}>{stat.label}</p>
+              <p className={cn(dashboardMetric, "mt-1 truncate")}>{stat.value}</p>
             </div>
-          );
-        })}
-      </div>
-
-      <div className="flex justify-end">
-        <Button onClick={openCreate} className="bg-[#007AFF] hover:bg-[#007AFF]/90">
-          <Plus className="h-4 w-4 mr-2" /> New discount
-        </Button>
-      </div>
-
-      <section className={dashboardCard}>
-        <div className={`${dashboardCardPad} border-b border-border/70`}>
-          <h3 className="text-base font-semibold tracking-[-0.02em]">Discount codes</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Codes customers enter at checkout. Track usage and limits below.
-          </p>
+          ))}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="px-5 py-3 font-medium">Code</th>
-                <th className="px-5 py-3 font-medium">Discount</th>
-                <th className="px-5 py-3 font-medium">Rules</th>
-                <th className="px-5 py-3 font-medium">Used</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 w-20" />
-              </tr>
-            </thead>
-            <tbody>
-              {coupons.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground">
-                    No discount codes yet. Create one to offer promotions at checkout.
-                  </td>
-                </tr>
-              ) : (
-                coupons.map((coupon) => (
-                  <tr key={coupon.id} className="border-b last:border-0 hover:bg-muted/20">
-                    <td className="px-5 py-3.5 font-mono font-semibold">{coupon.code}</td>
-                    <td className="px-5 py-3.5">{formatDiscount(coupon, currency)}</td>
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                      {coupon.minPurchase != null && (
-                        <span className="block">
-                          Min {formatCurrency(coupon.minPurchase, currency)}
-                        </span>
-                      )}
-                      {coupon.expiresAt && (
-                        <span className="block">
-                          Expires {new Date(coupon.expiresAt).toLocaleDateString()}
-                        </span>
-                      )}
-                      {!coupon.minPurchase && !coupon.expiresAt && "—"}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted-foreground">
-                      {coupon.usedCount}
-                      {coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <StatusBadge status={getCouponStatus(coupon)} />
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(coupon)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(coupon.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      ) : null}
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit discount" : "Create discount"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-2">
-            <div>
-              <Label>Code</Label>
-              <Input
-                value={form.code}
-                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
-                placeholder="SUMMER20"
-                className="font-mono uppercase"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Type</Label>
-                <Select
-                  value={form.type}
-                  onValueChange={(v) => setForm((f) => ({ ...f, type: v as "percentage" | "fixed" }))}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Percentage</SelectItem>
-                    <SelectItem value="fixed">Fixed amount</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Value</Label>
-                <Input
-                  type="number"
-                  value={form.value}
-                  onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Min purchase</Label>
-                <Input
-                  type="number"
-                  value={form.minPurchase}
-                  onChange={(e) => setForm((f) => ({ ...f, minPurchase: e.target.value }))}
-                  placeholder="Optional"
-                />
-              </div>
-              <div>
-                <Label>Max discount</Label>
-                <Input
-                  type="number"
-                  value={form.maxDiscount}
-                  onChange={(e) => setForm((f) => ({ ...f, maxDiscount: e.target.value }))}
-                  placeholder="For % codes"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Usage limit</Label>
-                <Input
-                  type="number"
-                  value={form.usageLimit}
-                  onChange={(e) => setForm((f) => ({ ...f, usageLimit: e.target.value }))}
-                  placeholder="Unlimited"
-                />
-              </div>
-              <div>
-                <Label className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Expires
-                </Label>
-                <Input
-                  type="date"
-                  value={form.expiresAt}
-                  onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))}
-                />
-              </div>
-            </div>
-            <Button onClick={handleSave} loading={saving} className="mt-2 bg-[#007AFF] hover:bg-[#007AFF]/90">
-              {editing ? "Save changes" : "Create discount"}
+      {coupons.length === 0 && !hasFilters ? (
+        <ProductsEmptyState
+          icon={Tag}
+          title="No discount codes yet"
+          description="Create promo codes customers can enter at checkout — percentage or fixed amount, with optional limits and expiry."
+          action={
+            <Button type="button" onClick={openCreate} className={primaryBtnClass}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Create discount
             </Button>
+          }
+          tips={[
+            {
+              step: "01",
+              title: "Pick a code",
+              body: "Use a short memorable code like SUMMER20 or WELCOME10.",
+            },
+            {
+              step: "02",
+              title: "Set the offer",
+              body: "Choose percentage or fixed amount, plus min purchase if needed.",
+            },
+            {
+              step: "03",
+              title: "Share at checkout",
+              body: "Customers apply the code on your storefront checkout page.",
+            },
+          ]}
+        />
+      ) : filtered.length === 0 ? (
+        <div className={cn(dashboardCard, "overflow-hidden")}>
+          <div className="flex flex-col gap-2.5 border-b border-black/[0.05] px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className={dashboardTitle}>Discount codes</h2>
+              <p className={dashboardSubtitle}>No codes match your filters</p>
+            </div>
+            {toolbar}
           </div>
+          <ProductsEmptyState
+            icon={CircleOff}
+            title="No matches"
+            description="Try another search or clear filters."
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 rounded-md border-black/[0.06] px-3 text-[12px] dark:border-white/10"
+                onClick={clearFilters}
+              >
+                Clear filters
+              </Button>
+            }
+            embedded
+          />
+        </div>
+      ) : (
+        <div className={cn(dashboardCard, "overflow-hidden")}>
+          <div className="flex flex-col gap-2.5 border-b border-black/[0.05] px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className={dashboardTitle}>
+                Discount codes
+                <span className="ml-1.5 font-normal text-neutral-400">
+                  {filtered.length}
+                </span>
+              </h2>
+              <p className={dashboardSubtitle}>
+                Copy, edit, or delete from ···
+              </p>
+            </div>
+            {toolbar}
+          </div>
+
+          {/* Mobile */}
+          <div className="divide-y divide-black/[0.04] dark:divide-white/5 md:hidden">
+            {filtered.map((coupon) => {
+              const status = getCouponStatus(coupon);
+              return (
+                <div key={coupon.id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => void copyCode(coupon.code)}
+                        className="group/code inline-flex max-w-full items-center gap-1.5 rounded-md px-0.5 py-0.5 text-left"
+                        title="Copy code"
+                      >
+                        <span className="truncate font-mono text-[12px] font-semibold text-neutral-900 dark:text-white">
+                          {coupon.code}
+                        </span>
+                        <Copy className="h-3 w-3 shrink-0 text-neutral-400 opacity-0 transition group-hover/code:opacity-100" />
+                      </button>
+                      <p className="mt-0.5 text-[11px] text-neutral-500">
+                        {formatDiscount(coupon, currency)}
+                        {" · "}
+                        {coupon.usedCount}
+                        {coupon.usageLimit != null
+                          ? ` / ${coupon.usageLimit}`
+                          : ""}{" "}
+                        used
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <StatusBadge status={status} />
+                        {coupon.expiresAt ? (
+                          <span className="text-[10px] text-neutral-400">
+                            Expires{" "}
+                            {new Date(coupon.expiresAt).toLocaleDateString()}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <RowActions coupon={coupon} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="border-b border-black/[0.05] text-left text-[10px] font-medium uppercase tracking-[0.06em] text-neutral-400 dark:border-white/10">
+                  <th className="px-4 py-2.5">Code</th>
+                  <th className="px-4 py-2.5">Discount</th>
+                  <th className="px-4 py-2.5">Rules</th>
+                  <th className="px-4 py-2.5">Used</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5 text-right"> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((coupon) => {
+                  const status = getCouponStatus(coupon);
+                  return (
+                    <tr
+                      key={coupon.id}
+                      className="border-b border-black/[0.04] last:border-0 transition-colors duration-150 hover:bg-[#F5F5F7]/80 dark:border-white/5 dark:hover:bg-white/[0.03]"
+                    >
+                      <td className="px-4 py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => void copyCode(coupon.code)}
+                          className="group/code inline-flex max-w-full items-center gap-1.5 rounded-md px-1 py-0.5 text-left transition hover:bg-black/[0.04]"
+                          title="Copy code"
+                        >
+                          <span className="truncate font-mono text-[12px] font-semibold text-neutral-900 dark:text-white">
+                            {coupon.code}
+                          </span>
+                          <Copy className="h-3 w-3 shrink-0 text-neutral-400 opacity-0 transition group-hover/code:opacity-100" />
+                        </button>
+                      </td>
+                      <td className="px-4 py-2.5 font-medium tabular-nums text-neutral-900 dark:text-white">
+                        {formatDiscount(coupon, currency)}
+                      </td>
+                      <td className="px-4 py-2.5 text-[11px] text-neutral-400">
+                        {coupon.minPurchase != null ? (
+                          <span className="block">
+                            Min {formatCurrency(coupon.minPurchase, currency)}
+                          </span>
+                        ) : null}
+                        {coupon.expiresAt ? (
+                          <span className="block">
+                            Expires{" "}
+                            {new Date(coupon.expiresAt).toLocaleDateString()}
+                          </span>
+                        ) : null}
+                        {!coupon.minPurchase && !coupon.expiresAt ? "—" : null}
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums text-neutral-500">
+                        {coupon.usedCount}
+                        {coupon.usageLimit != null
+                          ? ` / ${coupon.usageLimit}`
+                          : ""}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <StatusBadge status={status} />
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <RowActions coupon={coupon} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <DiscountSheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) setEditing(null);
+        }}
+        currency={currency}
+        editing={editing}
+        onSaved={(coupon, mode) => {
+          if (mode === "update") {
+            setCoupons((prev) =>
+              prev.map((c) => (c.id === coupon.id ? coupon : c))
+            );
+          } else {
+            setCoupons((prev) => [coupon, ...prev]);
+          }
+        }}
+      />
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent className="max-w-sm rounded-xl border-black/[0.06] p-0 dark:border-white/10 sm:rounded-xl">
+          <DialogHeader className="border-b border-black/[0.05] px-4 py-3 dark:border-white/10">
+            <DialogTitle className="text-[14px]">Delete discount?</DialogTitle>
+            <DialogDescription className="text-[12px]">
+              {deleteTarget ? (
+                <>
+                  Remove{" "}
+                  <span className="font-mono font-medium text-neutral-700 dark:text-neutral-200">
+                    {deleteTarget.code}
+                  </span>
+                  . Customers will no longer be able to use it at checkout.
+                </>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-1.5 border-t border-black/[0.05] px-4 py-3 dark:border-white/10 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-8 rounded-md border-black/[0.06] px-3 text-[12px] dark:border-white/10"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="h-8 rounded-md bg-red-600 px-3 text-[12px] text-white shadow-none [background-image:none] hover:scale-100 hover:bg-red-700 hover:shadow-none"
+              loading={deleting}
+              onClick={() => void handleDelete()}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

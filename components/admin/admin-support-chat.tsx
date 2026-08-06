@@ -13,9 +13,9 @@ import {
   MessageCircle,
   Search,
   Send,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 import {
   SUPPORT_MESSAGE_DIRECTION,
   SUPPORT_MESSAGE_STATUS,
@@ -95,7 +95,7 @@ function statusTone(status: string) {
     case SUPPORT_MESSAGE_STATUS.NEW:
       return "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200";
     case SUPPORT_MESSAGE_STATUS.REVIEWING:
-      return "bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-200";
+      return "bg-[#007AFF]/10 text-[#007AFF] dark:bg-[#007AFF]/15 dark:text-[#5AC8FA]";
     case SUPPORT_MESSAGE_STATUS.RESOLVED:
       return "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200";
     case SUPPORT_MESSAGE_STATUS.ARCHIVED:
@@ -301,7 +301,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
   if (conversations.length === 0) {
     return (
       <div className="flex min-h-[480px] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-gradient-to-b from-neutral-50 to-white px-6 text-center dark:border-white/10 dark:from-white/[0.03] dark:to-transparent">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-600/25">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#007AFF] text-white shadow-lg shadow-[#007AFF]/25">
           <MessageCircle className="h-6 w-6" />
         </div>
         <p className="text-base font-semibold text-neutral-900 dark:text-white">
@@ -323,7 +323,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
   ];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-36px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-[#161616]">
+    <div className="overflow-hidden rounded-2xl border border-black/[0.06]/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_24px_48px_-36px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-[#161616]">
       <div className="grid min-h-[720px] lg:grid-cols-[340px_1fr]">
         {/* List */}
         <aside
@@ -340,7 +340,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search name, email, topic…"
-                className="h-10 w-full rounded-xl border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/15 dark:border-white/10 dark:bg-white/5 dark:focus:bg-white/10"
+                className="h-10 w-full rounded-xl border border-black/[0.06] bg-neutral-50 pl-9 pr-3 text-sm outline-none transition focus:border-[#5AC8FA] focus:bg-white focus:ring-2 focus:ring-[#007AFF]/15 dark:border-white/10 dark:bg-white/5 dark:focus:bg-white/10"
               />
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -393,7 +393,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                     className={cn(
                       "flex w-full gap-3 border-b border-neutral-100 px-3 py-3.5 text-left transition dark:border-white/5",
                       selected
-                        ? "bg-violet-50/90 dark:bg-violet-500/10"
+                        ? "bg-[#007AFF]/8 dark:bg-[#007AFF]/10"
                         : "hover:bg-neutral-50 dark:hover:bg-white/[0.04]"
                     )}
                   >
@@ -402,7 +402,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                         {(c.name || c.email).slice(0, 2)}
                       </div>
                       {c.unreadCount > 0 ? (
-                        <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-violet-600 dark:border-[#161616]" />
+                        <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-[#007AFF] dark:border-[#161616]" />
                       ) : null}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -433,7 +433,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                         )}
                       >
                         {c.lastDirection === SUPPORT_MESSAGE_DIRECTION.OUTBOUND ? (
-                          <span className="font-semibold text-violet-600 dark:text-violet-400">
+                          <span className="font-semibold text-[#007AFF] dark:text-[#5AC8FA]">
                             Support ·{" "}
                           </span>
                         ) : null}
@@ -560,7 +560,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                           className={cn(
                             "max-w-[min(100%,32rem)] rounded-2xl px-4 py-3 shadow-sm",
                             outbound
-                              ? "rounded-br-md bg-violet-600 text-white"
+                              ? "rounded-br-md bg-[#007AFF] text-white"
                               : "rounded-bl-md border border-black/5 bg-white text-neutral-800 dark:border-white/10 dark:bg-[#1c1c1c] dark:text-neutral-100"
                           )}
                         >
@@ -570,11 +570,11 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                               outbound ? "text-white/70" : "text-neutral-400"
                             )}
                           >
-                            <span className="inline-flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 normal-case tracking-normal">
                               {outbound ? (
                                 <>
-                                  <Sparkles className="h-3 w-3" />
-                                  Ettajer Support
+                                  Ettajer team
+                                  <VerifiedBadge className="h-3 w-3" />
                                 </>
                               ) : (
                                 <>
@@ -620,7 +620,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                       key={q.id}
                       type="button"
                       onClick={() => insertQuickReply(q.text)}
-                      className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-medium text-neutral-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-800 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300 dark:hover:border-violet-400/40 dark:hover:bg-violet-500/10"
+                      className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-medium text-neutral-600 transition hover:border-[#5AC8FA] hover:bg-[#007AFF]/8 hover:text-[#007AFF] dark:border-white/10 dark:bg-white/5 dark:text-neutral-300 dark:hover:border-[#5AC8FA]/40 dark:hover:bg-[#007AFF]/10"
                     >
                       {q.label}
                     </button>
@@ -636,7 +636,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                     onChange={(e) => setReply(e.target.value)}
                     rows={3}
                     placeholder={`Reply to ${active.name}…`}
-                    className="min-h-[88px] flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-3.5 py-3 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-500/15 dark:border-white/10 dark:bg-white/5 dark:focus:bg-white/10"
+                    className="min-h-[88px] flex-1 resize-none rounded-2xl border border-black/[0.06] bg-neutral-50 px-3.5 py-3 text-sm outline-none transition focus:border-[#5AC8FA] focus:bg-white focus:ring-2 focus:ring-[#007AFF]/15 dark:border-white/10 dark:bg-white/5 dark:focus:bg-white/10"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                         e.preventDefault();
@@ -648,7 +648,7 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                     type="button"
                     disabled={sending || !reply.trim()}
                     onClick={() => void sendReply()}
-                    className="inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl bg-violet-600 px-5 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-500 disabled:opacity-50"
+                    className="inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl bg-[#007AFF] px-5 text-sm font-semibold text-white shadow-lg shadow-[#007AFF]/25 transition hover:bg-[#0066D6] disabled:opacity-50"
                   >
                     {sending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

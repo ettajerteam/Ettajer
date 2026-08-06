@@ -3,6 +3,8 @@ import { parseProductDigitalFiles } from "@/lib/product-digital-files";
 import { parseProductVariants } from "@/lib/product-variants";
 import { parseProductReviews } from "@/lib/product-reviews";
 import { parseProductDetails } from "@/lib/product-details";
+import { parseProductSeo } from "@/lib/product-seo";
+import { parseProductCommerce } from "@/lib/product-commerce";
 import { isProductStatus, isProductType } from "@/lib/product-types";
 import type { Product } from "@/types";
 
@@ -31,6 +33,8 @@ export function serializeProduct(product: {
   variants: unknown;
   reviews?: unknown;
   details?: unknown;
+  seo?: unknown;
+  commerce?: unknown;
   tags: string[];
   ticketPrinterId?: string | null;
   storeId: string;
@@ -62,6 +66,8 @@ export function serializeProduct(product: {
     variants: parseProductVariants(product.variants),
     details: parseProductDetails(product.details),
     reviews: parseProductReviews(product.reviews),
+    seo: parseProductSeo(product.seo),
+    commerce: parseProductCommerce(product.commerce),
     tags: product.tags,
     ticketPrinterId: product.ticketPrinterId ?? null,
     storeId: product.storeId,

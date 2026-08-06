@@ -10,3 +10,9 @@ export function getFontFamily(font: string): string {
   };
   return families[font] ?? families.Inter!;
 }
+
+/** Thin Inter default weight for modern/minimal storefronts */
+export function getStoreFontWeight(font: string): number {
+  if (font === "Inter" || font === "Poppins" || font === "Outfit") return 300;
+  return 400;
+}

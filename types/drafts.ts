@@ -27,6 +27,8 @@ export interface DraftItemDetail {
   inventory: number;
 }
 
+export type DraftPaymentMethod = "cod" | "stripe" | "paypal" | "other";
+
 export interface DraftDetail {
   id: string;
   orderNumber: string;
@@ -37,7 +39,10 @@ export interface DraftDetail {
   subtotal: number;
   shipping: number;
   tax: number;
+  discount: number;
   total: number;
+  paymentMethod: DraftPaymentMethod;
+  merchantNote: string | null;
   items: DraftItemDetail[];
   createdAt: string;
   updatedAt: string;

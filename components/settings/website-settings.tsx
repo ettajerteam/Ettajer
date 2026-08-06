@@ -100,12 +100,12 @@ export function WebsiteSettings({
 
   return (
     <SettingsPanel
-      title="Website"
-      description="The public link customers use to open your storefront."
+      title="Domains"
+      description="Your public store URL and custom domain connection."
       onSave={onSave}
       saving={saving}
       dirty={dirty}
-      saveLabel="Save website"
+      saveLabel="Save domains"
     >
       {/* Live link preview */}
       <div className="overflow-hidden rounded-[10px] border border-black/[0.06] bg-[#FAFAFA]/80 dark:border-white/10 dark:bg-white/[0.025]">
@@ -346,7 +346,7 @@ export function WebsiteSettings({
         Update how you appear in search under{" "}
         <SettingsRelatedLink tab="seo">SEO</SettingsRelatedLink>
         . Brand name and logo live in{" "}
-        <SettingsRelatedLink tab="general">Profile</SettingsRelatedLink>.
+        <SettingsRelatedLink tab="general">General</SettingsRelatedLink>.
       </SettingsRelatedCard>
     </SettingsPanel>
   );

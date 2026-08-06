@@ -10,23 +10,30 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   copy: OnboardingExtendedCopy;
-  businessModel: BusinessModel;
+  businessModels: BusinessModel[];
   value: WebsiteTemplateId | "";
   onChange: (value: WebsiteTemplateId) => void;
 };
 
-export function OnboardingWebsiteStep({ copy, businessModel, value, onChange }: Props) {
-  const templates = getTemplatesForBusinessModel(businessModel);
+export function OnboardingWebsiteStep({
+  copy,
+  businessModels,
+  value,
+  onChange,
+}: Props) {
+  const templates = getTemplatesForBusinessModel(businessModels);
   const labels = copy.website;
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">{labels.title}</h2>
-        <p className="text-muted-foreground">{labels.description}</p>
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-[1.75rem]">
+          {labels.title}
+        </h2>
+        <p className="mt-2 text-sm text-neutral-500 sm:text-[15px]">{labels.description}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {templates.map((template) => {
           const selected = value === template.id;
           const thumb = getTemplateThumbnailStyle(template.thumbnail);
@@ -41,8 +48,8 @@ export function OnboardingWebsiteStep({ copy, businessModel, value, onChange }: 
               className={cn(
                 "group overflow-hidden rounded-2xl border text-start transition-all duration-200",
                 selected
-                  ? "border-[#007AFF] ring-2 ring-[#007AFF]/20 shadow-md"
-                  : "border-border hover:border-[#007AFF]/40 hover:shadow-sm",
+                  ? "border-[#007AFF] shadow-md ring-2 ring-[#007AFF]/15"
+                  : "border-neutral-200/80 bg-white/60 hover:border-neutral-300 hover:shadow-sm"
               )}
             >
               <div
@@ -58,7 +65,7 @@ export function OnboardingWebsiteStep({ copy, businessModel, value, onChange }: 
                 }
               >
                 {isRecommended ? (
-                  <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-neutral-700 shadow-sm">
+                  <span className="absolute left-3 top-3 rounded-md bg-white/95 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-700 shadow-sm">
                     {labels.recommended}
                   </span>
                 ) : null}
@@ -71,12 +78,14 @@ export function OnboardingWebsiteStep({ copy, businessModel, value, onChange }: 
               <div className="space-y-1 p-4">
                 <div className="flex items-center gap-2">
                   <LayoutTemplate className="h-4 w-4 text-[#007AFF]" />
-                  <p className="font-semibold">{localized?.name ?? template.name}</p>
+                  <p className="font-semibold tracking-tight">
+                    {localized?.name ?? template.name}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-neutral-500">
                   {localized?.tagline ?? template.tagline ?? template.description}
                 </p>
-                <p className="text-xs text-muted-foreground">{template.industry}</p>
+                <p className="text-xs text-neutral-400">{template.industry}</p>
               </div>
             </button>
           );

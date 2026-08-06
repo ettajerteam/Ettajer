@@ -42,7 +42,7 @@ export function EditorPanelCloseButton({
       variant="ghost"
       size="icon"
       className={cn(
-        "h-8 w-8 shrink-0 rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800",
+        "h-8 w-8 shrink-0 rounded-md text-neutral-500 hover:bg-black/[0.04] hover:text-neutral-800",
         className
       )}
       onClick={onClick}
@@ -73,8 +73,9 @@ export function EditorCollapsiblePanel({
   return (
     <aside
       className={cn(
-        "relative flex min-h-0 shrink-0 flex-col overflow-hidden border-neutral-200 bg-white transition-[width] duration-300 ease-in-out",
+        "relative flex min-h-0 shrink-0 flex-col overflow-hidden border-black/[0.06] bg-white transition-[width] duration-300 ease-in-out",
         isLeft ? "border-r" : "border-l",
+        !open && "bg-[#F5F5F7]",
         className
       )}
       style={{ width: open ? expandedWidth : COLLAPSED_WIDTH }}

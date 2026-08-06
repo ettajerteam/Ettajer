@@ -1,3 +1,4 @@
+import { getRealVisitorStats } from "@/lib/real-visitor-stats";
 import { prisma } from "@/lib/db";
 import { getProductImage } from "@/lib/storefront-assets";
 import type {
@@ -248,8 +249,19 @@ export async function getExecutiveDashboardData(
   const fourteenDaysAgo = new Date(now);
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
-  const [ordersFullWindow, products, recentOrders, homeOrdersList, collectionCount, pendingOrderCount, todayOrdersList] =
-    await Promise.all([
+  const [
+    ordersFullWindow,
+    products,
+    recentOrders,
+    homeOrdersList,
+    collectionCount,
+    pendingOrderCount,
+    todayOrdersList,
+    couponCount,
+    activeCouponCount,
+    abandonedCheckoutCount,
+    allCustomerEmails,
+  ] = await Promise.all([
     prisma.order.findMany({
       where: { storeId, status: { not: "draft" }, createdAt: { gte: doubleRangeStart } },
       select: {
@@ -266,7 +278,15 @@ export async function getExecutiveDashboardData(
     }),
     prisma.product.findMany({
       where: { storeId },
-      select: { id: true, title: true, price: true, inventory: true, images: true },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        inventory: true,
+        images: true,
+        status: true,
+        variants: true,
+      },
     }),
     prisma.order.findMany({
       where: { storeId },
@@ -305,9 +325,37 @@ export async function getExecutiveDashboardData(
       where: { storeId, createdAt: { gte: todayStart }, status: { not: "draft" } },
       select: { customerEmail: true, total: true, status: true },
     }),
+    prisma.coupon.count({ where: { storeId } }),
+    prisma.coupon.count({
+      where: {
+        storeId,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    }),
+    prisma.abandonedCheckout.count({
+      where: { storeId, recoveredAt: null },
+    }),
+    prisma.order.findMany({
+      where: { storeId, status: { not: "draft" } },
+      select: { customerEmail: true },
+    }),
   ]);
 
   const totalProductCount = products.length;
+  const draftProductCount = products.filter((p) => p.status === "draft").length;
+  const variantCount = products.reduce((sum, product) => {
+    const variants = Array.isArray(product.variants) ? product.variants.length : 0;
+    return sum + Math.max(variants, 1);
+  }, 0);
+
+  const emailCounts = new Map<string, number>();
+  for (const row of allCustomerEmails) {
+    const email = row.customerEmail?.toLowerCase().trim();
+    if (!email) continue;
+    emailCounts.set(email, (emailCounts.get(email) ?? 0) + 1);
+  }
+  const uniqueCustomerCount = emailCounts.size;
+  const returningCustomerCount = Array.from(emailCounts.values()).filter((count) => count > 1).length;
 
   const currentPeriod = ordersFullWindow.filter((o) => o.createdAt >= rangeStart);
   const previousPeriod = ordersFullWindow.filter((o) => o.createdAt < rangeStart);
@@ -331,6 +379,16 @@ export async function getExecutiveDashboardData(
   const orderCount = currentPeriod.length;
   const prevOrderCount = previousPeriod.length;
   const aov = orderCount > 0 ? revenue / orderCount : 0;
+  const shippingTotal = currentPeriod.reduce((sum, order) => sum + (order.shipping ?? 0), 0);
+  const refundsTotal = currentPeriod
+    .filter((o) => ["returned", "refunded", "cancelled", "canceled"].includes(o.status))
+    .reduce((sum, order) => sum + order.total, 0);
+  const taxesEstimate = Math.round(revenue * 0.2 * 100) / 100;
+  const newCustomersToday = new Set(
+    todayOrdersList
+      .map((o) => o.customerEmail?.toLowerCase().trim())
+      .filter((email): email is string => Boolean(email) && (emailCounts.get(email) ?? 0) <= 1)
+  ).size;
   const prevAov = prevOrderCount > 0 ? prevRevenue / prevOrderCount : 0;
 
   const returnedOrders = currentPeriod.filter((o) =>
@@ -618,9 +676,6 @@ export async function getExecutiveDashboardData(
     recommendedSavings = formatImpact(lowestStock.price * 10, currency);
   }
 
-  const estimatedConversion = orderCount > 0 ? Math.min(5.9, 2.5 + orderCount / 200) : 2.1;
-  const prevConversion = prevOrderCount > 0 ? Math.min(5.5, 2.2 + prevOrderCount / 200) : 2.1;
-
   const orderCountsByDate = new Map<string, number>();
   for (const order of currentPeriod) {
     const key =
@@ -651,14 +706,19 @@ export async function getExecutiveDashboardData(
     0
   );
 
-  const visitors =
-    orderCount > 0
-      ? Math.round(orderCount / (estimatedConversion / 100))
-      : Math.max(48, totalProductCount * 8);
-  const prevVisitors =
-    prevOrderCount > 0
-      ? Math.round(prevOrderCount / (prevConversion / 100))
-      : visitors;
+  const realVisitors = await getRealVisitorStats(
+    storeId,
+    rangeStart,
+    doubleRangeStart,
+    revenue
+  );
+
+  const visitors = realVisitors.visitors;
+  const prevVisitors = realVisitors.previousVisitors;
+  const estimatedConversion =
+    visitors > 0 ? (orderCount / visitors) * 100 : orderCount > 0 ? 2.4 : 0;
+  const prevConversion =
+    prevVisitors > 0 ? (prevOrderCount / prevVisitors) * 100 : estimatedConversion;
 
   const homeOrders: HomeOrderRow[] = homeOrdersList.map((o) => ({
     id: o.id,
@@ -781,20 +841,8 @@ export async function getExecutiveDashboardData(
     },
   ];
 
-  const trafficSources: TrafficSource[] = [
-    { id: "organic", label: "Organic", value: Math.round(visitors * 0.38), percentage: 38 },
-    { id: "direct", label: "Direct", value: Math.round(visitors * 0.24), percentage: 24 },
-    { id: "social", label: "Social", value: Math.round(visitors * 0.18), percentage: 18 },
-    { id: "ads", label: "Ads", value: Math.round(visitors * 0.12), percentage: 12 },
-    { id: "email", label: "Email", value: Math.round(visitors * 0.05), percentage: 5 },
-    { id: "referral", label: "Referral", value: Math.round(visitors * 0.03), percentage: 3 },
-  ];
-
-  const salesByDevice: DeviceSale[] = [
-    { id: "mobile", label: "Mobile", value: Math.round(revenue * 0.58), percentage: 58 },
-    { id: "desktop", label: "Desktop", value: Math.round(revenue * 0.32), percentage: 32 },
-    { id: "tablet", label: "Tablet", value: Math.round(revenue * 0.1), percentage: 10 },
-  ];
+  const trafficSources: TrafficSource[] = realVisitors.trafficSources;
+  const salesByDevice: DeviceSale[] = realVisitors.salesByDevice;
 
   const activityTimeline: ActivityEvent[] = homeOrders
     .flatMap((order) => {
@@ -978,5 +1026,30 @@ export async function getExecutiveDashboardData(
     bestSellerName: topProduct?.title ?? "—",
     homeOrders,
     homeTopProducts,
+    catalogExtras: {
+      variantCount,
+      draftProductCount,
+      couponCount,
+      activeCouponCount,
+      abandonedCheckoutCount,
+      uniqueCustomerCount,
+      returningCustomerCount,
+      newCustomersToday,
+      shippingTotal,
+      refundsTotal,
+      taxesEstimate,
+    },
+    visitorInsights: {
+      liveNow: realVisitors.liveNow,
+      returningRate: realVisitors.returningRate,
+      bounceRate: realVisitors.bounceRate,
+      avgSessionLabel: realVisitors.avgSessionLabel,
+      liveCities: realVisitors.liveCities,
+      topCountry: realVisitors.topCountry,
+      topCity: realVisitors.topCity,
+      topDevice: realVisitors.topDevice,
+      topBrowser: realVisitors.topBrowser,
+      topReferrer: realVisitors.topReferrer,
+    },
   };
 }

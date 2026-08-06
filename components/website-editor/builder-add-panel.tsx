@@ -107,7 +107,7 @@ function DesignCountChip({ count, compact }: { count: number; compact?: boolean 
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-md bg-neutral-100 font-medium tabular-nums text-neutral-600",
+        "inline-flex shrink-0 items-center rounded-md bg-[#F5F5F7] font-medium tabular-nums text-neutral-600",
         compact ? "px-1 py-px text-[9px]" : "px-1.5 py-0.5 text-[10px]"
       )}
       title={`${count} design options`}
@@ -153,9 +153,9 @@ function BlockCard({
         onDragStart={block.implemented ? onDragStart(block.id) : undefined}
         onDragEnd={onDragEnd}
         className={cn(
-          "group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white text-left transition-all",
+          "group relative flex w-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-black/[0.06] bg-white text-left transition-colors",
           block.implemented
-            ? "cursor-pointer hover:border-[#007AFF]/40 hover:shadow-sm active:cursor-grabbing"
+            ? "cursor-pointer hover:border-[#007AFF]/35 hover:bg-[#FAFAFA] active:cursor-grabbing"
             : "cursor-default opacity-70"
         )}
         aria-label={block.implemented ? `Insert ${block.name}` : `${block.name} — coming soon`}
@@ -220,9 +220,9 @@ function BlockCard({
       onDragStart={block.implemented ? onDragStart(block.id) : undefined}
       onDragEnd={onDragEnd}
       className={cn(
-        "group relative flex w-full flex-row overflow-hidden rounded-xl border border-neutral-200 bg-white text-left transition-all",
+        "group relative flex w-full flex-row overflow-hidden rounded-[12px] border border-black/[0.06] bg-white text-left transition-colors",
         block.implemented
-          ? "cursor-pointer hover:border-[#007AFF]/40 hover:shadow-sm active:cursor-grabbing"
+          ? "cursor-pointer hover:border-[#007AFF]/35 hover:bg-[#FAFAFA] active:cursor-grabbing"
           : "cursor-default opacity-70"
       )}
       aria-label={block.implemented ? `Insert ${block.name}` : `${block.name} — coming soon`}

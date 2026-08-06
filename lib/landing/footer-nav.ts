@@ -42,6 +42,7 @@ export const LANDING_FOOTER_NAV = [
       { label: "Privacy", href: "/privacy" },
       { label: "Terms", href: "/terms" },
       { label: "Cookies", href: "/cookies" },
+      { label: "Data deletion", href: "/data-deletion" },
       { label: "API docs", href: "#" },
     ],
   },

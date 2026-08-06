@@ -3,14 +3,20 @@ import { parseProductImages } from "@/lib/product-images";
 import { parseProductVariants } from "@/lib/product-variants";
 import { parseProductReviews } from "@/lib/product-reviews";
 import { parseProductDetails } from "@/lib/product-details";
+import { parseProductCommerce } from "@/lib/product-commerce";
 import {
   parsePaymentGateways,
   parseShippingZones,
   parseMarketingIntegrations,
+  getDefaultFreeShippingThreshold,
+  getShippableCountryCodes,
+  isPaypalConnected,
 } from "@/lib/store-settings";
+import { isPaypalCurrencySupported } from "@/lib/payments/paypal-currency";
+import { isStripePaymentsAvailable } from "@/lib/payments/stripe-availability";
+import { countryCodeToName } from "@/lib/shipping-destinations";
 import { toPublicMarketingIntegrations } from "@/lib/marketing-integrations";
 import { parseNavigation } from "@/lib/navigation";
-import { FREE_SHIPPING_THRESHOLD } from "@/lib/checkout";
 import {
   serializePublicCategory,
   serializePublicCollection,
@@ -50,10 +56,10 @@ export function serializePublicStore(
     parseMarketingIntegrations(settings?.marketingIntegrations)
   );
   const shop = parseShopPreferences(settings?.seo);
-  const freeShippingThreshold =
-    zones[0]?.freeShippingThreshold ?? FREE_SHIPPING_THRESHOLD;
+  const freeShippingThreshold = getDefaultFreeShippingThreshold(zones);
   const tokens = resolveDesignTokens(store.theme, parseDesignTokens(settings?.seo));
   const language = store.language?.trim() || "en";
+  const shippableCodes = getShippableCountryCodes(zones);
 
   return {
     id: store.id,
@@ -73,11 +79,57 @@ export function serializePublicStore(
     buttonRadius: tokens.buttonRadius,
     checkout: {
       cashOnDelivery: gateways.cashOnDelivery,
-      stripe: gateways.stripe,
+      stripe: isStripePaymentsAvailable()
+        ? Boolean(gateways.stripe && gateways.stripeAccountId)
+        : false,
+      paypal:
+        gateways.paypal &&
+        isPaypalConnected(gateways) &&
+        isPaypalCurrencySupported(store.currency),
+      paypalClientId:
+        gateways.paypal &&
+        isPaypalConnected(gateways) &&
+        isPaypalCurrencySupported(store.currency)
+          ? gateways.paypalClientId ?? null
+          : null,
+      paypalMode: gateways.paypalMode === "live" ? "live" : "sandbox",
       freeShippingThreshold,
       minOrderAmount: shop.minOrderAmount,
       checkoutNote: shop.checkoutNote,
       codMessage: shop.codMessage,
+      paypalMessage: shop.paypalMessage,
+      codTitle: shop.codTitle,
+      paypalTitle: shop.paypalTitle,
+      codFee: shop.codFee,
+      taxEnabled: shop.tax.enabled,
+      taxRatePercent: shop.tax.ratePercent,
+      taxPricesIncludeTax: shop.tax.pricesIncludeTax,
+      taxLabel: shop.tax.label,
+      taxShowOnCheckout: shop.tax.showOnCheckout,
+      checkoutTheme: shop.checkoutTheme,
+      checkoutLayout: shop.checkoutLayout,
+      showProgress: shop.showProgress,
+      showCoupon: shop.showCoupon,
+      summaryOpenByDefault: shop.summaryOpenByDefault,
+      continueLabel: shop.continueLabel,
+      placeOrderLabel: shop.placeOrderLabel,
+      successMessage: shop.successMessage,
+      requireTerms: shop.requireTerms,
+      phonePlaceholder: shop.phonePlaceholder,
+      phoneHint: shop.phoneHint,
+      fields: { ...shop.checkoutFields },
+      shippingZones: zones.map((z) => ({
+        id: z.id,
+        name: z.name,
+        countries: z.countries,
+        cities: z.cities,
+        rate: z.rate,
+        freeShippingThreshold: z.freeShippingThreshold,
+      })),
+      shippableCountries: shippableCodes.map((code) => ({
+        code,
+        name: countryCodeToName(code),
+      })),
     },
     contact: {
       email: store.contactEmail ?? null,
@@ -109,7 +161,9 @@ export function serializePublicProduct(product: {
   productType?: string | null;
   copyrightOwner?: string | null;
   copyrightNotice?: string | null;
+  commerce?: unknown;
 }): PublicProduct {
+  const commerce = parseProductCommerce(product.commerce);
   return {
     id: product.id,
     title: product.title,
@@ -122,6 +176,7 @@ export function serializePublicProduct(product: {
     variants: parseProductVariants(product.variants),
     tags: product.tags,
     details: parseProductDetails(product.details),
+    highlights: commerce.highlights?.length ? commerce.highlights : undefined,
     reviews: parseProductReviews(product.reviews),
     productType: product.productType ?? "physical",
     copyrightOwner: product.copyrightOwner ?? null,

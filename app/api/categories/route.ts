@@ -17,6 +17,15 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim();
+    const ensure = searchParams.get("ensure");
+
+    if (ensure === "digital") {
+      const { ensureDigitalCategories } = await import("@/lib/catalog");
+      await ensureDigitalCategories(store.id);
+    } else if (ensure === "physical") {
+      const { ensurePhysicalCategories } = await import("@/lib/catalog");
+      await ensurePhysicalCategories(store.id);
+    }
 
     const categories = await prisma.category.findMany({
       where: {

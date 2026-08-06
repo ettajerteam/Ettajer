@@ -62,6 +62,7 @@ export interface LiveViewData {
   range: LiveMapRange;
   rangeLabel: string;
   activeVisitors: number;
+  liveCities: { id: string; city: string; country: string; active: boolean }[];
   cartsOpen: number;
   ordersLastHour: number;
   revenueLastHour: number;

@@ -236,39 +236,41 @@ export function ActivateAccountForm() {
 
   return (
     <div>
-      <AuthFlowSteps
-        steps={onboardingFlow}
-        current="verify"
-        ariaLabel={a.flowAria}
-        className="mb-6"
-      />
-
       <div className={cardShell}>
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" aria-hidden />
-        <div className="relative border-b border-neutral-100/80 px-7 pb-6 pt-8 text-center sm:px-9 sm:pt-9">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-            <ShieldCheck className="h-6 w-6" strokeWidth={1.5} />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#007AFF]/55 to-transparent" aria-hidden />
+        <div className="border-b border-neutral-100/80 px-5 py-3 sm:px-6">
+          <AuthFlowSteps
+            steps={onboardingFlow}
+            current="verify"
+            ariaLabel={a.flowAria}
+          />
+        </div>
+        <div className="relative flex items-center gap-3.5 border-b border-neutral-100/90 px-5 py-3.5 text-start sm:px-6">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-[#007AFF]/[0.08] text-[#007AFF] ring-1 ring-[#007AFF]/15">
+            <ShieldCheck className="h-5 w-5" strokeWidth={1.5} />
           </div>
-          <h1 className="text-[1.7rem] font-semibold leading-tight tracking-[-0.035em] text-neutral-900">
-            {a.title}
-          </h1>
-          <p className="mx-auto mt-2 max-w-[320px] text-[13px] leading-relaxed text-neutral-500">
-            {a.subtitlePrefix}{" "}
-            <span className="font-medium text-neutral-800">{email}</span>
-          </p>
-          {justSent ? (
-            <motion.span
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50/90 px-3 py-1 text-[11px] font-medium text-emerald-700"
-            >
-              <Sparkles className="h-3 w-3" />
-              {a.codeSentBadge}
-            </motion.span>
-          ) : null}
+          <div className="min-w-0">
+            <h1 className="text-[1.2rem] font-semibold leading-tight tracking-[-0.03em] text-neutral-950 sm:text-[1.28rem]">
+              {a.title}
+            </h1>
+            <p className="mt-0.5 text-[12px] leading-snug text-neutral-500">
+              {a.subtitlePrefix}{" "}
+              <span className="font-medium text-neutral-800">{email}</span>
+            </p>
+            {justSent ? (
+              <motion.span
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-emerald-200/70 bg-emerald-50/90 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
+              >
+                <Sparkles className="h-3 w-3" />
+                {a.codeSentBadge}
+              </motion.span>
+            ) : null}
+          </div>
         </div>
 
-        <div className="relative px-7 py-7 sm:px-9 sm:py-8">
+        <div className="relative px-5 py-3.5 sm:px-6">
           {loading ? (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-b-[1.25rem] bg-white/80 backdrop-blur-[2px]">
               <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
@@ -295,9 +297,9 @@ export function ActivateAccountForm() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: EASE }}
             onSubmit={handleSubmit}
-            className="space-y-6"
+            className="space-y-4"
           >
-            <div className="flex justify-center gap-1.5 sm:gap-2.5" onPaste={handlePaste}>
+            <div className="flex justify-center gap-1.5 sm:gap-2" onPaste={handlePaste}>
               {digits.map((digit, index) => (
                 <input
                   key={index}
@@ -311,7 +313,7 @@ export function ActivateAccountForm() {
                   disabled={loading}
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="h-12 w-11 rounded-xl border border-neutral-200/80 bg-white text-center font-mono text-lg font-semibold text-neutral-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] transition-all focus:border-blue-500/70 focus:outline-none focus:ring-[3px] focus:ring-blue-500/10 disabled:opacity-50 sm:h-14 sm:w-12 sm:text-xl"
+                  className="h-11 w-9 rounded-xl border border-neutral-200/80 bg-white text-center font-mono text-base font-semibold text-neutral-900 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)] transition-all focus:border-[#007AFF]/70 focus:outline-none focus:ring-[3px] focus:ring-[#007AFF]/15 disabled:opacity-50 sm:h-12 sm:w-10 sm:text-lg"
                   aria-label={a.digitAria(index + 1)}
                 />
               ))}
@@ -320,7 +322,7 @@ export function ActivateAccountForm() {
             <button
               type="submit"
               disabled={loading || code.length !== CODE_LENGTH}
-              className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 text-sm font-medium text-white transition-all hover:bg-neutral-800 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 text-sm font-semibold text-white transition-all hover:bg-neutral-800 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
@@ -336,7 +338,7 @@ export function ActivateAccountForm() {
             </button>
           </motion.form>
 
-          <div className="mt-5 flex flex-col items-center gap-2 text-center">
+          <div className="mt-3.5 flex flex-col items-center gap-1.5 text-center">
             <button
               type="button"
               onClick={() => void handleResend()}
@@ -357,7 +359,7 @@ export function ActivateAccountForm() {
         </div>
       </div>
 
-      <p className="mt-7 text-center text-[13px] text-neutral-500">
+      <p className="mt-3 text-center text-[13px] text-neutral-500">
         {a.wrongEmail}{" "}
         <Link href="/signup" className="font-semibold text-neutral-900 hover:underline">
           {a.signUpAgain}

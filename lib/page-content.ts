@@ -7,6 +7,12 @@ export interface PageContentData {
   body: string;
   metaTitle?: string;
   metaDescription?: string;
+  /** Comma-separated keywords for meta tags */
+  keywords?: string;
+  /** Open Graph / social share image URL */
+  ogImage?: string;
+  /** Hide from search engines when true */
+  noIndex?: boolean;
   layout?: HomeLayout;
 }
 
@@ -25,9 +31,21 @@ export function parsePageContent(raw: string): PageContentData {
     if (parsed && parsed[PAGE_MARKER] === true) {
       return {
         body: typeof parsed.body === "string" ? parsed.body : "",
-        metaTitle: typeof parsed.metaTitle === "string" ? parsed.metaTitle : undefined,
+        metaTitle:
+          typeof parsed.metaTitle === "string" ? parsed.metaTitle : undefined,
         metaDescription:
-          typeof parsed.metaDescription === "string" ? parsed.metaDescription : undefined,
+          typeof parsed.metaDescription === "string"
+            ? parsed.metaDescription
+            : undefined,
+        keywords:
+          typeof parsed.keywords === "string"
+            ? parsed.keywords
+            : Array.isArray(parsed.keywords)
+              ? parsed.keywords.filter((k): k is string => typeof k === "string").join(", ")
+              : undefined,
+        ogImage:
+          typeof parsed.ogImage === "string" ? parsed.ogImage : undefined,
+        noIndex: parsed.noIndex === true,
         layout: parseLayoutField(parsed.layout),
       };
     }
@@ -39,7 +57,13 @@ export function parsePageContent(raw: string): PageContentData {
 
 export function serializePageContent(data: PageContentData): string {
   const hasLayout = Boolean(data.layout?.sections?.length);
-  const hasSeo = Boolean(data.metaTitle?.trim() || data.metaDescription?.trim());
+  const hasSeo = Boolean(
+    data.metaTitle?.trim() ||
+      data.metaDescription?.trim() ||
+      data.keywords?.trim() ||
+      data.ogImage?.trim() ||
+      data.noIndex
+  );
   const hasBody = Boolean(data.body?.trim());
 
   if (!hasLayout && !hasSeo && !hasBody) return "";
@@ -51,6 +75,9 @@ export function serializePageContent(data: PageContentData): string {
     body: data.body,
     metaTitle: data.metaTitle?.trim() || undefined,
     metaDescription: data.metaDescription?.trim() || undefined,
+    keywords: data.keywords?.trim() || undefined,
+    ogImage: data.ogImage?.trim() || undefined,
+    noIndex: data.noIndex === true ? true : undefined,
     layout: hasLayout ? serializeHomeLayout(data.layout!) : undefined,
   });
 }
@@ -68,6 +95,18 @@ export function pageContentEquals(a: string, b: string): boolean {
     pa.body === pb.body &&
     (pa.metaTitle ?? "") === (pb.metaTitle ?? "") &&
     (pa.metaDescription ?? "") === (pb.metaDescription ?? "") &&
+    (pa.keywords ?? "") === (pb.keywords ?? "") &&
+    (pa.ogImage ?? "") === (pb.ogImage ?? "") &&
+    Boolean(pa.noIndex) === Boolean(pb.noIndex) &&
     layoutsEqual(pa.layout, pb.layout)
   );
+}
+
+export function pageKeywordsList(keywords?: string): string[] {
+  if (!keywords?.trim()) return [];
+  return keywords
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean)
+    .slice(0, 20);
 }

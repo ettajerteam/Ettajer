@@ -5,8 +5,10 @@ import {
   serializeOrderListItem,
   serializeOrderDetail,
   createStoreOrder,
+  recordMerchantNotifyFailure,
 } from "@/lib/orders";
 import { sendMerchantNewOrderEmail } from "@/lib/email/automations";
+import { merchantWantsNewOrderEmail } from "@/lib/merchant-alerts";
 import { createOrderSchema, isValidOrderStatus } from "@/lib/validations/order";
 
 export async function GET(request: Request) {
@@ -48,6 +50,7 @@ export async function GET(request: Request) {
         { orderNumber: { contains: search, mode: "insensitive" } },
         { customerName: { contains: search, mode: "insensitive" } },
         { customerEmail: { contains: search, mode: "insensitive" } },
+        { customerPhone: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -70,9 +73,14 @@ export async function GET(request: Request) {
   }
 }
 
-/** Create order from storefront checkout */
+/** Create order for the authenticated merchant's store (storefront uses /api/checkout). */
 export async function POST(request: Request) {
   try {
+    const store = await getAuthenticatedStore();
+    if (!store) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const parsed = createOrderSchema.safeParse(body);
 
@@ -83,10 +91,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const order = await createStoreOrder(parsed.data);
+    if (parsed.data.storeSlug !== store.slug) {
+      return NextResponse.json({ message: "Store mismatch" }, { status: 403 });
+    }
+
+    const order = await createStoreOrder(parsed.data, {
+      paymentMethod: "cod",
+    });
 
     const storeOwner = await prisma.store.findUnique({
-      where: { slug: parsed.data.storeSlug },
+      where: { id: store.id },
       select: {
         currency: true,
         language: true,
@@ -94,8 +108,8 @@ export async function POST(request: Request) {
       },
     });
 
-    if (storeOwner?.user.email) {
-      void sendMerchantNewOrderEmail({
+    if (storeOwner?.user.email && (await merchantWantsNewOrderEmail(store.id))) {
+      const notified = await sendMerchantNewOrderEmail({
         to: storeOwner.user.email,
         merchantName: storeOwner.user.name ?? "Merchant",
         orderNumber: order.orderNumber,
@@ -104,7 +118,13 @@ export async function POST(request: Request) {
         currency: storeOwner.currency,
         orderId: order.id,
         locale: storeOwner.language,
-      }).catch((err) => console.error("[orders] merchant notify failed:", err));
+      }).catch((err) => {
+        console.error("[orders] merchant notify failed:", err);
+        return false;
+      });
+      if (!notified) {
+        await recordMerchantNotifyFailure(order.id, order.status);
+      }
     }
 
     return NextResponse.json(

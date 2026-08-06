@@ -1,20 +1,31 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import type { PublicMarketingIntegrations, PublicPlatformPixel } from "@/lib/marketing-integrations";
-import { hasTestModeEnabled } from "@/lib/marketing-integrations";
-import { trackPurchase } from "@/lib/marketing-events";
+import { hasTestModeEnabled, MARKETING_PLATFORMS } from "@/lib/marketing-integrations";
+import { trackPageView, trackPurchase } from "@/lib/marketing-events";
 import { logMarketingEvent } from "@/lib/marketing-event-log";
+import { waitForFbq } from "@/lib/meta-pixel";
+import { waitForPintrk } from "@/lib/pinterest-pixel";
 import { MarketingDebugBanner } from "@/components/storefront/marketing-debug-banner";
-import { MARKETING_PLATFORMS } from "@/lib/marketing-integrations";
 
 interface MarketingPixelsProps {
   marketing: PublicMarketingIntegrations;
+  storeSlug?: string;
   purchase?: {
     value: number;
     currency: string;
     orderNumber: string;
+    contentIds?: string[];
+    numItems?: number;
+    email?: string | null;
+    phone?: string | null;
+    name?: string | null;
+    city?: string | null;
+    country?: string | null;
+    zip?: string | null;
   };
 }
 
@@ -44,7 +55,11 @@ function hasAnyPixel(marketing: PublicMarketingIntegrations): boolean {
   );
 }
 
-export function MarketingPixels({ marketing, purchase }: MarketingPixelsProps) {
+export function MarketingPixels({ marketing, storeSlug, purchase }: MarketingPixelsProps) {
+  const pathname = usePathname();
+  const purchaseSent = useRef<string | null>(null);
+  const initialPageViewDone = useRef(false);
+
   useEffect(() => {
     for (const platform of MARKETING_PLATFORMS) {
       const config = marketing[platform.id];
@@ -54,10 +69,43 @@ export function MarketingPixels({ marketing, purchase }: MarketingPixelsProps) {
     }
   }, [marketing]);
 
+  // PageView: one shared event_id for Meta Pixel + CAPI (incl. first paint)
+  useEffect(() => {
+    if (!hasAnyPixel(marketing)) return;
+
+    const fire = () => {
+      trackPageView(marketing, storeSlug ? { storeSlug } : undefined);
+    };
+
+    if (!initialPageViewDone.current) {
+      initialPageViewDone.current = true;
+      // Wait for tag scripts so the first PageView includes event_id / eventID
+      const needsFbq =
+        Boolean(marketing.meta?.pixelId && marketing.meta.trackPageViews);
+      const needsPintrk =
+        Boolean(marketing.pinterest?.pixelId && marketing.pinterest.trackPageViews);
+
+      void (async () => {
+        if (needsFbq) await waitForFbq();
+        if (needsPintrk) await waitForPintrk();
+        fire();
+      })();
+      return;
+    }
+
+    fire();
+  }, [pathname, marketing, storeSlug]);
+
   useEffect(() => {
     if (!purchase) return;
-    trackPurchase(marketing, purchase);
-  }, [marketing, purchase]);
+    if (purchaseSent.current === purchase.orderNumber) return;
+    purchaseSent.current = purchase.orderNumber;
+    // Pixel uses purchase_{orderNumber} — same id as checkout-route CAPI
+    void trackPurchase(marketing, {
+      ...purchase,
+      storeSlug,
+    });
+  }, [marketing, purchase, storeSlug]);
 
   if (!hasAnyPixel(marketing)) return null;
 
@@ -69,25 +117,39 @@ export function MarketingPixels({ marketing, purchase }: MarketingPixelsProps) {
       <GooglePixel config={marketing.google} />
       <SnapchatPixel config={marketing.snapchat} />
       <GtmContainer config={marketing.gtm} />
-      {hasTestModeEnabled(marketing) && <MarketingDebugBanner />}
+      {hasTestModeEnabled(marketing) ? <MarketingDebugBanner /> : null}
     </>
   );
 }
 
 function MetaPixel({ config }: { config?: PublicPlatformPixel }) {
   if (!config?.pixelId) return null;
+  const pixelId = config.pixelId.replace(/[^0-9]/g, "");
+  if (!pixelId) return null;
+
   return (
-    <Script id="meta-pixel" strategy="afterInteractive">
-      {`
-        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-        n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script',
-        'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '${config.pixelId}');
-        ${config.trackPageViews ? "fbq('track', 'PageView');" : ""}
-      `}
-    </Script>
+    <>
+      <Script id="meta-pixel" strategy="afterInteractive">
+        {`
+          !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+          n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', '${pixelId}');
+        `}
+      </Script>
+      <noscript>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          height="1"
+          width="1"
+          style={{ display: "none" }}
+          src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+          alt=""
+        />
+      </noscript>
+    </>
   );
 }
 
@@ -123,7 +185,6 @@ function PinterestPixel({ config }: { config?: PublicPlatformPixel }) {
         var n=window.pintrk;n.queue=[],n.version="3.0";var t=document.createElement("script");t.async=!0,t.src=e;
         var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(t,r)}}("https://s.pinimg.com/ct/core.js");
         pintrk('load', '${config.pixelId}');
-        ${config.trackPageViews ? "pintrk('page');" : ""}
       `}
     </Script>
   );
@@ -179,14 +240,14 @@ function GtmContainer({ config }: { config?: PublicPlatformPixel }) {
           })(window,document,'script','dataLayer','${config.pixelId}');
         `}
       </Script>
-      {config.trackPageViews && (
+      {config.trackPageViews ? (
         <Script id="gtm-pageview" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             window.dataLayer.push({ event: 'page_view' });
           `}
         </Script>
-      )}
+      ) : null}
     </>
   );
 }

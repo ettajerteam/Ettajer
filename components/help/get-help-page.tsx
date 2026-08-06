@@ -9,6 +9,9 @@ import {
 import { HelpShell } from "@/components/help/help-shell";
 import { HelpSearch } from "@/components/help/help-search";
 import { HelpChecklistSection } from "@/components/help/help-checklist-section";
+import { HelpPaymentGuidesSection } from "@/components/help/help-payment-guides-section";
+import { HelpMarketingGuidesSection } from "@/components/help/help-marketing-guides-section";
+import { HelpDomainGuidesSection } from "@/components/help/help-domain-guides-section";
 import { useHelpLocale } from "@/components/help/help-locale-provider";
 import {
   HELP_ARTICLES,
@@ -96,6 +99,12 @@ export function GetHelpPage({ initialQuery = "" }: { initialQuery?: string }) {
       ) : (
         <>
           <HelpChecklistSection />
+
+          <HelpPaymentGuidesSection />
+
+          <HelpDomainGuidesSection />
+
+          <HelpMarketingGuidesSection />
 
           <section className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-16">
             <HelpMobileSectionLabel

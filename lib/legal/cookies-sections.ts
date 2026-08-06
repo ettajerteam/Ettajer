@@ -75,7 +75,7 @@ export const COOKIES_SECTIONS: CookiesSection[] = [
       {
         name: "session / auth token",
         purpose: "Keeps you signed in and verifies authenticated requests to your account",
-        duration: "Session or up to 30 days if \"remember me\" is enabled",
+        duration: "Session or up to 90 days if \"Keep me signed in\" is enabled",
         type: "Essential",
       },
       {

@@ -106,6 +106,16 @@ export function resolveStoreNavHref(storeSlug: string, href: string): string {
   if (normalized === "/collections") return getStoreCollectionsUrl(storeSlug);
   if (normalized === "/search") return getStoreSearchUrl(storeSlug);
   if (normalized === "/blog") return getStoreBlogUrl(storeSlug);
+  if (
+    normalized === "/checkout" ||
+    normalized === "/check-out" ||
+    normalized.startsWith("/checkout?")
+  ) {
+    return getStoreCheckoutUrl(storeSlug);
+  }
+  if (normalized === "/cart" || normalized === "/bag" || normalized === "/panier") {
+    return getStoreCartUrl(storeSlug);
+  }
   if (normalized.startsWith("/pages/")) {
     return `/store/${storeSlug}${normalized}`;
   }
@@ -115,7 +125,14 @@ export function resolveStoreNavHref(storeSlug: string, href: string): string {
   if (normalized.startsWith("/collection/")) {
     return `/store/${storeSlug}/collection/${normalized.slice("/collection/".length)}`;
   }
-  const pageSlug = normalized.replace(/^\//, "");
+  // Avoid treating known commerce routes as CMS pages
+  const pageSlug = normalized.replace(/^\//, "").split("?")[0] ?? "";
+  if (["checkout", "cart", "bag", "panier", "check-out"].includes(pageSlug)) {
+    if (pageSlug === "checkout" || pageSlug === "check-out") {
+      return getStoreCheckoutUrl(storeSlug);
+    }
+    return getStoreCartUrl(storeSlug);
+  }
   return getStorePageUrl(storeSlug, pageSlug);
 }
 
@@ -125,6 +142,11 @@ export function getStorePageUrl(storeSlug: string, pageSlug: string): string {
 
 export function getStoreCheckoutUrl(storeSlug: string): string {
   return `/store/${storeSlug}/checkout`;
+}
+
+/** Opens the bag drawer on the storefront (`?bag=1`). */
+export function getStoreCartUrl(storeSlug: string): string {
+  return `${getStoreUrl(storeSlug)}?bag=1`;
 }
 
 export function getOrderConfirmationUrl(storeSlug: string, orderNumber: string): string {

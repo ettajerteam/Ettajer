@@ -18,6 +18,8 @@ export type BuildPageMetadataInput = {
   locale?: LandingLocale;
   type?: "website" | "article";
   noIndex?: boolean;
+  /** Extra alternate representations (llms.txt, knowledge.json, …). */
+  alternateTypes?: NonNullable<Metadata["alternates"]>["types"];
 };
 
 export async function getServerLocale(): Promise<LandingLocale> {
@@ -32,6 +34,7 @@ export function buildPageMetadata({
   locale = "en",
   type = "website",
   noIndex = false,
+  alternateTypes,
 }: BuildPageMetadataInput): Metadata {
   const canonical = absoluteUrl(path);
   const ogImage = absoluteUrl(DEFAULT_OG_IMAGE_PATH);
@@ -48,6 +51,7 @@ export function buildPageMetadata({
         ar: canonical,
         "x-default": canonical,
       },
+      ...(alternateTypes ? { types: alternateTypes } : {}),
     },
     robots: noIndex
       ? { index: false, follow: false }
@@ -123,6 +127,15 @@ export function buildRootMetadata(): Metadata {
         fr: siteUrl,
         ar: siteUrl,
         "x-default": siteUrl,
+      },
+      types: {
+        "text/plain": [
+          { url: absoluteUrl("/llms.txt"), title: "llms.txt" },
+          { url: absoluteUrl("/llms-full.txt"), title: "llms-full.txt" },
+        ],
+        "application/json": [
+          { url: absoluteUrl("/knowledge.json"), title: "knowledge.json" },
+        ],
       },
     },
     openGraph: {

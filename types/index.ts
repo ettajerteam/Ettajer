@@ -23,7 +23,7 @@ export interface ProductDetail {
   value: string;
 }
 
-export type ProductStatus = "draft" | "active";
+export type ProductStatus = "draft" | "active" | "archived";
 export type ProductType = "physical" | "digital" | "service" | "dropshipping";
 
 export interface ProductImageAsset {
@@ -62,8 +62,53 @@ export interface Product {
   categoryName?: string | null;
   collectionIds: string[];
   collectionNames: string[];
+  seo: ProductSeo;
+  commerce: ProductCommerce;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProductSeo {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+}
+
+export interface ProductCommerce {
+  vendor?: string;
+  supplier?: string;
+  brand?: string;
+  trackQuantity?: boolean;
+  continueSellingWhenOutOfStock?: boolean;
+  lowStockAlert?: number | null;
+  inventoryLocation?: "warehouse" | "supplier";
+  requiresShipping?: boolean;
+  freeShipping?: boolean;
+  packageWeight?: number | null;
+  chargeTax?: boolean;
+  taxIncluded?: boolean;
+  shippingProfile?: "standard" | "express";
+  hsCode?: string;
+  countryOfOrigin?: string;
+  highlights?: string[];
+  videos?: string[];
+  models3d?: string[];
+  dropshippingProvider?: "aliexpress" | "cj" | "bigbuy" | "";
+  dropshippingUrl?: string;
+  customFields?: { id: string; key: string; value: string }[];
+  metafields?: { id: string; namespace: string; key: string; value: string }[];
+  visibility?: {
+    onlineStore: boolean;
+    facebook: boolean;
+    instagram: boolean;
+    tiktok: boolean;
+    google: boolean;
+  };
+  publishMode?: "now" | "schedule";
+  publishAt?: string | null;
+  relatedProductIds?: string[];
+  upsellProductIds?: string[];
+  frequentlyBoughtIds?: string[];
 }
 
 export interface ProductDigitalFile {
@@ -86,9 +131,22 @@ export interface ProductVariant {
   id: string;
   name: string;
   options: string[];
+  /** Maps option value → image URL (e.g. Red → red photo). */
+  optionImages?: Record<string, string>;
 }
 
-export type OrderStatus = "draft" | "pending" | "processing" | "shipped" | "delivered" | "returned" | "cancelled";
+export type OrderStatus =
+  | "draft"
+  | "pending"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "returned"
+  | "cancelled"
+  | "refunded";
+
+export type OrderPaymentMethod = "cod" | "stripe" | "paypal" | "other";
+export type OrderPaymentStatus = "unpaid" | "paid" | "refunded" | "partially_refunded";
 
 export interface Order {
   id: string;
@@ -115,9 +173,14 @@ export interface ShippingAddress {
 }
 
 export interface OnboardingData {
-  businessModel: "physical" | "digital" | "dropshipping";
+  businessModels: Array<"physical" | "digital" | "dropshipping">;
+  /** @deprecated Prefer businessModels — kept for localStorage migrate */
+  businessModel?: "physical" | "digital" | "dropshipping";
   websiteTemplateId: "aura" | "tech" | "paper";
   storeName: string;
+  description?: string;
+  phone?: string;
+  language?: string;
   category: string;
   currency: "MAD" | "DZD" | "TND" | "USD" | "EUR";
 }

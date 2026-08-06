@@ -26,7 +26,7 @@ export default async function MarketingPage() {
     <DashboardLayout>
       <DashboardHeader
         title="Marketing"
-        description="Connect ad platforms, manage pixels, and track storefront conversions"
+        description="Connect ad platforms and track storefront conversions"
       />
       <DashboardPageContent>
         <MarketingIntegrationsClient initialIntegrations={integrations} />

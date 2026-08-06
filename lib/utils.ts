@@ -14,6 +14,30 @@ export function formatCurrency(amount: number, currency = "MAD"): string {
   }).format(amount);
 }
 
+/** Stable date for SSR + client (avoids hydration mismatches from locale defaults). */
+export function formatDate(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+export function formatDateTime(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
 /** ASCII-safe money for emails (avoids NBSP / exotic glyphs that show as □). */
 export function formatEmailCurrency(amount: number, currency = "MAD"): string {
   const n = Number.isFinite(amount) ? amount : 0;

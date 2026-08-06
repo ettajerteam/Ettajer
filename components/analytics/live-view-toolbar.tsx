@@ -22,40 +22,40 @@ export function LiveViewToolbar({
   onExport,
 }: LiveViewToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
       <AnalyticsSectionNav />
 
-      <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50/90 to-white/80 px-3 py-1.5 text-[11px] font-medium text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:from-emerald-500/10 dark:to-transparent dark:text-emerald-400">
-          <span className="relative flex h-2 w-2">
+      <div className="flex flex-wrap items-center gap-1.5 self-end sm:self-auto">
+        <div className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+          <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
           </span>
-          Live stream · 15s
+          Live · 15s
         </div>
 
-        <div className="hidden rounded-xl border border-neutral-200/80 bg-white/80 px-3 py-1.5 text-[11px] text-neutral-500 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03] lg:block">
+        <p className="hidden text-[11px] text-neutral-400 lg:block" suppressHydrationWarning>
           {rangeLabel} · Updated {formatRelativeTime(lastUpdated)}
-        </div>
+        </p>
 
         <Button
           variant="outline"
           size="sm"
-          className="h-8 rounded-lg border-neutral-200/80 bg-white/80 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.03]"
+          className="h-7 rounded-md border-black/[0.06] px-2.5 text-[12px] dark:border-white/10"
           onClick={onExport}
         >
-          <Download className="mr-1.5 h-3.5 w-3.5" />
+          <Download className="mr-1 h-3 w-3" />
           Export
         </Button>
 
         <Button
           variant="outline"
           size="sm"
-          className="h-8 rounded-lg border-neutral-200/80 bg-white/80 text-xs shadow-sm dark:border-white/10 dark:bg-white/[0.03]"
+          className="h-7 rounded-md border-black/[0.06] px-2.5 text-[12px] dark:border-white/10"
           onClick={onRefresh}
           disabled={refreshing}
         >
-          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", refreshing && "animate-spin")} />
+          <RefreshCw className={cn("mr-1 h-3 w-3", refreshing && "animate-spin")} />
           Refresh
         </Button>
       </div>

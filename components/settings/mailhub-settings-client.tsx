@@ -973,7 +973,7 @@ export function MailHubSettingsClient() {
             href="/dashboard/settings?tab=general"
             className="inline-flex items-center gap-0.5 font-medium text-[#007AFF] transition hover:text-[#0071EB]"
           >
-            Profile
+            General
             <ArrowUpRight className="h-3 w-3" />
           </Link>
           . Campaigns and lists are under{" "}

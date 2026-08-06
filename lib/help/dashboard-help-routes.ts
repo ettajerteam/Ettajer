@@ -47,11 +47,14 @@ const SETTINGS_TAB_HELP: Record<string, string> = {
   currency: "change-store-name-currency-language",
   email: "email-list-health",
   shipping: "cod-address-fields-morocco",
-  payment: "how-cod-checkout-works",
+  payment: "set-up-online-payments",
   checkout: "configure-checkout-settings",
+  profile: "change-store-name-currency-language",
   seo: "built-in-seo",
   contact: "customer-messages",
-  billing: "upgrade-or-change-your-plan",
+  billing: "transaction-fees-explained",
+  plan: "pricing-plans-and-trial",
+  legal: "handle-returns-and-refunds",
 };
 
 const EMAIL_PATH_HELP: { prefix: string; slug: string }[] = [

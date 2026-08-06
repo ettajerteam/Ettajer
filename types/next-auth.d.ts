@@ -9,6 +9,7 @@ declare module "next-auth" {
       image?: string | null;
       status?: string;
       founderNumber?: number | null;
+      plan?: string | null;
       role?: string;
     };
   }
@@ -19,8 +20,11 @@ declare module "next-auth/jwt" {
     id?: string;
     status?: string;
     founderNumber?: number | null;
+    plan?: string | null;
     role?: string;
     remember?: boolean;
+    /** Absolute unix expiry when remember is false; rolling when true. */
+    sessionEndsAt?: number;
     name?: string | null;
   }
 }

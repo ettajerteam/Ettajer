@@ -12,6 +12,19 @@ const nextConfig = {
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
       { protocol: "https", hostname: "*.blob.vercel-storage.com" },
       { protocol: "https", hostname: "public.blob.vercel-storage.com" },
+      // AliExpress / Taobao CDN (dropshipping imports)
+      { protocol: "https", hostname: "**.alicdn.com" },
+      { protocol: "https", hostname: "ae01.alicdn.com" },
+      { protocol: "https", hostname: "ae02.alicdn.com" },
+      { protocol: "https", hostname: "ae03.alicdn.com" },
+      { protocol: "https", hostname: "ae04.alicdn.com" },
+      { protocol: "https", hostname: "ae05.alicdn.com" },
+      { protocol: "https", hostname: "img.alicdn.com" },
+      { protocol: "https", hostname: "**.aliexpress-media.com" },
+      { protocol: "https", hostname: "**.aliexpress.com" },
+      // Other dropship suppliers
+      { protocol: "https", hostname: "**.cjdropshipping.com" },
+      { protocol: "https", hostname: "**.bigbuy.eu" },
     ],
   },
   // Keep founder-card fonts + native resvg binary out of the webpack graph

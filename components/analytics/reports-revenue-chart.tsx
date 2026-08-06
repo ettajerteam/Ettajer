@@ -6,9 +6,18 @@ import { usePathname } from "next/navigation";
 import { Download } from "lucide-react";
 import type { ReportRange, ReportTrendPoint } from "@/lib/reports";
 import { REPORT_RANGES } from "@/components/analytics/analytics-section-nav";
-import { dashboardCard, dashboardCardPad, dashboardMetric, dashboardSubtitle, dashboardTitle } from "@/lib/dashboard-ui";
-import { cn, formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  dashboardCard,
+  dashboardMetric,
+  dashboardPill,
+  dashboardPillActive,
+  dashboardPillGroup,
+  dashboardPillInactive,
+  dashboardSubtitle,
+  dashboardTitle,
+} from "@/lib/dashboard-ui";
+import { cn, formatCurrency } from "@/lib/utils";
 
 const WIDTH = 760;
 const HEIGHT = 200;
@@ -75,7 +84,7 @@ export function ReportsRevenueChart({
 
   const metricKey = chartMetric;
 
-  const { revenuePath, previousPath, areaPath, coords, labels, maxValue } = useMemo(() => {
+  const { revenuePath, previousPath, areaPath, coords, labels } = useMemo(() => {
     const innerWidth = WIDTH - PADDING.left - PADDING.right;
     const innerHeight = HEIGHT - PADDING.top - PADDING.bottom;
     const max = Math.max(
@@ -115,7 +124,6 @@ export function ReportsRevenueChart({
       areaPath: fillPath,
       coords: revenueCoords,
       labels: chartLabels,
-      maxValue: max,
     };
   }, [trend, previousTrend, range, compare, metricKey]);
 
@@ -137,36 +145,39 @@ export function ReportsRevenueChart({
   }
 
   return (
-    <section className={cn(dashboardCard, dashboardCardPad, "ring-1 ring-neutral-200/60 dark:ring-white/10")}>
-      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <section className={cn(dashboardCard, "p-4")}>
+      <div className="mb-3 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className={dashboardTitle}>Performance trend</h2>
           <p className={dashboardSubtitle}>
-            {chartMetric === "revenue" ? "Revenue over the selected period" : "Order volume over time"}
+            {chartMetric === "revenue"
+              ? "Revenue over the selected period"
+              : "Order volume over time"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="inline-flex rounded-lg border border-neutral-200/80 bg-neutral-50/80 p-0.5 dark:border-white/10 dark:bg-white/[0.03]">
+          <div className={dashboardPillGroup}>
             {(["revenue", "orders"] as const).map((metric) => (
               <button
                 key={metric}
                 type="button"
                 onClick={() => setChartMetric(metric)}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors",
-                  chartMetric === metric
-                    ? "bg-white text-neutral-900 shadow-sm dark:bg-white/10 dark:text-white"
-                    : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                  dashboardPill,
+                  chartMetric === metric ? dashboardPillActive : dashboardPillInactive
                 )}
               >
-                {metric}
+                {metric === "revenue" ? "Revenue" : "Orders"}
               </button>
             ))}
           </div>
           <Button
-            variant={compare ? "default" : "outline"}
+            variant="outline"
             size="sm"
-            className="h-8 rounded-lg text-xs"
+            className={cn(
+              "h-7 rounded-md border-black/[0.06] px-2.5 text-[12px] dark:border-white/10",
+              compare && "border-[#007AFF]/35 bg-[#007AFF]/[0.08] text-[#007AFF]"
+            )}
             onClick={() => setCompare((value) => !value)}
           >
             Compare
@@ -174,16 +185,16 @@ export function ReportsRevenueChart({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 rounded-lg text-xs"
+            className="h-7 rounded-md border-black/[0.06] px-2.5 text-[12px] dark:border-white/10"
             onClick={handleExport}
           >
-            <Download className="mr-1.5 h-3.5 w-3.5" />
+            <Download className="mr-1 h-3 w-3" />
             Export
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className={dashboardMetric}>
             {chartMetric === "revenue"
@@ -192,8 +203,12 @@ export function ReportsRevenueChart({
           </p>
           <p
             className={cn(
-              "mt-0.5 text-xs font-medium",
-              revenueChange >= 0 ? "text-emerald-600" : "text-rose-600"
+              "mt-0.5 text-[11px] font-medium",
+              chartMetric === "revenue"
+                ? revenueChange >= 0
+                  ? "text-emerald-600"
+                  : "text-rose-600"
+                : "text-neutral-400"
             )}
           >
             {chartMetric === "revenue" ? (
@@ -207,17 +222,15 @@ export function ReportsRevenueChart({
           </p>
         </div>
 
-        <div className="inline-flex rounded-lg bg-neutral-100 p-0.5 dark:bg-white/5">
+        <div className={dashboardPillGroup}>
           {REPORT_RANGES.map((item) => (
             <Link
               key={item.value}
               href={`${pathname}?range=${item.value}`}
               scroll={false}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-xs font-medium transition-all",
-                range === item.value
-                  ? "bg-white text-neutral-900 shadow-sm dark:bg-[#222] dark:text-white"
-                  : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                dashboardPill,
+                range === item.value ? dashboardPillActive : dashboardPillInactive
               )}
             >
               {item.label}
@@ -226,7 +239,7 @@ export function ReportsRevenueChart({
         </div>
       </div>
 
-      <div className="relative mt-4 w-full">
+      <div className="relative mt-3 w-full">
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="h-auto w-full"
@@ -237,7 +250,7 @@ export function ReportsRevenueChart({
         >
           <defs>
             <linearGradient id="reportsRevenueFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#007AFF" stopOpacity="0.14" />
+              <stop offset="0%" stopColor="#007AFF" stopOpacity="0.12" />
               <stop offset="100%" stopColor="#007AFF" stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -251,7 +264,7 @@ export function ReportsRevenueChart({
               y2={PADDING.top + (HEIGHT - PADDING.top - PADDING.bottom) * fraction}
               stroke="currentColor"
               strokeWidth={0.5}
-              className="text-[#ECECEC] dark:text-white/10"
+              className="text-black/[0.06] dark:text-white/10"
             />
           ))}
 
@@ -272,7 +285,7 @@ export function ReportsRevenueChart({
               d={revenuePath}
               fill="none"
               stroke="#007AFF"
-              strokeWidth={2.5}
+              strokeWidth={2}
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
             />
@@ -292,7 +305,7 @@ export function ReportsRevenueChart({
               <circle
                 cx={hoverCoord.x}
                 cy={hoverCoord.y}
-                r={5}
+                r={4}
                 fill="#007AFF"
                 stroke="white"
                 strokeWidth={2}
@@ -331,15 +344,17 @@ export function ReportsRevenueChart({
 
         {hoverPoint && hoverCoord ? (
           <div
-            className="pointer-events-none absolute z-10 rounded-lg bg-neutral-900 px-3 py-2 text-xs text-white shadow-lg"
+            className="pointer-events-none absolute z-10 rounded-md bg-neutral-900 px-2.5 py-1.5 text-[11px] text-white shadow-lg"
             style={{
               left: `${(hoverCoord.x / WIDTH) * 100}%`,
               top: 0,
               transform: "translate(-50%, -10px)",
             }}
           >
-            <p className="font-semibold">{formatTooltipLabel(range, hoverPoint.date)}</p>
-            <p className="mt-1 text-white/80">
+            <p className="font-semibold" suppressHydrationWarning>
+              {formatTooltipLabel(range, hoverPoint.date)}
+            </p>
+            <p className="mt-0.5 text-white/80">
               {chartMetric === "revenue"
                 ? `${formatCurrency(hoverPoint.revenue, currency)} · ${hoverPoint.orders} orders`
                 : `${hoverPoint.orders} orders`}
@@ -348,19 +363,19 @@ export function ReportsRevenueChart({
         ) : null}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-neutral-500">
+      <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[11px] text-neutral-400">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#007AFF]" />
-          Current period
+          <span className="h-1.5 w-1.5 rounded-full bg-[#007AFF]" />
+          Current
         </span>
         {compare ? (
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-0.5 w-4 bg-[#FF9500]" />
-            Previous period
+            <span className="h-0.5 w-3 bg-[#FF9500]" />
+            Previous
           </span>
         ) : null}
         {peakLabel ? (
-          <span className="ml-auto">
+          <span className="ml-auto tabular-nums">
             Peak {formatCurrency(peakRevenue, currency)} · {peakLabel}
           </span>
         ) : null}

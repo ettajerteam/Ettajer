@@ -2,10 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { USER_STATUS } from "@/lib/founder/constants";
 import { USER_ROLE } from "@/lib/admin/constants";
+import { cn } from "@/lib/utils";
 
 interface AdminUserActionsProps {
   userId: string;
@@ -13,7 +12,11 @@ interface AdminUserActionsProps {
   role: string;
 }
 
-export function AdminUserActions({ userId, status, role }: AdminUserActionsProps) {
+export function AdminUserActions({
+  userId,
+  status,
+  role,
+}: AdminUserActionsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -34,34 +37,39 @@ export function AdminUserActions({ userId, status, role }: AdminUserActionsProps
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {status === USER_STATUS.WAITING ? (
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending}
-          onClick={() => patchUser({ status: USER_STATUS.ACTIVE })}
+    <div className="flex flex-col items-start gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {status === USER_STATUS.WAITING ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => patchUser({ status: USER_STATUS.ACTIVE })}
+            className="h-7 rounded-md bg-[#007AFF] px-2.5 text-[11px] font-medium text-white transition hover:bg-[#0066D6] disabled:opacity-50"
+          >
+            Activate
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={pending || role === USER_ROLE.ADMIN}
+            onClick={() => patchUser({ status: USER_STATUS.WAITING })}
+            className="h-7 rounded-md border border-black/[0.06] bg-white px-2.5 text-[11px] font-medium text-neutral-600 transition hover:bg-black/[0.03] disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-neutral-300"
+          >
+            Set waiting
+          </button>
+        )}
+        <span
+          className={cn(
+            "inline-flex h-7 items-center rounded-md px-2 text-[10px] font-semibold uppercase tracking-wide",
+            role === USER_ROLE.ADMIN
+              ? "bg-[#007AFF]/10 text-[#007AFF]"
+              : "bg-black/[0.04] text-neutral-500 dark:bg-white/10 dark:text-neutral-300"
+          )}
         >
-          Activate
-        </Button>
-      ) : (
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={pending || role === USER_ROLE.ADMIN}
-          onClick={() => patchUser({ status: USER_STATUS.WAITING })}
-        >
-          Set waiting
-        </Button>
-      )}
-      {role !== USER_ROLE.ADMIN ? (
-        <Badge variant="secondary" className="text-[10px]">
-          merchant
-        </Badge>
-      ) : (
-        <Badge className="bg-violet-600 text-[10px]">admin</Badge>
-      )}
-      {error ? <span className="text-xs text-red-600">{error}</span> : null}
+          {role === USER_ROLE.ADMIN ? "admin" : "merchant"}
+        </span>
+      </div>
+      {error ? <span className="text-[10px] text-rose-600">{error}</span> : null}
     </div>
   );
 }

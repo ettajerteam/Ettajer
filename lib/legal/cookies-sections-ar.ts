@@ -55,7 +55,7 @@ export const COOKIES_SECTIONS_AR = [
       {
         name: "session / auth token",
         purpose: "يبقيك مسجّل الدخول ويتحقق من الطلبات المصادق عليها لحسابك",
-        duration: "جلسة أو حتى 30 يوماً عند تفعيل \"تذكّرني\"",
+        duration: "جلسة أو حتى 90 يوماً عند تفعيل \"ابقَ متصلاً\"",
         type: "أساسي",
       },
       {

@@ -20,34 +20,41 @@ interface EditorShortcutsHelpProps {
   className?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** When true, only the dialog is rendered (open via onOpenChange). */
+  hideTrigger?: boolean;
 }
 
 export function EditorShortcutsHelp({
   className,
   open,
   onOpenChange,
+  hideTrigger = false,
 }: EditorShortcutsHelpProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-8 w-8 rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700",
-            className
-          )}
-          aria-label="Keyboard shortcuts"
-          title="Keyboard shortcuts (?)"
-        >
-          <Keyboard className="h-3.5 w-3.5" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-sm">
+      {!hideTrigger ? (
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8 rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700",
+              className
+            )}
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+          >
+            <Keyboard className="h-3.5 w-3.5" />
+          </Button>
+        </DialogTrigger>
+      ) : null}
+      <DialogContent className="max-w-sm rounded-[12px] border-black/[0.06]">
         <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[15px] font-semibold tracking-[-0.02em]">
+            Keyboard shortcuts
+          </DialogTitle>
+          <DialogDescription className="text-[12px]">
             Speed up editing without leaving the canvas.
           </DialogDescription>
         </DialogHeader>
@@ -55,10 +62,10 @@ export function EditorShortcutsHelp({
           {EDITOR_SHORTCUTS.map(({ keys, action }) => (
             <li
               key={`${keys}-${action}`}
-              className="flex items-center justify-between gap-3 rounded-lg px-1 py-1 text-sm"
+              className="flex items-center justify-between gap-3 rounded-md px-1 py-1 text-[13px]"
             >
               <span className="text-neutral-600">{action}</span>
-              <kbd className="shrink-0 rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[11px] text-neutral-700">
+              <kbd className="shrink-0 rounded-md border border-black/[0.06] bg-[#F5F5F7] px-1.5 py-0.5 font-mono text-[11px] text-neutral-700">
                 {formatModShortcut(keys)}
               </kbd>
             </li>

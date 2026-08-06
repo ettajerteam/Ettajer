@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Check, Copy, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import { Check, Copy, Loader2, Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,15 +20,21 @@ import {
 } from "@/lib/storefront-urls";
 import type { StoreWithSettings } from "@/lib/store-settings";
 import {
+  apexRoot,
   detectDomainMode,
   isApexHostname,
+  preferredHostname,
   subdomainLabel,
   type DomainMode,
+  type DomainPrimary,
 } from "@/lib/domains/hostname";
+import { diagnoseDomain } from "@/lib/domains/diagnose";
 import {
   dashboardCard,
-  dashboardCardPad,
-  dashboardKicker,
+  dashboardPill,
+  dashboardPillActive,
+  dashboardPillGroup,
+  dashboardPillInactive,
   dashboardPrimaryBtn,
   dashboardSubtitle,
   dashboardTitle,
@@ -41,6 +45,8 @@ const FALLBACK_CNAME =
   process.env.NEXT_PUBLIC_DOMAIN_CNAME_TARGET?.trim() || "cname.vercel-dns.com";
 const FALLBACK_A =
   process.env.NEXT_PUBLIC_DOMAIN_A_TARGET?.trim() || "76.76.21.21";
+
+const DNS_POLL_MS = 30_000;
 
 type VerifyPayload = {
   connected: boolean;
@@ -89,7 +95,7 @@ function CopyCell({ value }: { value: string }) {
   return (
     <button
       type="button"
-      className="group inline-flex max-w-full items-center gap-2 text-left font-mono text-[13px] text-neutral-800 transition hover:text-neutral-950"
+      className="group inline-flex max-w-full items-center gap-1.5 text-left font-sans text-[12px] text-neutral-800 transition hover:text-[#007AFF] dark:text-neutral-200"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value);
@@ -101,15 +107,44 @@ function CopyCell({ value }: { value: string }) {
         }
       }}
     >
-      <span className="truncate border-b border-transparent group-hover:border-neutral-300">
-        {value}
-      </span>
+      <span className="truncate">{value}</span>
       {copied ? (
-        <Check className="h-3 w-3 shrink-0 text-emerald-600" />
+        <Check className="h-3 w-3 shrink-0 text-emerald-500" />
       ) : (
         <Copy className="h-3 w-3 shrink-0 text-neutral-300 opacity-0 transition group-hover:opacity-100" />
       )}
     </button>
+  );
+}
+
+function StatusChip({
+  tone,
+  children,
+}: {
+  tone: "live" | "wait" | "idle";
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+        tone === "live" &&
+          "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400",
+        tone === "wait" &&
+          "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400",
+        tone === "idle" && "bg-[#F5F5F7] text-neutral-500 dark:bg-white/10"
+      )}
+    >
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          tone === "live" && "bg-emerald-500",
+          tone === "wait" && "bg-amber-500",
+          tone === "idle" && "bg-neutral-400"
+        )}
+      />
+      {children}
+    </span>
   );
 }
 
@@ -123,23 +158,23 @@ function Step({
   active?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-2">
       <span
         className={cn(
           "flex h-5 w-5 items-center justify-center rounded-full text-[10px]",
           done
-            ? "bg-neutral-900 text-white"
+            ? "bg-[#007AFF] text-white"
             : active
-              ? "border border-neutral-900 text-neutral-900"
-              : "border border-neutral-200 text-neutral-300"
+              ? "border border-[#007AFF] text-[#007AFF]"
+              : "border border-black/[0.08] text-neutral-300 dark:border-white/15"
         )}
       >
         {done ? <Check className="h-3 w-3" /> : null}
       </span>
       <span
         className={cn(
-          "text-xs",
-          done || active ? "text-neutral-800" : "text-neutral-400"
+          "text-[11px]",
+          done || active ? "text-neutral-800 dark:text-neutral-200" : "text-neutral-400"
         )}
       >
         {label}
@@ -159,9 +194,20 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
   const [verifying, setVerifying] = useState(false);
   const [verify, setVerify] = useState<VerifyState>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [watching, setWatching] = useState(false);
+  const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
+  const [savingPrimary, setSavingPrimary] = useState(false);
 
   const liveUrl = getAbsoluteStoreUrl(store.slug);
+  const liveHost = liveUrl.replace(/^https?:\/\//, "");
   const connectedDomain = store.settings.customDomain;
+  const domainPrimary: DomainPrimary = store.settings.domainPrimary ?? "apex";
+  const connectedApex = connectedDomain
+    ? apexRoot(normalizeCustomDomain(connectedDomain) ?? connectedDomain)
+    : null;
+  const publicHost = connectedDomain
+    ? preferredHostname(connectedDomain, domainPrimary)
+    : null;
   const dirty =
     normalizeCustomDomain(domainInput) !==
     normalizeCustomDomain(connectedDomain ?? "");
@@ -183,6 +229,12 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
     FALLBACK_CNAME;
   const aTarget =
     verify?.recommendations?.aTarget || verify?.expected?.aTarget || FALLBACK_A;
+
+  const statusTone: "live" | "wait" | "idle" = !connectedDomain
+    ? "idle"
+    : verify?.live
+      ? "live"
+      : "wait";
 
   const statusLabel = !connectedDomain
     ? "Ettajer link"
@@ -206,9 +258,12 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
       const data = (await res.json()) as VerifyState & { message?: string };
       if (!res.ok) throw new Error(data.message ?? "Verification failed");
       setVerify(data);
-      if (!silent) {
+      setLastCheckedAt(Date.now());
+      if (data.live) {
+        setWatching(false);
+        if (!silent) toast.success("Domain is live");
+      } else if (!silent) {
         if (!data.connected) toast.message("No custom domain yet");
-        else if (data.live) toast.success("Domain is live");
         else
           toast.message("Still waiting on DNS", {
             description: data.dns?.detail ?? "Check records at your registrar",
@@ -224,8 +279,27 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
   }, []);
 
   useEffect(() => {
-    if (connectedDomain) void runVerify(true);
+    if (connectedDomain) {
+      void runVerify(true);
+      setWatching(true);
+    } else {
+      setWatching(false);
+      setVerify(null);
+      setLastCheckedAt(null);
+    }
   }, [connectedDomain, runVerify]);
+
+  useEffect(() => {
+    if (!watching || !connectedDomain || verify?.live) return;
+    const id = window.setInterval(() => {
+      void runVerify(true);
+    }, DNS_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [watching, connectedDomain, verify?.live, runVerify]);
+
+  useEffect(() => {
+    if (verify?.live) setWatching(false);
+  }, [verify?.live]);
 
   useEffect(() => {
     const host = normalizeCustomDomain(domainInput);
@@ -267,6 +341,13 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
             });
           }
           window.setTimeout(() => void runVerify(true), 600);
+          setWatching(true);
+          window.setTimeout(() => {
+            document.getElementById("domain-connect")?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }, 100);
         } else {
           setVerify(null);
           toast.success("Domain removed");
@@ -295,49 +376,145 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
     void saveDomain(normalized);
   };
 
+  const dnsRows = useMemo(() => {
+    if (mode === "subdomain") {
+      return [{ type: "CNAME", host: cnameHost, value: cnameTarget }];
+    }
+    return [
+      { type: "A", host: "@", value: aTarget },
+      { type: "CNAME", host: "www", value: cnameTarget },
+    ];
+  }, [mode, cnameHost, cnameTarget, aTarget]);
+
+  const copyAllDns = async () => {
+    const text = dnsRows
+      .map((r) => `${r.type}\t${r.host}\t${r.value}`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("All DNS records copied");
+    } catch {
+      toast.error("Couldn’t copy");
+    }
+  };
+
+  const primaryUrl = publicHost ? `https://${publicHost}` : liveUrl;
+  const primaryHost = publicHost ?? liveHost;
+  const diagnosis = useMemo(() => diagnoseDomain(verify), [verify]);
+
+  const saveDomainPrimary = useCallback(
+    async (nextPrimary: DomainPrimary) => {
+      if (!connectedApex || nextPrimary === domainPrimary) return;
+      setSavingPrimary(true);
+      try {
+        const res = await fetch("/api/store/domain", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domainPrimary: nextPrimary }),
+        });
+        const data = (await res.json()) as {
+          message?: string;
+          store?: StoreWithSettings;
+        };
+        if (!res.ok) throw new Error(data.message ?? "Failed to update primary");
+        if (data.store) setStore(data.store);
+        toast.success(
+          nextPrimary === "www"
+            ? "Primary set to www"
+            : "Primary set to root domain",
+          {
+            description:
+              nextPrimary === "www"
+                ? `${connectedApex} will redirect to www.${connectedApex}`
+                : `www.${connectedApex} will redirect to ${connectedApex}`,
+          }
+        );
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Could not update primary"
+        );
+      } finally {
+        setSavingPrimary(false);
+      }
+    },
+    [connectedApex, domainPrimary]
+  );
+
+  const stepIndex = !steps.saved
+    ? 0
+    : !steps.provisioned
+      ? 1
+      : !steps.dns
+        ? 2
+        : !steps.ssl
+          ? 3
+          : 4;
+
+  const lastCheckedLabel = lastCheckedAt
+    ? new Date(lastCheckedAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : null;
+
   return (
     <OnlineStorePageShell>
-      <div className="mx-auto max-w-3xl space-y-8">
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className={cn(dashboardCard, "overflow-hidden")}
-        >
-          <div className={cn(dashboardCardPad, "space-y-6 sm:p-7")}>
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <p className={dashboardKicker}>Domains</p>
-              <p className="text-[11px] font-medium tracking-wide text-neutral-400">
-                {statusLabel}
-              </p>
+      <div className="space-y-5">
+        {/* Primary address */}
+        <section className={cn(dashboardCard, "overflow-hidden")}>
+          <div className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className={dashboardTitle}>Domain</h2>
+              <StatusChip tone={statusTone}>{statusLabel}</StatusChip>
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-[1.65rem] font-semibold leading-[1.15] tracking-[-0.035em] text-neutral-950 sm:text-[2rem]">
-                {connectedDomain ? (
-                  <a
-                    href={`https://${connectedDomain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="transition hover:text-[#007AFF]"
-                  >
-                    {connectedDomain}
-                  </a>
-                ) : (
-                  <>ettajer.com/store/{store.slug}</>
-                )}
-              </h1>
-              <p className="max-w-md text-sm leading-relaxed text-neutral-500">
+            <div className="mt-3 min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-neutral-400">
+                {connectedDomain ? "Custom domain" : "Current address"}
+              </p>
+              <a
+                href={primaryUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 block truncate font-sans text-[18px] font-semibold tracking-[-0.03em] text-neutral-900 transition hover:text-[#007AFF] dark:text-white"
+              >
+                {primaryHost}
+              </a>
+              <p className={cn(dashboardSubtitle, "mt-1 max-w-lg")}>
                 {connectedDomain
                   ? verify?.live
-                    ? "Traffic and SSL are ready on this hostname."
-                    : "Hostname is on Ettajer. Finish DNS, then check again."
-                  : "Your storefront is live on Ettajer. Connect your own domain when you’re ready."}
+                    ? "Customers reach your store on this hostname with SSL."
+                    : "Add the DNS records below, then Check DNS until SSL goes live."
+                  : "Your store is live on Ettajer. Connect a custom domain for your brand."}
               </p>
             </div>
+          </div>
 
-            {connectedDomain ? (
-              <div className="grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4 sm:grid-cols-4">
+          {connectedDomain ? (
+            <div className="border-t border-black/[0.05] px-4 py-3 dark:border-white/10">
+              <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-neutral-400">
+                  Setup progress
+                </p>
+                <div className="flex items-center gap-2">
+                  {lastCheckedLabel ? (
+                    <p className="text-[10px] tabular-nums text-neutral-400">
+                      Checked {lastCheckedLabel}
+                    </p>
+                  ) : null}
+                  <p className="text-[10px] tabular-nums text-neutral-400">
+                    {Math.min(stepIndex, 4)}/4
+                  </p>
+                </div>
+              </div>
+              <div className="mb-3 h-1 overflow-hidden rounded-full bg-[#F5F5F7] dark:bg-white/10">
+                <div
+                  className="h-full rounded-full bg-[#007AFF] transition-all duration-500"
+                  style={{ width: `${(Math.min(stepIndex, 4) / 4) * 100}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <Step label="Saved" done={steps.saved} />
                 <Step
                   label="Provisioned"
@@ -355,192 +532,225 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
                   active={steps.dns && !steps.ssl}
                 />
               </div>
-            ) : null}
 
-            <div className="flex flex-wrap items-center gap-2">
-              {connectedDomain ? (
-                <>
+              {diagnosis ? (
+                <div className="mt-3 rounded-[10px] border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 dark:border-amber-500/20 dark:bg-amber-500/10">
+                  <p className="text-[12px] font-medium text-amber-900 dark:text-amber-200">
+                    {diagnosis.title}
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-200/80">
+                    Fix: {diagnosis.fix}
+                  </p>
+                </div>
+              ) : verify?.live ? (
+                <p className="mt-3 text-[11px] text-emerald-700 dark:text-emerald-400">
+                  {verify.dns?.detail ?? "Domain is live with SSL."}
+                </p>
+              ) : null}
+
+              {!verify?.live ? (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
                   <Button
-                    size="sm"
-                    className={cn(dashboardPrimaryBtn, "h-9 px-3.5")}
-                    asChild
-                  >
-                    <a
-                      href={`https://${connectedDomain}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Visit
-                      <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-                    </a>
-                  </Button>
-                  <Button
-                    type="button"
                     variant="outline"
-                    size="sm"
-                    className="h-9 rounded-xl border-neutral-200"
+                    className="h-7 rounded-md border-black/[0.06] px-2.5 text-[11px] shadow-none dark:border-white/10"
                     disabled={verifying}
                     onClick={() => void runVerify(false)}
                   >
                     {verifying ? (
-                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                     ) : null}
-                    Check DNS
+                    Check now
                   </Button>
                   <Button
-                    type="button"
                     variant="ghost"
-                    size="sm"
-                    className="h-9 text-neutral-500"
-                    onClick={() => setRemoveOpen(true)}
+                    className="h-7 rounded-md px-2 text-[11px] text-neutral-500"
+                    onClick={() => setWatching((w) => !w)}
                   >
-                    Remove
+                    {watching ? (
+                      <>
+                        <Pause className="mr-1.5 h-3 w-3" />
+                        Stop auto-check
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-1.5 h-3 w-3" />
+                        Auto-check every 30s
+                      </>
+                    )}
                   </Button>
-                </>
-              ) : (
-                <Button
-                  size="sm"
-                  className={cn(dashboardPrimaryBtn, "h-9 px-3.5")}
-                  onClick={() => document.getElementById("domain-input")?.focus()}
-                >
-                  Connect a domain
-                </Button>
-              )}
+                  {watching ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-neutral-400">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#007AFF]" />
+                      Watching…
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
+          ) : null}
+        </section>
 
-            {connectedDomain && verify?.dns ? (
-              <p
-                className={cn(
-                  "text-xs",
-                  verify.live ? "text-neutral-500" : "text-amber-800/80"
+        {connectedApex ? (
+          <section className={cn(dashboardCard, "overflow-hidden")}>
+            <div className="px-4 py-3">
+              <h2 className={dashboardTitle}>Primary address</h2>
+              <p className={cn(dashboardSubtitle, "mt-0.5")}>
+                Visitors on the other hostname are redirected here (308).
+              </p>
+              <div className={cn(dashboardPillGroup, "mt-3")}>
+                {(
+                  [
+                    {
+                      id: "apex" as const,
+                      label: connectedApex,
+                      hint: "Root",
+                    },
+                    {
+                      id: "www" as const,
+                      label: `www.${connectedApex}`,
+                      hint: "www",
+                    },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={savingPrimary}
+                    onClick={() => void saveDomainPrimary(opt.id)}
+                    className={cn(
+                      dashboardPill,
+                      "flex-1 sm:flex-none",
+                      domainPrimary === opt.id
+                        ? dashboardPillActive
+                        : dashboardPillInactive
+                    )}
+                  >
+                    <span className="block text-left">
+                      {opt.label}
+                      <span className="ml-1.5 text-[10px] font-normal text-neutral-400">
+                        {opt.hint}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-neutral-500">
+                {domainPrimary === "www" ? (
+                  <>
+                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                      {connectedApex}
+                    </span>{" "}
+                    → redirects to{" "}
+                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                      www.{connectedApex}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                      www.{connectedApex}
+                    </span>{" "}
+                    → redirects to{" "}
+                    <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                      {connectedApex}
+                    </span>
+                  </>
                 )}
-              >
-                {verify.dns.detail}
-                {verify.recommendations?.misconfigured
-                  ? " · Vercel still reports DNS as incomplete."
-                  : null}
-              </p>
-            ) : null}
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="space-y-3 px-0.5"
-        >
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className={dashboardKicker}>Ettajer link</p>
-              <p className="mt-1 font-mono text-sm text-neutral-800">
-                {liveUrl.replace(/^https?:\/\//, "")}
+                {savingPrimary ? (
+                  <Loader2 className="ml-1.5 inline h-3 w-3 animate-spin" />
+                ) : null}
               </p>
             </div>
-            <div className="flex gap-3 text-xs">
-              <button
-                type="button"
-                className="font-medium text-neutral-500 transition hover:text-neutral-900"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(liveUrl);
-                    toast.success("Link copied");
-                  } catch {
-                    toast.error("Couldn’t copy");
-                  }
-                }}
-              >
-                Copy
-              </button>
-              <a
-                href={liveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-neutral-500 transition hover:text-neutral-900"
-              >
-                Open
-              </a>
-              <Link
-                href="/dashboard/settings?tab=website"
-                className="font-medium text-neutral-500 transition hover:text-neutral-900"
-              >
-                Edit slug
-              </Link>
-            </div>
-          </div>
-        </motion.section>
+          </section>
+        ) : null}
 
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className={cn(dashboardCard, "overflow-hidden")}
+        {/* Connect + DNS */}
+        <section
+          id="domain-connect"
+          className={cn(dashboardCard, "scroll-mt-4 overflow-hidden")}
         >
-          <div className={cn(dashboardCardPad, "border-b border-neutral-100 sm:px-7 sm:pt-6")}>
-            <p className={dashboardKicker}>Custom domain</p>
-            <h2 className={cn(dashboardTitle, "mt-1 text-lg")}>
-              {connectedDomain ? "Update hostname" : "Point your domain here"}
+          <div className="border-b border-black/[0.05] px-4 py-3 dark:border-white/10">
+            <h2 className={dashboardTitle}>
+              {connectedDomain ? "Update hostname" : "Connect custom domain"}
             </h2>
-            <p className={cn(dashboardSubtitle, "mt-1 max-w-lg leading-relaxed")}>
-              Connect the hostname, then add DNS at your registrar. We provision SSL
-              automatically once DNS is correct.
+            <p className={cn(dashboardSubtitle, "mt-0.5")}>
+              1) Choose type · 2) Enter hostname · 3) Add DNS · 4) Check until Live
             </p>
           </div>
 
-          <div className={cn(dashboardCardPad, "space-y-8 sm:p-7")}>
-            <div className="flex gap-6 border-b border-neutral-100">
-              {(
-                [
-                  { id: "subdomain" as const, label: "Subdomain" },
-                  { id: "apex" as const, label: "Root domain" },
-                ] as const
-              ).map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setMode(opt.id)}
-                  className={cn(
-                    "relative pb-3 text-sm transition",
-                    mode === opt.id
-                      ? "font-medium text-neutral-950"
-                      : "text-neutral-400 hover:text-neutral-700"
-                  )}
-                >
-                  {opt.label}
-                  {mode === opt.id ? (
-                    <motion.span
-                      layoutId="domain-mode-underline"
-                      className="absolute inset-x-0 -bottom-px h-px bg-neutral-950"
-                    />
-                  ) : null}
-                </button>
-              ))}
+          <div className="space-y-4 px-4 py-3">
+            <div>
+              <p className="mb-1.5 text-[11px] font-medium text-neutral-600 dark:text-neutral-400">
+                Domain type
+              </p>
+              <div className={dashboardPillGroup}>
+                {(
+                  [
+                    {
+                      id: "subdomain" as const,
+                      label: "Subdomain",
+                      hint: "shop.brand.com",
+                    },
+                    {
+                      id: "apex" as const,
+                      label: "Root domain",
+                      hint: "brand.com",
+                    },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setMode(opt.id)}
+                    className={cn(
+                      dashboardPill,
+                      "flex-1 sm:flex-none",
+                      mode === opt.id ? dashboardPillActive : dashboardPillInactive
+                    )}
+                  >
+                    <span className="block text-left">
+                      {opt.label}
+                      <span className="ml-1.5 text-[10px] font-normal text-neutral-400">
+                        {opt.hint}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <label htmlFor="domain-input" className="text-xs font-medium text-neutral-600">
-                {mode === "apex" ? "Domain" : "Hostname"}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="domain-input"
+                className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400"
+              >
+                {mode === "apex" ? "Root domain" : "Hostname"}
               </label>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Input
-                  id="domain-input"
-                  className="h-11 flex-1 rounded-xl border-neutral-200 bg-white font-mono text-sm tracking-tight shadow-none focus-visible:ring-neutral-900/10"
-                  value={domainInput}
-                  onChange={(e) => setDomainInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleConnect();
-                  }}
-                  placeholder={
-                    mode === "apex" ? "yourbrand.com" : "shop.yourbrand.com"
-                  }
-                  autoComplete="off"
-                  spellCheck={false}
-                />
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+                <div className="relative min-w-0 flex-1">
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-neutral-400">
+                    https://
+                  </span>
+                  <Input
+                    id="domain-input"
+                    className="h-8 rounded-md border-black/[0.06] bg-white pl-[3.4rem] font-sans text-[12px] shadow-none focus-visible:ring-[#007AFF]/20 dark:border-white/10 dark:bg-white/[0.04]"
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleConnect();
+                    }}
+                    placeholder={
+                      mode === "apex" ? "yourbrand.com" : "shop.yourbrand.com"
+                    }
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
                 <Button
                   onClick={handleConnect}
                   loading={saving}
                   disabled={!dirty && Boolean(connectedDomain)}
-                  className={cn(dashboardPrimaryBtn, "h-11 shrink-0 px-5")}
+                  className={cn(dashboardPrimaryBtn, "h-8 shrink-0 px-3")}
                 >
                   {connectedDomain ? (dirty ? "Save" : "Saved") : "Connect"}
                 </Button>
@@ -548,90 +758,88 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
             </div>
 
             <div>
-              <div className="mb-3 flex items-baseline justify-between gap-3">
-                <p className="text-xs font-medium text-neutral-600">DNS records</p>
-                <Link
-                  href="/help/connect-a-custom-domain"
-                  className="text-xs text-neutral-400 transition hover:text-neutral-700"
-                >
-                  Guide
-                </Link>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400">
+                  DNS records to add
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void copyAllDns()}
+                    className="text-[11px] font-medium text-neutral-500 transition hover:text-[#007AFF]"
+                  >
+                    Copy all
+                  </button>
+                  <Link
+                    href="/help/category/domains-hosting"
+                    className="text-[11px] text-neutral-400 transition hover:text-[#007AFF]"
+                  >
+                    Guide
+                  </Link>
+                </div>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-neutral-200/90">
+              <div className="overflow-hidden rounded-[10px] border border-black/[0.06] dark:border-white/10">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-neutral-100 bg-neutral-50/50 text-[11px] uppercase tracking-[0.06em] text-neutral-400">
-                      <th className="px-4 py-2.5 font-medium">Type</th>
-                      <th className="px-4 py-2.5 font-medium">Host</th>
-                      <th className="px-4 py-2.5 font-medium">Value</th>
+                    <tr className="border-b border-black/[0.05] bg-[#F5F5F7] text-[10px] font-medium uppercase tracking-[0.06em] text-neutral-400 dark:border-white/10 dark:bg-white/[0.04]">
+                      <th className="px-3 py-2 font-medium">Type</th>
+                      <th className="px-3 py-2 font-medium">Host</th>
+                      <th className="px-3 py-2 font-medium">Value</th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm">
-                    {mode === "subdomain" ? (
-                      <tr>
-                        <td className="px-4 py-3.5 font-mono text-xs text-neutral-500">
-                          CNAME
+                  <tbody>
+                    {dnsRows.map((row, i) => (
+                      <tr
+                        key={`${row.type}-${row.host}`}
+                        className={cn(
+                          i < dnsRows.length - 1 &&
+                            "border-b border-black/[0.04] dark:border-white/5"
+                        )}
+                      >
+                        <td className="px-3 py-2.5 font-sans text-[11px] text-neutral-500">
+                          {row.type}
                         </td>
-                        <td className="px-4 py-3.5">
-                          <CopyCell value={cnameHost} />
+                        <td className="px-3 py-2.5">
+                          <CopyCell value={row.host} />
                         </td>
-                        <td className="px-4 py-3.5">
-                          <CopyCell value={cnameTarget} />
+                        <td className="px-3 py-2.5">
+                          <CopyCell value={row.value} />
                         </td>
                       </tr>
-                    ) : (
-                      <>
-                        <tr className="border-b border-neutral-50">
-                          <td className="px-4 py-3.5 font-mono text-xs text-neutral-500">A</td>
-                          <td className="px-4 py-3.5">
-                            <CopyCell value="@" />
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <CopyCell value={aTarget} />
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-3.5 font-mono text-xs text-neutral-500">
-                            CNAME
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <CopyCell value="www" />
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <CopyCell value={cnameTarget} />
-                          </td>
-                        </tr>
-                      </>
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
 
-              <p className="mt-3 text-xs leading-relaxed text-neutral-400">
-                After saving DNS, wait a few minutes and press Check DNS. Your Ettajer link
-                keeps working either way.
+              <p className="mt-2 text-[10px] text-neutral-400">
+                Need registrar steps? Open the tips icon next to Help, or see the{" "}
+                <Link
+                  href="/help/category/domains-hosting"
+                  className="font-medium text-[#007AFF] hover:underline"
+                >
+                  Domains guides
+                </Link>
+                .
               </p>
             </div>
 
             {connectedDomain ? (
-              <div className="flex items-center justify-between border-t border-neutral-100 pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.05] pt-3 dark:border-white/10">
                 <Button
-                  type="button"
                   variant="outline"
-                  size="sm"
-                  className="h-9 rounded-xl border-neutral-200"
+                  className="h-7 rounded-md border-black/[0.06] px-2.5 text-[11px] shadow-none dark:border-white/10"
                   disabled={verifying}
                   onClick={() => void runVerify(false)}
                 >
                   {verifying ? (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                   ) : null}
                   Check DNS
                 </Button>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400 transition hover:text-red-600"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition hover:text-red-600"
                   onClick={() => setRemoveOpen(true)}
                 >
                   <Trash2 className="h-3 w-3" />
@@ -640,24 +848,27 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
               </div>
             ) : null}
           </div>
-        </motion.section>
+        </section>
       </div>
 
       <Dialog open={removeOpen} onOpenChange={setRemoveOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Remove {connectedDomain}?</DialogTitle>
-            <DialogDescription>
-              The custom hostname will stop mapping to your store. Your Ettajer link stays
+        <DialogContent
+          className={cn(
+            "w-[min(100vw-1.5rem,360px)] max-w-[360px] gap-0 overflow-hidden rounded-2xl border-black/[0.06] p-0 shadow-xl dark:border-white/10"
+          )}
+        >
+          <DialogHeader className="space-y-0 px-3.5 pb-0 pt-3.5 pr-10 text-left">
+            <DialogTitle className="text-[13px] font-semibold tracking-[-0.02em]">
+              Remove domain?
+            </DialogTitle>
+            <DialogDescription className="mt-0.5 text-[11px] text-neutral-500">
+              {connectedDomain} will stop mapping to your store. Your Ettajer link stays
               online.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRemoveOpen(false)}>
-              Cancel
-            </Button>
+          <div className="flex gap-1.5 px-3.5 pb-3.5 pt-3">
             <Button
-              variant="destructive"
+              className="h-7 flex-1 rounded-md bg-red-600 px-2.5 text-[12px] font-medium text-white shadow-none [background-image:none] hover:bg-red-700 hover:scale-100"
               loading={saving}
               onClick={() => {
                 setRemoveOpen(false);
@@ -666,7 +877,14 @@ export function DomainsPageClient({ store: initialStore }: DomainsPageClientProp
             >
               Remove
             </Button>
-          </DialogFooter>
+            <Button
+              variant="ghost"
+              className="h-7 rounded-md px-2.5 text-[11px] text-neutral-500"
+              onClick={() => setRemoveOpen(false)}
+            >
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </OnlineStorePageShell>

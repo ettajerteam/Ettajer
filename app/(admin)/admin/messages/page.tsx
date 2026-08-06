@@ -21,7 +21,6 @@ export default async function AdminMessagesPage() {
     (m) => m.status === SUPPORT_MESSAGE_STATUS.REVIEWING
   ).length;
 
-  // Serialize dates for the client component
   const serialized = messages.map((m) => ({
     ...m,
     createdAt: m.createdAt,
@@ -36,12 +35,12 @@ export default async function AdminMessagesPage() {
           description="Live chat-style threads for every support email — filter, reply, resolve."
         />
 
-        <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="mb-1 grid gap-2.5 sm:grid-cols-3">
           <AdminStatCard label="Conversations" value={conversations.length} />
           <AdminStatCard
             label="Unread"
             value={unread}
-            accent={unread > 0 ? "violet" : "default"}
+            accent={unread > 0 ? "blue" : "default"}
             hint={unread > 0 ? "Needs attention" : "All caught up"}
           />
           <AdminStatCard

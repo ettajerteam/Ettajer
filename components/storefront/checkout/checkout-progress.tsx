@@ -3,14 +3,25 @@
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { getStorefrontCopy } from "@/lib/storefront/storefront-i18n";
+import {
+  getCheckoutThemeStyles,
+  type CheckoutThemeStyles,
+} from "@/lib/checkout-theme-styles";
+import type { CheckoutThemeId } from "@/lib/shop-preferences";
 
 interface CheckoutProgressProps {
   currentStep: number;
   language?: string;
+  theme?: CheckoutThemeId | string;
 }
 
-export function CheckoutProgress({ currentStep, language }: CheckoutProgressProps) {
+export function CheckoutProgress({
+  currentStep,
+  language,
+  theme,
+}: CheckoutProgressProps) {
   const t = getStorefrontCopy(language);
+  const styles = getCheckoutThemeStyles(theme);
   const steps = [
     { id: 1, label: t.checkout.stepDetails },
     { id: 2, label: t.checkout.stepDelivery },
@@ -18,7 +29,7 @@ export function CheckoutProgress({ currentStep, language }: CheckoutProgressProp
   ];
 
   return (
-    <nav aria-label={t.checkout.stepsAria} className="mb-8 sm:mb-10">
+    <nav aria-label={t.checkout.stepsAria} className={styles.progressWrap}>
       <ol className="flex items-center justify-between gap-2 sm:justify-center sm:gap-0">
         {steps.map((step, index) => {
           const isComplete = currentStep > step.id;
@@ -29,18 +40,27 @@ export function CheckoutProgress({ currentStep, language }: CheckoutProgressProp
               <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:gap-2.5">
                 <span
                   className={cn(
-                    "inline-flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold transition",
-                    isComplete && "bg-neutral-900 text-white",
-                    isCurrent &&
-                      "bg-[var(--store-primary)] text-white ring-4 ring-[color-mix(in_srgb,var(--store-primary)_18%,transparent)]",
-                    !isComplete && !isCurrent && "bg-neutral-100 text-neutral-400"
+                    "inline-flex items-center justify-center transition",
+                    styles.progressDot,
+                    isComplete && styles.progressDotDone,
+                    isCurrent && styles.progressDotCurrent,
+                    !isComplete && !isCurrent && styles.progressDotIdle
                   )}
                 >
-                  {isComplete ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : step.id}
+                  {isComplete ? (
+                    <Check
+                      className={cn(
+                        styles.id === "compact" ? "h-3 w-3" : "h-3.5 w-3.5"
+                      )}
+                      strokeWidth={2.5}
+                    />
+                  ) : (
+                    step.id
+                  )}
                 </span>
                 <span
                   className={cn(
-                    "text-[11px] font-medium tracking-wide sm:text-[12px]",
+                    styles.progressLabel,
                     isCurrent ? "text-neutral-900" : "text-neutral-400"
                   )}
                 >
@@ -50,8 +70,12 @@ export function CheckoutProgress({ currentStep, language }: CheckoutProgressProp
               {index < steps.length - 1 ? (
                 <div
                   className={cn(
-                    "mx-2 hidden h-px flex-1 sm:mx-4 sm:block sm:w-14 sm:flex-none",
-                    currentStep > step.id ? "bg-neutral-900" : "bg-neutral-200"
+                    "mx-2 hidden flex-1 sm:mx-4 sm:block sm:w-14 sm:flex-none",
+                    styles.progressConnector,
+                    currentStep > step.id &&
+                      (styles.id === "soft"
+                        ? "bg-[var(--store-primary)]"
+                        : "bg-neutral-900")
                   )}
                   aria-hidden
                 />
@@ -61,5 +85,19 @@ export function CheckoutProgress({ currentStep, language }: CheckoutProgressProp
         })}
       </ol>
     </nav>
+  );
+}
+
+/** Shared for settings phone preview progress dots */
+export function checkoutProgressDotClass(
+  styles: CheckoutThemeStyles,
+  state: "current" | "done" | "idle"
+) {
+  return cn(
+    "inline-flex items-center justify-center",
+    styles.progressDot,
+    state === "current" && styles.progressDotCurrent,
+    state === "done" && styles.progressDotDone,
+    state === "idle" && styles.progressDotIdle
   );
 }

@@ -49,6 +49,14 @@ export interface ModernEmailTemplateParams {
   customBlock?: string;
   locale?: LandingLocale;
   shell?: EmailShellCopy;
+  /** CAN-SPAM / marketing compliance block (links are not escaped twice) */
+  marketingCompliance?: {
+    businessName: string;
+    address?: string | null;
+    supportEmail?: string | null;
+    preferencesUrl: string;
+    unsubscribeUrl: string;
+  };
 }
 
 function renderKeyValues(items: EmailKeyValue[], isRtl: boolean): string {
@@ -167,6 +175,27 @@ export function buildModernEmailHtml(params: ModernEmailTemplateParams): string 
       ? `<p style="margin:14px 0 0;color:#a3a3a3;font-size:11px;direction:${dir};">${escapeHtml(shell.needHelp)} <a href="${getAppUrl()}/help" style="color:#3b82f6;text-decoration:none;">${escapeHtml(shell.visitHelpCenter)}</a> · <a href="mailto:support@ettajer.com" style="color:#3b82f6;text-decoration:none;">support@ettajer.com</a></p>`
       : "";
 
+  const compliance = params.marketingCompliance;
+  const complianceHtml = compliance
+    ? `
+      <p style="margin:0 0 8px;color:#737373;font-size:12px;line-height:1.55;font-weight:600;">${escapeHtml(compliance.businessName)}</p>
+      ${
+        compliance.address?.trim()
+          ? `<p style="margin:0 0 4px;color:#a3a3a3;font-size:11px;line-height:1.5;">${escapeHtml(compliance.address.trim())}</p>`
+          : ""
+      }
+      ${
+        compliance.supportEmail?.trim()
+          ? `<p style="margin:0 0 12px;color:#a3a3a3;font-size:11px;line-height:1.5;"><a href="mailto:${escapeHtml(compliance.supportEmail.trim())}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(compliance.supportEmail.trim())}</a></p>`
+          : ""
+      }
+      <p style="margin:0;color:#a3a3a3;font-size:11px;line-height:1.6;">
+        <a href="${escapeHtml(compliance.preferencesUrl)}" style="color:#3b82f6;text-decoration:none;">Manage Preferences</a>
+        &nbsp;·&nbsp;
+        <a href="${escapeHtml(compliance.unsubscribeUrl)}" style="color:#3b82f6;text-decoration:none;">Unsubscribe</a>
+      </p>`
+    : `<p style="margin:0;color:#a3a3a3;font-size:12px;line-height:1.6;">${escapeHtml(params.footerNote)}</p>`;
+
   return `<!DOCTYPE html>
 <html lang="${lang}" dir="${dir}">
 <head>
@@ -203,7 +232,7 @@ export function buildModernEmailHtml(params: ModernEmailTemplateParams): string 
           ${params.expiryNote ? `<tr><td style="padding:16px 32px 0;text-align:center;color:#a3a3a3;font-size:12px;line-height:1.5;">${escapeHtml(params.expiryNote)}</td></tr>` : ""}
           <tr>
             <td style="padding:28px 32px 32px;text-align:center;border-top:1px solid #f5f5f5;">
-              <p style="margin:0;color:#a3a3a3;font-size:12px;line-height:1.6;">${escapeHtml(params.footerNote)}</p>
+              ${complianceHtml}
               ${helpLinkHtml}
             </td>
           </tr>

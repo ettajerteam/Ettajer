@@ -5,6 +5,7 @@ import Image from "next/image";
 import { getFooterNavGroups } from "@/lib/landing/landing-i18n";
 import { useLandingLocale } from "@/components/landing/landing-locale-context";
 import { LandingLanguageSwitcher } from "@/components/shared/language-switcher";
+import { BrandSocialLinks } from "@/components/shared/brand-social-links";
 import { LANDING_MOBILE_CONTAINER } from "@/components/landing/landing-mobile-ui";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,7 @@ export function LandingFooter() {
             <p className="max-w-sm text-[14px] leading-relaxed text-neutral-500">
               {copy.footer.tagline}
             </p>
+            <BrandSocialLinks className="-ml-1.5" />
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:col-span-8 xl:grid-cols-6">

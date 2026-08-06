@@ -29,9 +29,13 @@ export type StorefrontCopy = {
   };
   buy: {
     addToCart: string;
+    buyNow: string;
     orderNowCod: string;
+    codFormTitle: string;
+    codFormHint: string;
     outOfStock: string;
     adding: string;
+    buying: string;
     added: string;
   };
   common: {
@@ -90,6 +94,7 @@ export type StorefrontCopy = {
     collections: string;
     search: string;
     blog: string;
+    checkout: string;
   };
 };
 
@@ -120,9 +125,13 @@ const EN: StorefrontCopy = {
   },
   buy: {
     addToCart: "Add to cart",
-    orderNowCod: "Order now — COD",
+    buyNow: "Buy now",
+    orderNowCod: "Order now",
+    codFormTitle: "Place your COD order",
+    codFormHint: "Enter your details below — pay the courier when the package arrives.",
     outOfStock: "Out of stock",
     adding: "Adding…",
+    buying: "Going to checkout…",
     added: "Added",
   },
   common: {
@@ -181,6 +190,7 @@ const EN: StorefrontCopy = {
     collections: "Collections",
     search: "Search",
     blog: "Blog",
+    checkout: "Checkout",
   },
 };
 
@@ -211,9 +221,14 @@ const FR: StorefrontCopy = {
   },
   buy: {
     addToCart: "Ajouter au panier",
-    orderNowCod: "Commander — COD",
+    buyNow: "Acheter maintenant",
+    orderNowCod: "Commander maintenant",
+    codFormTitle: "Passer commande (paiement à la livraison)",
+    codFormHint:
+      "Remplissez vos coordonnées ci-dessous — payez le livreur à la réception.",
     outOfStock: "Rupture de stock",
     adding: "Ajout…",
+    buying: "Vers le paiement…",
     added: "Ajouté",
   },
   common: {
@@ -272,6 +287,7 @@ const FR: StorefrontCopy = {
     collections: "Collections",
     search: "Recherche",
     blog: "Blog",
+    checkout: "Paiement",
   },
 };
 
@@ -302,9 +318,14 @@ const AR: StorefrontCopy = {
   },
   buy: {
     addToCart: "أضف إلى السلة",
-    orderNowCod: "اطلب الآن — دفع عند الاستلام",
+    buyNow: "اشتر الآن",
+    orderNowCod: "اطلب الآن",
+    codFormTitle: "إتمام الطلب — الدفع عند الاستلام",
+    codFormHint:
+      "أدخل بياناتك أدناه — ادفع للمُوصّل عند وصول الطلبية.",
     outOfStock: "غير متوفر",
     adding: "جاري الإضافة…",
+    buying: "الانتقال للدفع…",
     added: "تمت الإضافة",
   },
   common: {
@@ -363,6 +384,7 @@ const AR: StorefrontCopy = {
     collections: "المجموعات",
     search: "بحث",
     blog: "المدونة",
+    checkout: "إتمام الطلب",
   },
 };
 

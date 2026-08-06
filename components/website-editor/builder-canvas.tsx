@@ -25,6 +25,7 @@ import { useCentralBuilderStore, MIN_ZOOM, MAX_ZOOM } from "@/lib/builder/centra
 import { lerp, nearlyEqual, PAN_LERP, ZOOM_LERP } from "@/lib/builder/canvas-interactions";
 import type { DeviceMode } from "@/lib/builder/types";
 import { postToPreview } from "@/lib/builder/events";
+import { dashboardPillGroup } from "@/lib/dashboard-ui";
 import { cn } from "@/lib/utils";
 
 interface BuilderCanvasProps {
@@ -299,18 +300,17 @@ export function BuilderCanvas({
   );
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col gap-1.5 p-1.5 sm:p-2", className)}>
-      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-1 rounded-lg border border-neutral-200/80 bg-white/95 px-1.5 py-1 shadow-sm backdrop-blur-md">
-        <span className="hidden rounded-md bg-neutral-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-500 sm:inline">
-          {device === "mobile" ? "Mobile" : device === "tablet" ? "Tablet" : "Desktop"} preview
-        </span>
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
-        <div className="inline-flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm">
+    <div className={cn("flex min-h-0 flex-1 flex-col gap-2 p-2 sm:p-2.5", className)}>
+      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-end gap-1.5">
+        <div className={cn(dashboardPillGroup)}>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className={cn("h-7 w-7 rounded-md", activeTool === "select" && "bg-neutral-100")}
+            className={cn(
+              "h-7 w-7 rounded-md",
+              activeTool === "select" && "bg-[#F5F5F7] text-neutral-900"
+            )}
             onClick={() => setTool("select")}
             title="Select"
             aria-label="Select tool"
@@ -321,7 +321,10 @@ export function BuilderCanvas({
             type="button"
             variant="ghost"
             size="icon"
-            className={cn("h-7 w-7 rounded-md", activeTool === "hand" && "bg-neutral-100")}
+            className={cn(
+              "h-7 w-7 rounded-md",
+              activeTool === "hand" && "bg-[#F5F5F7] text-neutral-900"
+            )}
             onClick={() => setTool("hand")}
             title="Pan — hold Space + drag, or middle-click"
             aria-label="Pan tool"
@@ -329,7 +332,7 @@ export function BuilderCanvas({
             <Hand className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <div className="inline-flex items-center gap-0.5 rounded-lg border border-neutral-200 bg-white p-0.5 shadow-sm">
+        <div className={cn(dashboardPillGroup)}>
           <Button
             type="button"
             variant="ghost"
@@ -343,8 +346,9 @@ export function BuilderCanvas({
           </Button>
           <button
             type="button"
-            className="min-w-[3rem] px-1 text-center text-[11px] font-medium text-neutral-600"
+            className="min-w-[3rem] px-1 text-center text-[11px] font-medium tabular-nums text-neutral-600"
             onClick={zoomToFit}
+            title="Fit to view"
           >
             {zoomLabel}
           </button>
@@ -360,45 +364,49 @@ export function BuilderCanvas({
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7 rounded-md border-neutral-200"
-          onClick={resetView}
-          aria-label="Reset view"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7 rounded-md border-neutral-200"
-          onClick={onRefresh}
-          aria-label="Refresh preview"
-        >
-          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-        </Button>
-        {onFullscreen && (
+        <div className={cn(dashboardPillGroup)}>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-md border-neutral-200"
-            onClick={onFullscreen}
-            aria-label="Fullscreen"
+            className="h-7 w-7 rounded-md text-neutral-500"
+            onClick={resetView}
+            aria-label="Reset view"
+            title="Reset view"
           >
-            <Maximize2 className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3.5 w-3.5" />
           </Button>
-        )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-md text-neutral-500"
+            onClick={onRefresh}
+            aria-label="Refresh preview"
+            title="Refresh preview"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+          </Button>
+          {onFullscreen ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-md text-neutral-500"
+              onClick={onFullscreen}
+              aria-label="Fullscreen"
+              title="Fullscreen"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
+          ) : null}
         </div>
       </div>
 
       <div
         ref={viewportRef}
         className={cn(
-          "builder-canvas-viewport relative min-h-0 flex-1 overflow-hidden rounded-lg border border-neutral-200/80",
+          "builder-canvas-viewport relative min-h-0 flex-1 overflow-hidden rounded-[12px] border border-black/[0.06] bg-[#EFEFF2]",
           isPanGesture && "cursor-grab",
           canvas.isPanning && "cursor-grabbing"
         )}
@@ -423,12 +431,12 @@ export function BuilderCanvas({
           >
             <div className={cn("relative shrink-0", CANVAS_WIDTH[device])}>
               {!isMobileFrame ? (
-                <div className="overflow-hidden rounded-xl border border-neutral-200/80 bg-white shadow-[0_12px_40px_-16px_rgba(15,23,42,0.22)]">
-                  <div className="flex items-center gap-2 border-b border-neutral-100 bg-neutral-50/90 px-3 py-1.5">
+                <div className="overflow-hidden rounded-[12px] border border-black/[0.06] bg-white shadow-[0_8px_30px_-12px_rgba(0,0,0,0.14)]">
+                  <div className="flex items-center gap-2 border-b border-black/[0.05] bg-[#F5F5F7] px-3 py-1.5">
                     <div className="flex shrink-0 gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-neutral-300" />
                     </div>
                     <div className="mx-auto flex min-w-0 max-w-[14rem] flex-1 justify-center rounded-md bg-white px-3 py-1 sm:max-w-xs">
                       <span className="truncate font-mono text-[10px] text-neutral-400">{previewPath}</span>
@@ -441,7 +449,7 @@ export function BuilderCanvas({
                 </div>
               ) : (
                 <div className="relative mx-auto w-full max-w-[390px]">
-                  <div className="overflow-hidden rounded-[2rem] border-[3px] border-neutral-900 bg-neutral-950 p-1 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.45)]">
+                  <div className="overflow-hidden rounded-[2rem] border-[3px] border-neutral-900 bg-neutral-950 p-1 shadow-[0_16px_40px_-14px_rgba(0,0,0,0.35)]">
                     <div className="relative overflow-hidden rounded-[1.65rem] bg-white">
                       <div className="absolute left-1/2 top-2 z-20 h-4 w-16 -translate-x-1/2 rounded-full bg-black" />
                       <div className="relative aspect-[9/19] min-h-[480px]">

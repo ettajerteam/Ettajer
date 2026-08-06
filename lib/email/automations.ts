@@ -82,6 +82,7 @@ async function dispatch(
     subject: string;
     html: string;
     replyTo?: string;
+    storeId?: string | null;
     attachments?: {
       filename: string;
       content: Buffer | string;
@@ -96,6 +97,8 @@ async function dispatch(
     html: payload.html,
     replyTo: payload.replyTo,
     attachments: payload.attachments,
+    storeId: payload.storeId,
+    category: automation,
   });
 
   if (!result.success) {
@@ -528,6 +531,8 @@ export async function sendOrderConfirmationEmail(params: {
   currency: string;
   subtotal: number;
   shipping: number;
+  tax?: number;
+  taxLabel?: string;
   total: number;
   items: { title: string; quantity: number; price: number }[];
   shippingAddress: {
@@ -537,6 +542,7 @@ export async function sendOrderConfirmationEmail(params: {
     country: string;
   };
   locale?: string | null;
+  storeId?: string | null;
 }): Promise<boolean> {
   const loc = emailLocale(params.locale);
   const copy = getEmailCopy(loc);
@@ -544,6 +550,7 @@ export async function sendOrderConfirmationEmail(params: {
     to: params.to,
     subject: copy.orderConfirmed.subject(params.orderNumber),
     html: buildOrderConfirmationEmailHtml(params, loc),
+    storeId: params.storeId,
   });
   return result.success;
 }
@@ -558,6 +565,7 @@ export async function sendOrderStatusEmail(params: {
   currency: string;
   note?: string;
   locale?: string | null;
+  storeId?: string | null;
 }): Promise<boolean> {
   const loc = emailLocale(params.locale);
   const copy = getEmailCopy(loc);
@@ -566,6 +574,7 @@ export async function sendOrderStatusEmail(params: {
     to: params.to,
     subject: copy.orderStatus.subject(params.orderNumber, statusLabel),
     html: buildOrderStatusEmailHtml(params, loc),
+    storeId: params.storeId,
   });
   return result.success;
 }
@@ -579,6 +588,7 @@ export async function sendAbandonedCartEmail(params: {
   subtotal: number;
   items: { title: string; quantity: number; price: number }[];
   locale?: string | null;
+  storeId?: string | null;
 }): Promise<boolean> {
   const loc = emailLocale(params.locale);
   const copy = getEmailCopy(loc);
@@ -597,6 +607,7 @@ export async function sendAbandonedCartEmail(params: {
       },
       loc,
     ),
+    storeId: params.storeId,
   });
   return result.success;
 }

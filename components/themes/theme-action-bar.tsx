@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, Loader2, RotateCcw } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { dashboardPrimaryBtn } from "@/lib/dashboard-ui";
 import { cn } from "@/lib/utils";
 
 interface ThemeActionBarProps {
@@ -11,7 +12,7 @@ interface ThemeActionBarProps {
   className?: string;
 }
 
-/** Sticky publish strip when theme draft has unpublished changes. */
+/** Sticky publish strip — flat blue + text discard. */
 export function ThemeActionBar({
   publishing,
   onDiscard,
@@ -19,31 +20,21 @@ export function ThemeActionBar({
   className,
 }: ThemeActionBarProps) {
   return (
-    <div
-      className={cn(
-        "sticky bottom-4 z-40 mx-auto w-full max-w-3xl px-2",
-        className,
-      )}
-    >
-      <div className="flex flex-col gap-3 rounded-2xl border border-amber-200/80 bg-white/95 p-3 shadow-[0_20px_50px_-16px_rgba(15,23,42,0.35)] backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:p-3.5">
-        <p className="px-1 text-sm font-medium text-amber-900 sm:px-2">
-          Unpublished changes — preview updated. Publish to go live.
-        </p>
-        <div className="flex shrink-0 gap-2">
+    <div className={cn("sticky bottom-3 z-40 mx-auto w-full max-w-xl px-1", className)}>
+      <div className="flex items-center justify-between gap-3 rounded-[12px] border border-black/[0.06] bg-white/95 px-3 py-2 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-[#1C1C1E]/95">
+        <p className="text-[12px] text-neutral-500">Unpublished brand changes</p>
+        <div className="flex shrink-0 items-center gap-0.5">
           <Button
             variant="ghost"
-            size="sm"
+            className="h-8 rounded-md px-2.5 text-[12px] font-medium text-neutral-500 hover:bg-transparent hover:text-neutral-900"
             onClick={onDiscard}
-            className="h-10 gap-1.5 rounded-xl"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
             Discard
           </Button>
           <Button
-            size="sm"
+            className={cn(dashboardPrimaryBtn, "h-8 gap-1 px-3")}
             onClick={onPublish}
             disabled={publishing}
-            className="h-10 gap-1.5 rounded-xl bg-[#007AFF] px-4 hover:bg-[#0071EB]"
           >
             {publishing ? (
               <>

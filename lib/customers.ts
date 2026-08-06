@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { parseShippingAddress } from "@/lib/orders";
 import { isValidOrderStatus } from "@/lib/validations/order";
+import { encodeCustomerId } from "@/lib/customer-id";
 import type {
   CustomerDetail,
   CustomerListItem,
@@ -8,17 +9,7 @@ import type {
   CustomerSort,
 } from "@/types/customers";
 
-export function encodeCustomerId(email: string): string {
-  return Buffer.from(email.toLowerCase(), "utf-8").toString("base64url");
-}
-
-export function decodeCustomerId(id: string): string {
-  try {
-    return Buffer.from(id, "base64url").toString("utf-8");
-  } catch {
-    return "";
-  }
-}
+export { encodeCustomerId, decodeCustomerId } from "@/lib/customer-id";
 
 type OrderRow = {
   id: string;

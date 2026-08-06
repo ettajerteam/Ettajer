@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
 import { ThemeCustomizer } from "@/components/themes/theme-customizer";
 import { ThemeEditorTemplatePicker } from "@/components/themes/theme-editor-template-picker";
 import { EditorLayersPanel } from "@/components/website-editor/editor-layers-panel";
@@ -13,9 +12,7 @@ import { EditorPanelSection } from "@/components/website-editor/editor-panel-sec
 import { WebsiteTemplatesPanel } from "@/components/website-templates/website-templates-panel";
 import { MediaLibrary } from "@/components/media/media-library";
 import { LeftPanelRailButtons } from "@/components/website-editor/left-panel-rail";
-import { getSectionLabel } from "@/lib/sections/registry";
 import { resolveImageSettingKey } from "@/lib/builder/media-target";
-import { dashboardKicker } from "@/lib/dashboard-ui";
 import type { ThemeId } from "@/lib/themes";
 import type { NavItem } from "@/lib/navigation";
 import type { StorePageRow } from "@/lib/pages";
@@ -24,7 +21,6 @@ import type { MediaAsset } from "@/lib/media/types";
 import type { HomeLayout, StoreSection } from "@/lib/sections/types";
 import type { ComponentProps } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 type InspectorSettingsProps = ComponentProps<typeof EditorSectionSettings>;
 type PagesPanelProps = ComponentProps<typeof EditorPagesPanel>;
@@ -39,9 +35,6 @@ export interface EditorLeftPanelProps {
   anyLayoutDirty: boolean;
   themeDirty: boolean;
   navigationDirty: boolean;
-  isXl: boolean | null;
-  mobileSettingsOpen: boolean;
-  onMobileSettingsOpenChange: (open: boolean) => void;
   /** Store slug / branding */
   storeSlug: string;
   pages: StorePageRow[];
@@ -92,9 +85,6 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
     anyLayoutDirty,
     themeDirty,
     navigationDirty,
-    isXl,
-    mobileSettingsOpen,
-    onMobileSettingsOpenChange,
     storeSlug,
     pages,
     activePage,
@@ -138,7 +128,7 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-row">
-      <div className="flex w-14 shrink-0 flex-col items-center border-r border-neutral-200 bg-neutral-50/80 py-2">
+      <div className="flex w-14 shrink-0 flex-col items-center border-r border-black/[0.06] bg-[#F5F5F7] py-2.5">
         <div className="flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto">
           <LeftPanelRailButtons
             activeTab={activeTab}
@@ -151,9 +141,9 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
         <EditorPanelCloseButton side="left" onClick={onClose} className="mb-1" />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
         {activeTab === "pages" ? (
-          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
+          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
             <EditorPagesPanel
               storeSlug={storeSlug}
               pages={pages}
@@ -171,13 +161,13 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
         ) : null}
 
         {activeTab === "menu" ? (
-          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
+          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
             <EditorNavigationPanel items={draftNavigation} onChange={onNavigationChange} />
           </div>
         ) : null}
 
         {activeTab === "add" ? (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2 py-1.5">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2.5 py-2">
             <BuilderAddPanel
               onRequestDesignInsert={onRequestDesignInsert}
               onInsertComponent={onInsertComponent}
@@ -186,7 +176,7 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
         ) : null}
 
         {activeTab === "layers" ? (
-          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
+          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
             <EditorLayersPanel
               sections={draftLayout.sections}
               onReorder={onReorderSections}
@@ -199,40 +189,11 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
               onEditComponent={onEditComponent}
               componentNames={componentNames}
             />
-            {isXl === false ? (
-              <div className="mt-2">
-                <button
-                  type="button"
-                  onClick={() => onMobileSettingsOpenChange(!mobileSettingsOpen)}
-                  className="flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-left transition-colors hover:bg-neutral-100"
-                >
-                  <div>
-                    <p className={dashboardKicker}>Inspector</p>
-                    <p className="text-sm font-medium text-neutral-900">
-                      {selectedSection
-                        ? getSectionLabel(selectedSection.type)
-                        : "Section settings"}
-                    </p>
-                  </div>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 text-neutral-400 transition-transform",
-                      mobileSettingsOpen && "rotate-90"
-                    )}
-                  />
-                </button>
-                {mobileSettingsOpen && (
-                  <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-3 shadow-sm">
-                    <EditorSectionSettings {...inspectorSettingsProps} />
-                  </div>
-                )}
-              </div>
-            ) : null}
           </div>
         ) : null}
 
         {activeTab === "templates" ? (
-          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
+          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
             <WebsiteTemplatesPanel
               onPreview={onPreviewWebsiteTemplate}
               onApply={onRequestApplyWebsiteTemplate}
@@ -242,10 +203,10 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
         ) : null}
 
         {activeTab === "design" ? (
-          <div className="editor-scroll-hidden min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-1.5">
+          <div className="editor-scroll-hidden min-h-0 flex-1 space-y-4 overflow-y-auto px-2.5 py-2">
             <div className="px-0.5">
-              <p className="text-xs font-semibold text-neutral-800">Design</p>
-              <p className="mt-0.5 text-[11px] text-neutral-400">
+              <p className="text-[13px] font-semibold tracking-[-0.01em] text-neutral-900">Design</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-neutral-400">
                 Theme style, colors, and fonts for your storefront
               </p>
             </div>
@@ -278,7 +239,7 @@ export function EditorLeftPanel(props: EditorLeftPanelProps) {
         ) : null}
 
         {activeTab === "assets" ? (
-          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
+          <div className="editor-scroll-hidden min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
             <MediaLibrary
               variant="sidebar"
               onSelect={(asset: MediaAsset) => {

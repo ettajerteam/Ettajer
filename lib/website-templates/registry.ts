@@ -28,9 +28,13 @@ export function getAllTemplates(): WebsiteTemplateDefinition[] {
 }
 
 export function getTemplatesForBusinessModel(
-  businessModel: BusinessModel,
+  businessModel: BusinessModel | BusinessModel[],
 ): WebsiteTemplateDefinition[] {
-  return getAllTemplates().filter((t) => t.businessModels.includes(businessModel));
+  const models = Array.isArray(businessModel) ? businessModel : [businessModel];
+  if (models.length === 0) return getAllTemplates();
+  return getAllTemplates().filter((t) =>
+    models.some((model) => t.businessModels.includes(model))
+  );
 }
 
 export function isWebsiteTemplateId(value: string): value is WebsiteTemplateId {

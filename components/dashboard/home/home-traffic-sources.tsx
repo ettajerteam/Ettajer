@@ -7,7 +7,7 @@ interface HomeTrafficSourcesProps {
   sources: TrafficSource[];
 }
 
-const COLORS = ["#007AFF", "#34C759", "#FF9500", "#AF52DE", "#5856D6", "#FF2D55"];
+const COLORS = ["#1D1D1F", "#6E6E73", "#AEAEB2", "#C7C7CC", "#D2D2D7", "#E5E5EA"];
 
 export function HomeTrafficSources({ sources }: HomeTrafficSourcesProps) {
   const total = sources.reduce((sum, source) => sum + source.percentage, 0) || 100;

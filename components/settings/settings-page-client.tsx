@@ -9,9 +9,16 @@ import { ShippingSettings } from "@/components/settings/shipping-settings";
 import { PaymentSettings } from "@/components/settings/payment-settings";
 import { CheckoutSettings } from "@/components/settings/checkout-settings";
 import { SeoSettings } from "@/components/settings/seo-settings";
-import { StorefrontContactSettings } from "@/components/settings/storefront-contact-settings";
 import { WebsiteSettings } from "@/components/settings/website-settings";
+import { PrinterSettings } from "@/components/settings/printer-settings";
 import { MailHubSettingsClient } from "@/components/settings/mailhub-settings-client";
+import { ProfileSettings } from "@/components/settings/profile-settings";
+import { PlanSettings, type PlanSettingsUsage } from "@/components/settings/plan-settings";
+import { LegalSettings } from "@/components/settings/legal-settings";
+import { NotificationSettings } from "@/components/settings/notification-settings";
+import { TaxSettings } from "@/components/settings/tax-settings";
+import type { StorePageRow } from "@/lib/pages";
+import type { AccountProfile } from "@/lib/account-profile";
 import {
   SETTINGS_NAV,
   SETTINGS_TABS,
@@ -27,6 +34,9 @@ import { dashboardCard, dashboardStack } from "@/lib/dashboard-ui";
 
 interface SettingsPageClientProps {
   initialStore: StoreWithSettings;
+  initialProfile: AccountProfile;
+  planUsage?: PlanSettingsUsage;
+  legalPages?: StorePageRow[];
 }
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -55,7 +65,7 @@ function normalizeStore(store: StoreWithSettings): StoreWithSettings {
   };
 }
 
-export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
+export function SettingsPageClient({ initialStore, initialProfile, planUsage, legalPages = [] }: SettingsPageClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");
@@ -73,6 +83,16 @@ export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
   useEffect(() => {
     if (tabParam === "design") {
       router.replace("/dashboard/themes/editor");
+      return;
+    }
+    if (tabParam === "contact") {
+      router.replace("/dashboard/settings?tab=general", { scroll: false });
+      setActiveTab("general");
+      return;
+    }
+    if (tabParam === "locations") {
+      router.replace("/dashboard/settings?tab=print", { scroll: false });
+      setActiveTab("print");
       return;
     }
     if (tabParam && SETTINGS_TABS.includes(tabParam as SettingsTab)) {
@@ -163,6 +183,10 @@ export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
       contactEmail: email,
       phone: store.phone?.trim() || null,
       address: store.address?.trim() || null,
+      shop: {
+        whatsapp: store.settings.shop.whatsapp,
+        showContactOnStorefront: store.settings.shop.showContactOnStorefront,
+      },
     });
   }, [saveStore, store]);
 
@@ -181,40 +205,96 @@ export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
       toast.error("Each shipping zone needs a name");
       return;
     }
-    if (zones.some((z) => z.cities.length === 0)) {
-      toast.error("Each shipping zone needs at least one city");
+    if (zones.some((z) => z.countries.length === 0 && z.cities.length === 0)) {
+      toast.error("Each shipping zone needs at least one country or city");
       return;
     }
     await saveStore({
       shippingZones: zones.map((z) => ({
         ...z,
         name: z.name.trim(),
+        countries: z.countries.map((c) => c.toUpperCase()),
       })),
     });
   }, [saveStore, store.settings.shippingZones]);
 
-  const savePayment = useCallback(async () => {
-    const gateways = store.settings.paymentGateways;
-    if (!gateways.cashOnDelivery && !gateways.stripe) {
+  const savePayment = useCallback(async (
+    gatewayPatch?: Partial<StoreWithSettings["settings"]["paymentGateways"]>
+  ) => {
+    const gateways = {
+      ...store.settings.paymentGateways,
+      ...gatewayPatch,
+    };
+    if (!gateways.cashOnDelivery && !gateways.paypal) {
       toast.error("Enable at least one payment method");
       return;
     }
-    await saveStore({ paymentGateways: gateways });
-  }, [saveStore, store.settings.paymentGateways]);
+    // Stripe cannot be activated yet — always persist off for merchants
+    const gatewaysToSave = {
+      ...gateways,
+      stripe: false,
+    };
+    if (gatewaysToSave.paypal) {
+      const hasId = Boolean(gatewaysToSave.paypalClientId?.trim());
+      const hasSecret = Boolean(
+        gatewaysToSave.paypalClientSecret?.trim() ||
+          lastSaved.settings.paymentGateways.paypalClientSecret?.trim()
+      );
+      if (!hasId || !hasSecret) {
+        toast.error("Add PayPal Client ID and Secret before enabling PayPal");
+        return;
+      }
+    }
+    const prev = lastSaved.settings.paymentGateways;
+    await saveStore({
+      paymentGateways: {
+        ...gatewaysToSave,
+        paypalClientId: gatewaysToSave.paypalClientId?.trim() || null,
+        paypalClientSecret:
+          gatewaysToSave.paypalClientSecret?.trim() ||
+          prev.paypalClientSecret ||
+          null,
+        paypalEmail: gatewaysToSave.paypalEmail?.trim() || null,
+        paypalMode: gatewaysToSave.paypalMode === "live" ? "live" : "sandbox",
+        stripe: false,
+      },
+      shop: {
+        codMessage: store.settings.shop.codMessage,
+        paypalMessage: store.settings.shop.paypalMessage,
+        codTitle: store.settings.shop.codTitle,
+        paypalTitle: store.settings.shop.paypalTitle,
+        codFee: store.settings.shop.codFee,
+      },
+    });
+  }, [saveStore, store.settings.paymentGateways, store.settings.shop, lastSaved.settings.paymentGateways]);
 
-  const saveCheckout = useCallback(
-    () =>
-      saveStore({
-        shop: {
-          minOrderAmount: store.settings.shop.minOrderAmount,
-          checkoutNote: store.settings.shop.checkoutNote,
-          codMessage: store.settings.shop.codMessage,
-          announceBarEnabled: store.settings.shop.announceBarEnabled,
-          announceBarText: store.settings.shop.announceBarText,
-        },
-      }),
-    [saveStore, store.settings.shop]
-  );
+  const saveCheckout = useCallback(async () => {
+    await saveStore({
+      shop: {
+        minOrderAmount: store.settings.shop.minOrderAmount,
+        checkoutNote: store.settings.shop.checkoutNote,
+        codMessage: store.settings.shop.codMessage,
+        paypalMessage: store.settings.shop.paypalMessage,
+        codTitle: store.settings.shop.codTitle,
+        paypalTitle: store.settings.shop.paypalTitle,
+        codFee: store.settings.shop.codFee,
+        announceBarEnabled: store.settings.shop.announceBarEnabled,
+        announceBarText: store.settings.shop.announceBarText,
+        checkoutTheme: store.settings.shop.checkoutTheme,
+        checkoutLayout: store.settings.shop.checkoutLayout,
+        showProgress: store.settings.shop.showProgress,
+        showCoupon: store.settings.shop.showCoupon,
+        summaryOpenByDefault: store.settings.shop.summaryOpenByDefault,
+        continueLabel: store.settings.shop.continueLabel,
+        placeOrderLabel: store.settings.shop.placeOrderLabel,
+        successMessage: store.settings.shop.successMessage,
+        requireTerms: store.settings.shop.requireTerms,
+        phonePlaceholder: store.settings.shop.phonePlaceholder,
+        phoneHint: store.settings.shop.phoneHint,
+        checkoutFields: store.settings.shop.checkoutFields,
+      },
+    });
+  }, [saveStore, store.settings.shop]);
 
   const saveSeo = useCallback(
     () =>
@@ -231,16 +311,14 @@ export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
     [saveStore, store.settings.seo]
   );
 
-  const saveContact = useCallback(
-    () =>
-      saveStore({
-        shop: {
-          whatsapp: store.settings.shop.whatsapp,
-          showContactOnStorefront: store.settings.shop.showContactOnStorefront,
-        },
-      }),
-    [saveStore, store.settings.shop]
-  );
+  const savePrint = useCallback(async () => {
+    await saveStore({
+      shop: {
+        eticket: store.settings.shop.eticket,
+        invoice: store.settings.shop.invoice,
+      },
+    });
+  }, [saveStore, store.settings.shop.eticket, store.settings.shop.invoice]);
 
   const saveWebsite = useCallback(async () => {
     const slug = store.slug.trim().replace(/^-+|-+$/g, "").replace(/-+/g, "-");
@@ -254,6 +332,32 @@ export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
     await saveStore({ slug });
   }, [handleChange, saveStore, store.slug]);
 
+  const saveNotifications = useCallback(async () => {
+    await saveStore({
+      shop: {
+        alerts: store.settings.shop.alerts,
+      },
+    });
+  }, [saveStore, store.settings.shop.alerts]);
+
+  const saveTaxes = useCallback(async () => {
+    await saveStore({
+      shop: {
+        tax: store.settings.shop.tax,
+      },
+    });
+  }, [saveStore, store.settings.shop.tax]);
+
+  const saveLegal = useCallback(async () => {
+    await saveStore({
+      shop: {
+        requireTerms: store.settings.shop.requireTerms,
+      },
+    });
+  }, [saveStore, store.settings.shop.requireTerms]);
+
+  const noopSave = useCallback(async () => {}, []);
+
   const saveByTab = useMemo(
     (): Record<SettingsTab, () => Promise<void>> => ({
       general: saveGeneral,
@@ -263,15 +367,23 @@ export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
       payment: savePayment,
       checkout: saveCheckout,
       seo: saveSeo,
-      contact: saveContact,
-      /** MailHub saves per action inside its own UI */
       email: async () => {},
+      profile: async () => {},
+      taxes: saveTaxes,
+      notifications: saveNotifications,
+      print: savePrint,
+      plan: noopSave,
+      legal: saveLegal,
     }),
     [
+      noopSave,
       saveCheckout,
-      saveContact,
       saveCurrencyLanguage,
       saveGeneral,
+      saveLegal,
+      saveNotifications,
+      saveTaxes,
+      savePrint,
       savePayment,
       saveSeo,
       saveShipping,
@@ -394,11 +506,54 @@ export function SettingsPageClient({ initialStore }: SettingsPageClientProps) {
                 />
               ) : null}
 
-              {activeTab === "contact" ? (
-                <StorefrontContactSettings
+              {activeTab === "taxes" ? (
+                <TaxSettings
                   store={store}
                   onChange={handleChange}
-                  onSave={saveContact}
+                  onSave={saveTaxes}
+                  saving={saving}
+                  dirty={dirty}
+                />
+              ) : null}
+
+              {activeTab === "notifications" ? (
+                <NotificationSettings
+                  store={store}
+                  onChange={handleChange}
+                  onSave={saveNotifications}
+                  saving={saving}
+                  dirty={dirty}
+                />
+              ) : null}
+
+              {activeTab === "print" ? (
+                <PrinterSettings
+                  store={store}
+                  onChange={handleChange}
+                  onSave={savePrint}
+                  saving={saving}
+                  dirty={dirty}
+                />
+              ) : null}
+
+              {activeTab === "profile" ? (
+                <ProfileSettings initialProfile={initialProfile} />
+              ) : null}
+
+              {activeTab === "plan" ? (
+                <PlanSettings
+                  profile={initialProfile}
+                  storeCurrency={store.currency}
+                  usage={planUsage}
+                />
+              ) : null}
+
+              {activeTab === "legal" ? (
+                <LegalSettings
+                  store={store}
+                  initialPages={legalPages}
+                  onChange={handleChange}
+                  onSave={saveLegal}
                   saving={saving}
                   dirty={dirty}
                 />

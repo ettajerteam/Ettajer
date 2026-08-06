@@ -16,6 +16,8 @@ const TYPE_ICONS = {
   page: FileText,
 } as const;
 
+const ease = [0.32, 0.72, 0, 1] as const;
+
 export function DashboardCommandSearch() {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -94,8 +96,8 @@ export function DashboardCommandSearch() {
   }
 
   return (
-    <div ref={containerRef} className="relative w-full lg:max-w-[360px]">
-      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+    <div ref={containerRef} className="relative w-full max-w-[480px]">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
       <Input
         value={query}
         onChange={(event) => {
@@ -104,14 +106,14 @@ export function DashboardCommandSearch() {
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={handleInputKeyDown}
-        placeholder="Search orders, products, pages..."
-        className="h-9 rounded-lg border-neutral-200/90 bg-neutral-50/80 pl-10 pr-14 text-sm dark:border-white/10 dark:bg-white/5"
+        placeholder="Search orders, products, pages…"
+        className="h-8 rounded-lg border-black/[0.06] bg-[#F5F5F7]/90 pl-9 pr-14 text-[12px] shadow-none placeholder:text-neutral-400 focus-visible:border-[#007AFF]/35 focus-visible:ring-1 focus-visible:ring-[#007AFF]/25 dark:border-white/10 dark:bg-white/[0.06]"
         aria-label="Search dashboard"
         aria-expanded={open}
         aria-controls="dashboard-search-results"
         role="combobox"
       />
-      <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-[#ECECEC] bg-white px-1.5 py-0.5 text-[10px] font-medium text-neutral-400 sm:inline-block dark:border-white/10 dark:bg-[#161616]">
+      <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-md border border-black/[0.06] bg-white px-1.5 py-0.5 text-[9px] font-medium text-neutral-400 sm:inline-block dark:border-white/10 dark:bg-white/5">
         ⌘K
       </kbd>
 
@@ -120,25 +122,25 @@ export function DashboardCommandSearch() {
           <motion.div
             id="dashboard-search-results"
             role="listbox"
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.16 }}
-            className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[16px] border border-[#ECECEC] bg-white shadow-[0_16px_40px_-20px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-[#161616]"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.18, ease }}
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-black/[0.06] bg-white shadow-[0_12px_40px_-16px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-[#161616]"
           >
             {trimmedQuery.length === 0 ? (
-              <p className="border-b border-[#ECECEC] px-4 py-3 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:border-white/10">
+              <p className="border-b border-black/[0.05] px-3 py-2 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400 dark:border-white/10">
                 Quick navigation
               </p>
             ) : null}
             {loading ? (
-              <p className="px-4 py-6 text-sm text-neutral-500">Searching...</p>
+              <p className="px-3 py-5 text-[12px] text-neutral-500">Searching…</p>
             ) : trimmedQuery.length > 0 && displayResults.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-neutral-500">
+              <p className="px-3 py-5 text-[12px] text-neutral-500">
                 No results for &quot;{query}&quot;
               </p>
             ) : (
-              <ul className="max-h-[320px] overflow-y-auto py-2">
+              <ul className="max-h-[280px] overflow-y-auto py-1">
                 {displayResults.map((result, index) => {
                   const Icon = TYPE_ICONS[result.type];
                   return (
@@ -150,18 +152,20 @@ export function DashboardCommandSearch() {
                           setQuery("");
                         }}
                         className={cn(
-                          "flex items-center gap-3 px-4 py-3 transition-colors",
+                          "flex items-center gap-2.5 px-3 py-2 transition-colors duration-150",
                           index === activeIndex
-                            ? "bg-[#007AFF]/8 text-neutral-900 dark:bg-[#007AFF]/15 dark:text-white"
-                            : "text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-white/5"
+                            ? "bg-black/[0.04] text-neutral-900 dark:bg-white/[0.08] dark:text-white"
+                            : "text-neutral-600 hover:bg-black/[0.03] dark:text-neutral-300 dark:hover:bg-white/[0.04]"
                         )}
                       >
-                        <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-neutral-100 dark:bg-white/5">
-                          <Icon className="h-4 w-4" />
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#F5F5F7] dark:bg-white/5">
+                          <Icon className="h-3 w-3 text-neutral-500" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{result.title}</span>
-                          <span className="block truncate text-xs text-neutral-500">
+                          <span className="block truncate text-[12px] font-medium">
+                            {result.title}
+                          </span>
+                          <span className="block truncate text-[10px] text-neutral-400">
                             {result.subtitle}
                           </span>
                         </span>

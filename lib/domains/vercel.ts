@@ -111,33 +111,66 @@ export async function addVercelDomain(domain: string): Promise<VercelDomainResul
 export async function addVercelWwwRedirect(
   apex: string
 ): Promise<VercelDomainResult> {
+  return syncApexWwwRedirect(apex, "apex");
+}
+
+/** Set or clear a domain-level redirect on Vercel. */
+export async function updateVercelDomainRedirect(
+  domain: string,
+  redirect: string | null
+): Promise<VercelDomainResult> {
   if (!isVercelDomainsConfigured()) {
     return { ok: true, configured: false };
   }
   const { projectId } = getConfig();
-  const www = `www.${apex}`;
   const { status, json } = await vercelFetch(
-    `/v10/projects/${encodeURIComponent(projectId)}/domains`,
+    `/v9/projects/${encodeURIComponent(projectId)}/domains/${encodeURIComponent(domain)}`,
     {
-      method: "POST",
+      method: "PATCH",
       body: JSON.stringify({
-        name: www,
-        redirect: apex,
-        redirectStatusCode: 308,
+        redirect,
+        redirectStatusCode: redirect ? 308 : null,
       }),
     }
   );
 
-  if (status === 200 || status === 201 || status === 409) {
-    return { ok: true, configured: true, status, name: www };
+  if (status === 200) {
+    return { ok: true, configured: true, status, name: domain };
   }
 
   return {
     ok: false,
     configured: true,
     status,
-    error: errorMessage(json, "Could not add www redirect"),
+    error: errorMessage(json, "Could not update domain redirect"),
   };
+}
+
+/**
+ * Ensure apex + www are on the project and one redirects to the preferred host.
+ * primary "apex" → www → apex; primary "www" → apex → www.
+ */
+export async function syncApexWwwRedirect(
+  apex: string,
+  primary: "apex" | "www"
+): Promise<VercelDomainResult> {
+  if (!isVercelDomainsConfigured()) {
+    return { ok: true, configured: false };
+  }
+
+  const www = `www.${apex}`;
+  const addedApex = await addVercelDomain(apex);
+  if (!addedApex.ok) return addedApex;
+  const addedWww = await addVercelDomain(www);
+  if (!addedWww.ok) return addedWww;
+
+  if (primary === "apex") {
+    await updateVercelDomainRedirect(apex, null);
+    return updateVercelDomainRedirect(www, apex);
+  }
+
+  await updateVercelDomainRedirect(www, null);
+  return updateVercelDomainRedirect(apex, www);
 }
 
 export async function removeVercelDomain(

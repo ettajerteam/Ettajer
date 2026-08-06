@@ -1,3 +1,5 @@
+import { normalizeFacebookDomainVerificationCode } from "@/lib/meta-domain-verification";
+
 export type MarketingPlatformId = "meta" | "tiktok" | "pinterest" | "google" | "snapchat" | "gtm";
 
 export interface MarketingPlatformLink {
@@ -10,8 +12,33 @@ export interface MarketingPlatformLink {
   trackInitiateCheckout: boolean;
   trackPurchases: boolean;
   testMode: boolean;
+  /** Meta Test Events code (TEST…) — used by Conversions API when testMode is on */
+  testEventCode: string | null;
   accountId: string | null;
   accessToken: string | null;
+  /** Meta Commerce catalog ID (for Dynamic Ads / Advantage+) */
+  catalogId: string | null;
+  /** Optional secret key required on the public product feed URL */
+  catalogFeedToken: string | null;
+  /** Meta ad account for Custom Audiences (act_…) */
+  adAccountId: string | null;
+  /** Meta Custom Audience ID — purchasers list */
+  purchasersAudienceId: string | null;
+  /** Meta Custom Audience ID — abandoned checkout list */
+  abandonersAudienceId: string | null;
+  /** ISO timestamp of last purchasers audience sync */
+  purchasersAudienceSyncedAt: string | null;
+  /** ISO timestamp of last abandoners audience sync */
+  abandonersAudienceSyncedAt: string | null;
+  /** When true, daily cron re-syncs existing Meta custom audiences */
+  audiencesAutoSync: boolean;
+  /**
+   * Meta Business Manager domain verification content
+   * (`facebook-domain-verification` meta tag).
+   */
+  domainVerificationCode: string | null;
+  /** ISO timestamp when merchant marked the domain verified in Meta */
+  domainVerifiedAt: string | null;
 }
 
 export type MarketingIntegrations = Record<MarketingPlatformId, MarketingPlatformLink>;
@@ -64,7 +91,7 @@ export const MARKETING_PLATFORMS: MarketingPlatformConfig[] = [
     subtitle: "Facebook & Instagram",
     description: "Track ad clicks, retarget visitors, and attribute purchases from Meta campaigns.",
     longDescription:
-      "Connect Meta Pixel to measure storefront visits, build retargeting audiences, and optimize Facebook and Instagram ad spend with purchase attribution.",
+      "Connect Meta Pixel plus Conversions API for accurate tracking when cookies are blocked — measure visits, build retargeting audiences, and sync your product catalog for Dynamic Ads and Advantage+ shopping.",
     logo: "/marketing/logos/meta.svg",
     color: "#1877F2",
     accent: "bg-[#1877F2]/10 text-[#1877F2]",
@@ -87,7 +114,8 @@ export const MARKETING_PLATFORMS: MarketingPlatformConfig[] = [
       {
         name: "ViewContent",
         trigger: "Product page",
-        description: "Fires when a customer views a product detail page.",
+        description:
+          "Fires on product detail pages. content_ids match catalog feed product IDs for Dynamic Ads.",
       },
       {
         name: "AddToCart",
@@ -96,35 +124,56 @@ export const MARKETING_PLATFORMS: MarketingPlatformConfig[] = [
       },
       {
         name: "InitiateCheckout",
-        trigger: "Checkout page",
-        description: "Fires when checkout begins with items in cart.",
+        trigger: "After checkout contact",
+        description:
+          "Fires after the customer enters contact details — includes hashed email/phone for advanced matching.",
       },
       {
         name: "Purchase",
         trigger: "Order confirmation",
-        description: "Fires after checkout with order value and order number.",
+        description:
+          "Fires after checkout with value, currency, and order number. Pixel and CAPI share the same event_id.",
       },
     ],
     setupSteps: [
       {
-        title: "Open Meta Events Manager",
-        description: "Go to your Business Manager and open the Pixels section.",
+        title: "Connect with Meta",
+        description:
+          "Click Connect with Meta, log in to your Business account, and pick a pixel — no copy-paste.",
       },
       {
-        title: "Copy your Pixel ID",
-        description: "Select your pixel and copy the numeric Pixel ID.",
+        title: "Confirm events & CAPI",
+        description:
+          "Your access token is saved for Conversions API. On the Events tab, choose which actions to send.",
       },
       {
-        title: "Paste ID and enable tracking",
-        description: "Save here, then place a test order to verify events in Meta.",
+        title: "Connect your product catalog",
+        description:
+          "On the Catalog tab, copy the feed URL into Commerce Manager and paste your Catalog ID back here.",
+      },
+      {
+        title: "Go live & verify",
+        description:
+          "Enable tracking, save, then confirm hits in Events Manager (or use test mode under Advanced).",
       },
     ],
     resources: [
       { label: "Events Manager", url: "https://business.facebook.com/events_manager" },
       { label: "Pixel setup guide", url: "https://www.facebook.com/business/help/952192354843755" },
+      { label: "Conversions API", url: "https://www.facebook.com/business/help/2041148702652965" },
+      { label: "Commerce Manager", url: "https://business.facebook.com/commerce" },
+      { label: "Catalog feed specs", url: "https://www.facebook.com/business/help/120325381656392?id=725943027795860" },
+      { label: "Custom Audiences", url: "https://www.facebook.com/business/help/744354708981227" },
+      { label: "Verify domain", url: "https://www.facebook.com/business/help/321167023127050" },
       { label: "Test events tool", url: "https://business.facebook.com/events_manager2/test_events" },
     ],
-    benefits: ["Retargeting audiences", "Ad optimization", "ROAS reporting"],
+    benefits: [
+      "Retargeting audiences",
+      "Custom audience lists",
+      "Domain verification",
+      "Dynamic Ads catalog",
+      "CAPI when cookies blocked",
+    ],
   },
   {
     id: "tiktok",
@@ -180,7 +229,7 @@ export const MARKETING_PLATFORMS: MarketingPlatformConfig[] = [
     subtitle: "Pinterest Ads",
     description: "Track pin traffic, catalog views, and checkout events from Pinterest ads.",
     longDescription:
-      "Add Pinterest Tag to capture pin-driven traffic, measure shopping intent, and improve catalog and conversion campaigns on Pinterest.",
+      "Add Pinterest Tag plus Conversions API to capture pin-driven traffic, measure shopping intent when cookies are blocked, and sync your product catalog for shopping ads and product Pins.",
     logo: "/marketing/logos/pinterest.svg",
     color: "#E60023",
     accent: "bg-[#E60023]/10 text-[#E60023]",
@@ -190,37 +239,56 @@ export const MARKETING_PLATFORMS: MarketingPlatformConfig[] = [
     pixelPlaceholder: "e.g. 2612XXXXXXXXXXXX",
     pixelHelp: "Located in Pinterest Ads → Conversions → Tag setup.",
     accountLabel: "Pinterest ad account ID",
-    accountPlaceholder: "Optional ad account reference",
+    accountPlaceholder: "e.g. 549755813888",
     docsUrl: "https://help.pinterest.com/en/business/article/install-the-pinterest-tag",
     consoleUrl: "https://ads.pinterest.com/",
     events: ["PageVisit", "ViewContent", "AddToCart", "InitiateCheckout", "Checkout"],
     eventDetails: [
-      { name: "PageVisit", trigger: "Storefront pages", description: "Records visits from Pinterest pins and ads." },
-      { name: "ViewContent", trigger: "Product page", description: "Tracks product views from Pinterest traffic." },
-      { name: "AddToCart", trigger: "Add to cart", description: "Tracks add-to-cart actions." },
-      { name: "InitiateCheckout", trigger: "Checkout page", description: "Tracks checkout starts." },
-      { name: "Checkout", trigger: "Order confirmation", description: "Sends order value and ID when a purchase completes." },
+      { name: "page_visit / pagevisit", trigger: "Storefront pages", description: "Visits from pins and ads — Tag + CAPI with shared event_id." },
+      { name: "view_content", trigger: "Product page", description: "Product views with Tag ↔ CAPI dedupe." },
+      { name: "add_to_cart", trigger: "Add to cart", description: "Browser Tag + cart API Conversions API." },
+      { name: "initiate_checkout", trigger: "Checkout page", description: "Checkout start with hashed email/phone matching." },
+      { name: "checkout", trigger: "Order confirmation", description: "Purchase with purchase_{orderNumber} event_id dedupe." },
     ],
     setupSteps: [
       {
-        title: "Install Pinterest Tag",
-        description: "Open Pinterest Ads and go to Conversions → Pinterest Tag.",
+        title: "Connect with Pinterest (or paste Tag ID)",
+        description:
+          "Use Connect with Pinterest to pick a Tag, or paste Tag ID + numeric Ad account ID on Connection.",
       },
       {
-        title: "Copy Tag ID",
-        description: "Copy the unique tag ID from your tag installation screen.",
+        title: "Add Conversion access token",
+        description:
+          "Under Advanced, paste a Conversion access token from Pinterest Ads (required for Conversions API — separate from OAuth).",
       },
       {
-        title: "Confirm tag health",
-        description: "Use Pinterest Tag Helper or Ads reporting to verify events.",
+        title: "Enable events & verify",
+        description: "Turn on Purchase/AddToCart, save, then check Tag Helper and Ettajer Diagnostics.",
+      },
+      {
+        title: "Connect product catalog",
+        description:
+          "Open the Catalog tab, copy the TSV feed URL, and add it as a data source in Pinterest Catalogs.",
       },
     ],
     resources: [
       { label: "Pinterest Ads", url: "https://ads.pinterest.com/" },
       { label: "Tag install guide", url: "https://help.pinterest.com/en/business/article/install-the-pinterest-tag" },
+      {
+        label: "Conversions API",
+        url: "https://developers.pinterest.com/docs/track-conversions/track-conversions-in-the-api/",
+      },
+      {
+        label: "Retail catalogs",
+        url: "https://help.pinterest.com/en/business/article/before-you-get-started-with-catalogs",
+      },
       { label: "Conversion insights", url: "https://help.pinterest.com/en/business/article/understanding-conversion-insights" },
     ],
-    benefits: ["Shopping ads", "Catalog sync", "Pin performance"],
+    benefits: [
+      "Connect with Pinterest to pick Tag + ad account",
+      "Tag + Conversions API with event_id dedupe",
+      "Product catalog feed for shopping ads & Pins",
+    ],
   },
   {
     id: "google",
@@ -360,8 +428,19 @@ const EMPTY_LINK: MarketingPlatformLink = {
   trackInitiateCheckout: true,
   trackPurchases: true,
   testMode: false,
+  testEventCode: null,
   accountId: null,
   accessToken: null,
+  catalogId: null,
+  catalogFeedToken: null,
+  adAccountId: null,
+  purchasersAudienceId: null,
+  abandonersAudienceId: null,
+  purchasersAudienceSyncedAt: null,
+  abandonersAudienceSyncedAt: null,
+  audiencesAutoSync: false,
+  domainVerificationCode: null,
+  domainVerifiedAt: null,
 };
 
 export const DEFAULT_MARKETING_INTEGRATIONS: MarketingIntegrations = {
@@ -383,6 +462,23 @@ function hasAnyEventEnabled(link: MarketingPlatformLink): boolean {
   );
 }
 
+export function countEnabledTrackingEvents(link: MarketingPlatformLink): number {
+  return [
+    link.trackPageViews,
+    link.trackViewContent,
+    link.trackAddToCart,
+    link.trackInitiateCheckout,
+    link.trackPurchases,
+  ].filter(Boolean).length;
+}
+
+export function maskPixelId(pixelId: string | null | undefined): string | null {
+  if (!pixelId) return null;
+  const id = pixelId.trim();
+  if (id.length <= 6) return id;
+  return `${id.slice(0, 3)}••••${id.slice(-3)}`;
+}
+
 function parsePlatformLink(data: unknown): MarketingPlatformLink {
   if (typeof data !== "object" || data === null) return { ...EMPTY_LINK };
   const value = data as Record<string, unknown>;
@@ -390,6 +486,38 @@ function parsePlatformLink(data: unknown): MarketingPlatformLink {
   const enabled = Boolean(value.enabled);
   const accountId = typeof value.accountId === "string" ? value.accountId.trim() || null : null;
   const accessToken = typeof value.accessToken === "string" ? value.accessToken.trim() || null : null;
+  const testEventCode =
+    typeof value.testEventCode === "string" ? value.testEventCode.trim() || null : null;
+  const catalogId = typeof value.catalogId === "string" ? value.catalogId.trim() || null : null;
+  const catalogFeedToken =
+    typeof value.catalogFeedToken === "string" ? value.catalogFeedToken.trim() || null : null;
+  const adAccountId =
+    typeof value.adAccountId === "string" ? value.adAccountId.trim() || null : null;
+  const purchasersAudienceId =
+    typeof value.purchasersAudienceId === "string"
+      ? value.purchasersAudienceId.trim() || null
+      : null;
+  const abandonersAudienceId =
+    typeof value.abandonersAudienceId === "string"
+      ? value.abandonersAudienceId.trim() || null
+      : null;
+  const purchasersAudienceSyncedAt =
+    typeof value.purchasersAudienceSyncedAt === "string"
+      ? value.purchasersAudienceSyncedAt.trim() || null
+      : null;
+  const abandonersAudienceSyncedAt =
+    typeof value.abandonersAudienceSyncedAt === "string"
+      ? value.abandonersAudienceSyncedAt.trim() || null
+      : null;
+  const audiencesAutoSync = Boolean(value.audiencesAutoSync);
+  const domainVerificationCode =
+    typeof value.domainVerificationCode === "string"
+      ? normalizeFacebookDomainVerificationCode(value.domainVerificationCode)
+      : null;
+  const domainVerifiedAt =
+    typeof value.domainVerifiedAt === "string"
+      ? value.domainVerifiedAt.trim() || null
+      : null;
   const link: MarketingPlatformLink = {
     enabled,
     pixelId,
@@ -400,24 +528,83 @@ function parsePlatformLink(data: unknown): MarketingPlatformLink {
     trackInitiateCheckout: value.trackInitiateCheckout !== false,
     trackPurchases: value.trackPurchases !== false,
     testMode: Boolean(value.testMode),
+    testEventCode,
     accountId,
     accessToken,
+    catalogId,
+    catalogFeedToken,
+    adAccountId,
+    purchasersAudienceId,
+    abandonersAudienceId,
+    purchasersAudienceSyncedAt,
+    abandonersAudienceSyncedAt,
+    audiencesAutoSync,
+    domainVerificationCode,
+    domainVerifiedAt,
   };
-  link.connected = enabled && Boolean(pixelId) && hasAnyEventEnabled(link);
+  // connected is computed after platform id is known — set by normalizePlatformLinkForId
   return link;
 }
 
-export function parseMarketingIntegrations(data: unknown): MarketingIntegrations {
-  if (typeof data !== "object" || data === null) return DEFAULT_MARKETING_INTEGRATIONS;
-  const value = data as Record<string, unknown>;
+export function isPlatformLive(
+  platformId: MarketingPlatformId,
+  link: MarketingPlatformLink
+): boolean {
+  if (!link.enabled || !link.pixelId || !hasAnyEventEnabled(link)) return false;
+  return validatePixelId(platformId, link.pixelId) === null;
+}
+
+export function normalizePlatformLinkForId(
+  platformId: MarketingPlatformId,
+  link: MarketingPlatformLink
+): MarketingPlatformLink {
+  const pixelId = link.pixelId?.trim() || null;
   return {
+    ...link,
+    pixelId,
+    accountId: link.accountId?.trim() || null,
+    accessToken: link.accessToken?.trim() || null,
+    testEventCode: link.testEventCode?.trim() || null,
+    catalogId: link.catalogId?.trim() || null,
+    catalogFeedToken: link.catalogFeedToken?.trim() || null,
+    adAccountId: link.adAccountId?.trim() || null,
+    purchasersAudienceId: link.purchasersAudienceId?.trim() || null,
+    abandonersAudienceId: link.abandonersAudienceId?.trim() || null,
+    purchasersAudienceSyncedAt: link.purchasersAudienceSyncedAt?.trim() || null,
+    abandonersAudienceSyncedAt: link.abandonersAudienceSyncedAt?.trim() || null,
+    audiencesAutoSync: Boolean(link.audiencesAutoSync),
+    domainVerificationCode:
+      normalizeFacebookDomainVerificationCode(link.domainVerificationCode) ??
+      null,
+    domainVerifiedAt: link.domainVerifiedAt?.trim() || null,
+    connected: isPlatformLive(platformId, { ...link, pixelId }),
+  };
+}
+
+export function normalizeMarketingIntegrations(
+  integrations: MarketingIntegrations
+): MarketingIntegrations {
+  return Object.fromEntries(
+    MARKETING_PLATFORMS.map((platform) => [
+      platform.id,
+      normalizePlatformLinkForId(platform.id, integrations[platform.id]),
+    ])
+  ) as MarketingIntegrations;
+}
+
+export function parseMarketingIntegrations(data: unknown): MarketingIntegrations {
+  if (typeof data !== "object" || data === null) {
+    return normalizeMarketingIntegrations(DEFAULT_MARKETING_INTEGRATIONS);
+  }
+  const value = data as Record<string, unknown>;
+  return normalizeMarketingIntegrations({
     meta: parsePlatformLink(value.meta),
     tiktok: parsePlatformLink(value.tiktok),
     pinterest: parsePlatformLink(value.pinterest),
     google: parsePlatformLink(value.google),
     snapchat: parsePlatformLink(value.snapchat),
     gtm: parsePlatformLink(value.gtm),
-  };
+  });
 }
 
 export function getMarketingPlatform(platformId: string): MarketingPlatformConfig | null {
@@ -554,7 +741,19 @@ export function validateMarketingIntegrations(integrations: MarketingIntegration
   return null;
 }
 
-export function getSetupProgress(link: MarketingPlatformLink): number {
+export function getSetupProgress(
+  link: MarketingPlatformLink,
+  platformId?: MarketingPlatformId
+): number {
+  if (platformId === "meta") {
+    let steps = 0;
+    if (link.pixelId) steps += 1;
+    if (link.accessToken && hasAnyEventEnabled(link)) steps += 1;
+    if (link.catalogId) steps += 1;
+    if (link.connected) steps += 1;
+    return Math.round((steps / 4) * 100);
+  }
+
   let steps = 0;
   if (link.enabled) steps += 1;
   if (link.pixelId) steps += 1;
@@ -577,6 +776,8 @@ export interface PublicPlatformPixel {
   trackInitiateCheckout: boolean;
   trackPurchases: boolean;
   testMode: boolean;
+  /** True when Meta Conversions API access token is configured (token never exposed) */
+  capiEnabled: boolean;
 }
 
 export interface PublicMarketingIntegrations {
@@ -592,9 +793,10 @@ export function toPublicMarketingIntegrations(
   integrations: MarketingIntegrations
 ): PublicMarketingIntegrations {
   const publicIntegrations: PublicMarketingIntegrations = {};
+  const normalized = normalizeMarketingIntegrations(integrations);
 
   for (const platform of MARKETING_PLATFORMS) {
-    const link = integrations[platform.id];
+    const link = normalized[platform.id];
     if (!link.connected || !link.pixelId) continue;
     publicIntegrations[platform.id] = {
       pixelId: link.pixelId,
@@ -604,6 +806,10 @@ export function toPublicMarketingIntegrations(
       trackInitiateCheckout: link.trackInitiateCheckout,
       trackPurchases: link.trackPurchases,
       testMode: link.testMode,
+      capiEnabled:
+        (platform.id === "meta" || platform.id === "pinterest") &&
+        Boolean(link.accessToken?.trim()) &&
+        (platform.id !== "pinterest" || Boolean(link.accountId?.trim())),
     };
   }
 

@@ -61,6 +61,7 @@ export function HeroSection({
   const settingsRecord = settings as Record<string, unknown>;
   const visual = parseSectionVisualSettings(settingsRecord);
   const deviceStyles = getDeviceStyles(settingsRecord, previewDevice ?? "desktop");
+  const mobileStyles = getDeviceStyles(settingsRecord, "mobile");
   const headline = settings.headline || store.name;
   const accentHeadline = settings.accentHeadline?.trim();
   const subheadline =
@@ -127,7 +128,18 @@ export function HeroSection({
         imageSrc={imageSrc}
         imageAlt={imageAlt}
         alignment={alignment}
-        minHeight={visual.minHeight ?? "100svh"}
+        minHeight={
+          (previewDevice === "mobile"
+            ? mobileStyles.minHeight
+            : deviceStyles.minHeight) ??
+          visual.minHeight ??
+          "100svh"
+        }
+        mobileMinHeight={
+          !previewDevice && mobileStyles.minHeight && mobileStyles.minHeight !== visual.minHeight
+            ? mobileStyles.minHeight
+            : undefined
+        }
         backgroundColor={visual.backgroundColor ?? "#0a0a0a"}
         textStyle={textStyle}
         ctaClassName={ctaClassName}

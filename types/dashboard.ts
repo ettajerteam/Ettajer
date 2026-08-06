@@ -220,4 +220,30 @@ export interface ExecutiveDashboardData {
   bestSellerName: string;
   homeOrders: HomeOrderRow[];
   homeTopProducts: HomeTopProductCard[];
+  /** Extra inventory / marketing counts for the premium home */
+  catalogExtras: {
+    variantCount: number;
+    draftProductCount: number;
+    couponCount: number;
+    activeCouponCount: number;
+    abandonedCheckoutCount: number;
+    uniqueCustomerCount: number;
+    returningCustomerCount: number;
+    newCustomersToday: number;
+    shippingTotal: number;
+    refundsTotal: number;
+    taxesEstimate: number;
+  };
+  visitorInsights: {
+    liveNow: number;
+    returningRate: number;
+    bounceRate: number;
+    avgSessionLabel: string;
+    liveCities: { id: string; city: string; country: string; active: boolean }[];
+    topCountry: string;
+    topCity: string;
+    topDevice: string;
+    topBrowser: string;
+    topReferrer: string;
+  };
 }

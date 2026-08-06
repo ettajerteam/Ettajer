@@ -8,6 +8,7 @@ import {
   serializePublicStore,
   serializePublicProduct,
 } from "@/lib/storefront";
+import { parseProductImages } from "@/lib/product-images";
 import { prisma } from "@/lib/db";
 import { applyPreviewOverrides } from "@/lib/preview-engine";
 import { decodeLayoutFromPreview, parseProductLayout } from "@/lib/sections/parse";
@@ -17,6 +18,7 @@ import {
   isPreviewProductSlug,
 } from "@/lib/storefront-preview-product";
 import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
+import { parseProductSeo, resolveProductSeo } from "@/lib/product-seo";
 import { buildBreadcrumbSchema, buildProductSchema } from "@/lib/seo/structured-data";
 import { getStoreProductUrl, getStoreProductsUrl, getStoreUrl } from "@/lib/storefront-urls";
 
@@ -47,17 +49,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const data = await getStoreProduct(params.slug, params.productSlug);
   if (!data) return { title: "Product Not Found" };
 
-  const images = Array.isArray(data.product.images)
-    ? (data.product.images as unknown[]).filter((v): v is string => typeof v === "string")
-    : [];
+  const images = parseProductImages(data.product.images);
+
+  const resolved = resolveProductSeo({
+    seo: parseProductSeo(data.product.seo),
+    title: data.product.title,
+    description: data.product.description,
+    storeName: data.store.name,
+  });
 
   return buildStorefrontMetadata({
     storeName: data.store.name,
     path: getStoreProductUrl(data.store.slug, data.product.slug),
-    title: data.product.title,
-    description:
-      data.product.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
-      `Buy ${data.product.title} at ${data.store.name}`,
+    title: resolved.title,
+    description: resolved.description,
+    keywords: resolved.keywords,
     image: images[0] ?? data.store.logo,
   });
 }

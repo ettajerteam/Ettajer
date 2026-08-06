@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
+import { createStoreNotification } from "@/lib/notifications/create-store-notification";
 
 export interface AbandonedItem {
   productId: string;
@@ -96,7 +97,7 @@ export async function saveAbandonedCheckout(
     });
   }
 
-  return prisma.abandonedCheckout.create({
+  const created = await prisma.abandonedCheckout.create({
     data: {
       storeId,
       email: data.email ?? null,
@@ -106,6 +107,33 @@ export async function saveAbandonedCheckout(
       subtotal: data.subtotal,
     },
   });
+
+  const who =
+    created.customerName?.trim() || created.email?.trim() || "A shopper";
+  void createStoreNotification({
+    storeId,
+    kind: "abandoned",
+    title: "Abandoned checkout",
+    body: `${who} · ${created.subtotal.toLocaleString()}`,
+    href: "/dashboard/orders/abandoned",
+    entityType: "abandoned",
+    entityId: created.id,
+  });
+
+  if (created.email?.trim()) {
+    void import("@/lib/email-marketing/automations").then(({ runEmailMarketingAutomation }) =>
+      runEmailMarketingAutomation({
+        storeId,
+        trigger: "abandoned_cart",
+        to: created.email!.trim(),
+        context: {
+          cartId: created.id,
+        },
+      })
+    );
+  }
+
+  return created;
 }
 
 export async function markAbandonedRecovered(storeId: string, email: string) {
@@ -139,6 +167,7 @@ export async function createDraftFromAbandoned(storeId: string, abandonedId: str
     shippingAddress: {
       street: "",
       city: "",
+      state: "",
       postalCode: "",
       country: "",
     },
@@ -148,6 +177,8 @@ export async function createDraftFromAbandoned(storeId: string, abandonedId: str
     })),
     shipping: 0,
     tax: 0,
+    discount: 0,
+    paymentMethod: "cod",
   });
 
   await prisma.abandonedCheckout.delete({ where: { id: row.id } });

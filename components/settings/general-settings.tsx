@@ -60,6 +60,16 @@ export function GeneralSettings({
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const shop = store.settings.shop;
+
+  const patchShop = (patch: Partial<typeof shop>) => {
+    onChange({
+      settings: {
+        ...store.settings,
+        shop: { ...shop, ...patch },
+      },
+    });
+  };
 
   const checklist = useMemo(
     () => [
@@ -77,9 +87,9 @@ export function GeneralSettings({
       },
       { id: "phone", label: "Phone", done: Boolean(store.phone?.trim()) },
       {
-        id: "address",
-        label: "Address",
-        done: Boolean(store.address?.trim()),
+        id: "whatsapp",
+        label: "WhatsApp",
+        done: Boolean(store.settings.shop.whatsapp?.trim()),
       },
     ],
     [store]
@@ -130,12 +140,12 @@ export function GeneralSettings({
 
   return (
     <SettingsPanel
-      title="Profile"
-      description="Brand identity and business contact shown across your shop and invoices."
+      title="General"
+      description="Store name, logo, and how customers reach you."
       onSave={onSave}
       saving={saving}
       dirty={dirty}
-      saveLabel="Save profile"
+      saveLabel="Save general"
     >
       {/* Live preview */}
       <div className="overflow-hidden rounded-[10px] border border-black/[0.06] bg-[#FAFAFA]/80 dark:border-white/10 dark:bg-white/[0.025]">
@@ -387,13 +397,46 @@ export function GeneralSettings({
             />
           </div>
         </SettingsField>
+
+        <SettingsField
+          label="WhatsApp number"
+          htmlFor="shop-whatsapp"
+          hint="Country code without + (e.g. 2126…). Used for a chat link on the storefront."
+        >
+          <Input
+            id="shop-whatsapp"
+            value={shop.whatsapp ?? ""}
+            onChange={(e) => patchShop({ whatsapp: e.target.value || null })}
+            placeholder="2126XXXXXXXX"
+            className={FIELD}
+          />
+        </SettingsField>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-[10px] border border-black/[0.05] bg-white p-3 dark:border-white/10 dark:bg-white/[0.03]">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-[#007AFF] focus:ring-[#007AFF]"
+            checked={shop.showContactOnStorefront}
+            onChange={(e) =>
+              patchShop({ showContactOnStorefront: e.target.checked })
+            }
+          />
+          <span>
+            <span className="block text-[13px] font-medium text-neutral-900 dark:text-white">
+              Show contact on storefront
+            </span>
+            <span className="mt-0.5 block text-[11px] text-neutral-500">
+              Email, phone, and WhatsApp in the shop footer when available.
+            </span>
+          </span>
+        </label>
       </SettingsSection>
 
       <SettingsRelatedCard className="rounded-[10px] px-3.5 py-3 text-[12px]">
-        Control WhatsApp and footer visibility in{" "}
-        <SettingsRelatedLink tab="contact">Contact</SettingsRelatedLink>
-        . SEO titles live under{" "}
-        <SettingsRelatedLink tab="seo">SEO</SettingsRelatedLink>.
+        SEO titles live under{" "}
+        <SettingsRelatedLink tab="seo">SEO</SettingsRelatedLink>
+        . Store URL and custom domain under{" "}
+        <SettingsRelatedLink tab="website">Domains</SettingsRelatedLink>.
       </SettingsRelatedCard>
     </SettingsPanel>
   );

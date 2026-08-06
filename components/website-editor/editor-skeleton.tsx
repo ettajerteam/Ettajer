@@ -42,14 +42,14 @@ export function EditorShellSkeleton({ className }: { className?: string }) {
 
       <div className="flex min-h-0 flex-1">
         {/* Left rail */}
-        <div className="hidden w-14 shrink-0 flex-col items-center gap-2 border-r border-neutral-200/80 bg-white py-3 xl:flex">
+        <div className="flex w-14 shrink-0 flex-col items-center gap-2 border-r border-black/[0.06] bg-[#F5F5F7] py-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <EditorBone key={i} className="h-9 w-9 rounded-lg" style={{ animationDelay: `${i * 60}ms` }} />
+            <EditorBone key={i} className="h-9 w-9 rounded-md" style={{ animationDelay: `${i * 60}ms` }} />
           ))}
         </div>
 
         {/* Left panel */}
-        <div className="hidden w-80 shrink-0 flex-col gap-3 border-r border-neutral-200/80 bg-white p-3 xl:flex">
+        <div className="flex w-[300px] shrink-0 flex-col gap-3 border-r border-black/[0.06] bg-white p-3">
           <EditorBone className="h-4 w-16 rounded-md" />
           <EditorBone className="h-3 w-40 rounded-md" />
           <EditorBone className="mt-1 h-10 w-full rounded-xl" />
@@ -73,22 +73,21 @@ export function EditorShellSkeleton({ className }: { className?: string }) {
         </div>
 
         {/* Canvas */}
-        <div className="relative flex min-w-0 flex-1 flex-col bg-[radial-gradient(ellipse_at_top,_#EEF2FF_0%,_#F5F5F7_45%,_#F0F0F2_100%)]">
-          <div className="flex items-center justify-center gap-2 border-b border-neutral-200/60 bg-white/50 px-3 py-2 backdrop-blur-sm">
-            <EditorBone className="h-7 w-7 rounded-md" />
-            <EditorBone className="h-7 w-7 rounded-md" />
-            <EditorBone className="mx-2 h-5 w-px rounded-full bg-neutral-200" />
-            <EditorBone className="h-7 w-20 rounded-full" />
+        <div className="relative flex min-w-0 flex-1 flex-col bg-[#EFEFF2]">
+          <div className="flex items-center justify-end gap-2 px-3 py-2">
+            <EditorBone className="h-7 w-16 rounded-[10px]" />
+            <EditorBone className="h-7 w-24 rounded-[10px]" />
+            <EditorBone className="h-7 w-20 rounded-[10px]" />
           </div>
-          <div className="flex min-h-0 flex-1 items-start justify-center overflow-hidden p-6 pt-8">
-            <div className="editor-preview-frame w-full max-w-[920px] overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-[0_20px_60px_-28px_rgba(15,23,42,0.35)]">
+          <div className="flex min-h-0 flex-1 items-start justify-center overflow-hidden p-6 pt-4">
+            <div className="editor-preview-frame w-full max-w-[920px] overflow-hidden rounded-[12px] border border-black/[0.06] bg-white shadow-[0_8px_30px_-12px_rgba(0,0,0,0.14)]">
               <EditorPreviewSkeleton device="desktop" />
             </div>
           </div>
         </div>
 
         {/* Right inspector */}
-        <div className="hidden w-[300px] shrink-0 flex-col gap-3 border-l border-neutral-200/80 bg-white p-3 xl:flex">
+        <div className="flex w-[280px] shrink-0 flex-col gap-3 border-l border-black/[0.06] bg-white p-3">
           <div className="flex items-center justify-between">
             <EditorBone className="h-4 w-28 rounded-md" />
             <EditorBone className="h-7 w-7 rounded-md" />

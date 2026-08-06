@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedStore } from "@/lib/products";
-import { createStorePage, deleteStorePage, listStorePages, serializeStorePage } from "@/lib/pages";
+import {
+  createStorePage,
+  deleteStorePage,
+  duplicateStorePage,
+  listStorePages,
+  serializeStorePage,
+} from "@/lib/pages";
 
 export async function GET() {
   try {
@@ -20,20 +26,28 @@ export async function POST(request: Request) {
     if (!store) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
+
+    if (typeof body.duplicateFrom === "string" && body.duplicateFrom.trim()) {
+      const page = await duplicateStorePage(body.duplicateFrom.trim(), store.id);
+      return NextResponse.json({ page: serializeStorePage(page) }, { status: 201 });
+    }
+
     if (!body.title?.trim()) {
       return NextResponse.json({ message: "Title required" }, { status: 400 });
     }
 
     const page = await createStorePage(store.id, {
       title: body.title,
-      content: body.content ?? "",
-      status: body.status ?? "draft",
+      content: typeof body.content === "string" ? body.content : "",
+      status: body.status === "published" ? "published" : "draft",
       slug: typeof body.slug === "string" ? body.slug : undefined,
     });
 
     return NextResponse.json({ page: serializeStorePage(page) }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ message: "Failed to create" }, { status: 400 });
+    const message =
+      error instanceof Error ? error.message : "Failed to create";
+    return NextResponse.json({ message }, { status: 400 });
   }
 }
 

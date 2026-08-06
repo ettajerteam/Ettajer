@@ -10,9 +10,9 @@ interface HomeSalesByDeviceProps {
 }
 
 const DEVICE_COLORS = {
-  desktop: "#007AFF",
-  mobile: "#34C759",
-  tablet: "#FF9500",
+  desktop: "#1D1D1F",
+  mobile: "#6E6E73",
+  tablet: "#AEAEB2",
 } as const;
 
 export function HomeSalesByDevice({ devices, currency }: HomeSalesByDeviceProps) {
@@ -25,7 +25,7 @@ export function HomeSalesByDevice({ devices, currency }: HomeSalesByDeviceProps)
 
       <div className="mt-3 space-y-3">
         {devices.map((device) => {
-          const color = DEVICE_COLORS[device.id as keyof typeof DEVICE_COLORS] ?? "#007AFF";
+          const color = DEVICE_COLORS[device.id as keyof typeof DEVICE_COLORS] ?? "#1D1D1F";
           const width = `${(device.value / maxValue) * 100}%`;
 
           return (

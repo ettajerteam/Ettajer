@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
 import { serializeProduct, productInclude } from "@/lib/products";
 import { getProductsListStats, getProductsSectionCounts } from "@/lib/products-stats";
+import { parseProductReviews } from "@/lib/product-reviews";
 import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { DashboardHeader } from "@/components/shared/dashboard-header";
 import { DashboardPageContent } from "@/components/shared/dashboard-page-content";
@@ -33,16 +34,26 @@ export default async function DashboardProductsPage() {
     getProductsListStats(store.id),
   ]);
 
+  const serialized = products.map(serializeProduct);
+  const reviewsCount = serialized.reduce(
+    (sum, p) => sum + (parseProductReviews(p.reviews).length > 0 ? 1 : 0),
+    0
+  );
+
   return (
     <DashboardLayout>
-      <DashboardHeader title="Products" description="Manage your product catalog" />
+      <DashboardHeader
+        title="Products"
+        description="Browse, filter, and manage everything in your catalog"
+      />
       <DashboardPageContent>
         <Suspense fallback={<ProductsPageSkeleton />}>
           <ProductsClient
-            initialProducts={products.map(serializeProduct)}
+            initialProducts={serialized}
             currency={store.currency}
             counts={counts}
             stats={stats}
+            reviewsCount={reviewsCount}
           />
         </Suspense>
       </DashboardPageContent>

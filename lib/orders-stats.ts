@@ -12,6 +12,8 @@ export interface OrdersListStats {
   pending: number;
   inProgress: number;
   revenue: number;
+  /** Unpaid COD still in fulfillment (not collected yet). */
+  codOutstanding: number;
 }
 
 export interface DraftsListStats {
@@ -44,6 +46,7 @@ export const EMPTY_ORDERS_LIST_STATS: OrdersListStats = {
   pending: 0,
   inProgress: 0,
   revenue: 0,
+  codOutstanding: 0,
 };
 
 export const EMPTY_DRAFTS_LIST_STATS: DraftsListStats = {
@@ -69,7 +72,9 @@ export async function getOrdersSectionCounts(storeId: string): Promise<OrdersSec
     prisma.order.count({ where: { storeId, status: { not: "draft" } } }),
     prisma.order.count({ where: { storeId, status: "draft" } }),
     prisma.abandonedCheckout.count({ where: { storeId, recoveredAt: null } }),
-    prisma.order.count({ where: { storeId, status: "returned" } }),
+    prisma.order.count({
+      where: { storeId, status: { in: ["returned", "refunded"] } },
+    }),
   ]);
   return { orders, drafts, abandoned, returns };
 }
@@ -77,16 +82,24 @@ export async function getOrdersSectionCounts(storeId: string): Promise<OrdersSec
 export async function getOrdersListStats(storeId: string): Promise<OrdersListStats> {
   const orders = await prisma.order.findMany({
     where: { storeId, status: { not: "draft" } },
-    select: { status: true, total: true },
+    select: { status: true, total: true, paymentMethod: true, paymentStatus: true },
   });
 
   const pending = orders.filter((o) => o.status === "pending").length;
   const inProgress = orders.filter((o) => o.status === "processing" || o.status === "shipped").length;
   const revenue = orders
-    .filter((o) => o.status !== "cancelled")
+    .filter((o) => o.paymentStatus === "paid")
+    .reduce((sum, o) => sum + o.total, 0);
+  const codOutstanding = orders
+    .filter(
+      (o) =>
+        o.paymentMethod === "cod" &&
+        o.paymentStatus === "unpaid" &&
+        !["cancelled", "returned", "refunded"].includes(o.status)
+    )
     .reduce((sum, o) => sum + o.total, 0);
 
-  return { total: orders.length, pending, inProgress, revenue };
+  return { total: orders.length, pending, inProgress, revenue, codOutstanding };
 }
 
 export async function getDraftsListStats(storeId: string): Promise<DraftsListStats> {
@@ -122,7 +135,7 @@ export async function getReturnsListStats(storeId: string): Promise<ReturnsListS
   startOfMonth.setHours(0, 0, 0, 0);
 
   const orders = await prisma.order.findMany({
-    where: { storeId, status: "returned" },
+    where: { storeId, status: { in: ["returned", "refunded"] } },
     select: { total: true, updatedAt: true },
   });
 

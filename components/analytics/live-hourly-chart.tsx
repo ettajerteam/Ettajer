@@ -1,7 +1,12 @@
 "use client";
 
 import type { LiveHourlyPoint } from "@/lib/live-view-types";
-import { formatCurrency } from "@/lib/utils";
+import {
+  dashboardCard,
+  dashboardSubtitle,
+  dashboardTitle,
+} from "@/lib/dashboard-ui";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface LiveHourlyChartProps {
   points: LiveHourlyPoint[];
@@ -14,29 +19,35 @@ export function LiveHourlyChart({ points, currency }: LiveHourlyChartProps) {
   const totalRevenue = points.reduce((sum, point) => sum + point.revenue, 0);
 
   return (
-    <section className="premium-card overflow-hidden ring-1 ring-neutral-200/60 dark:ring-white/10">
-      <div className="flex items-center justify-between border-b border-neutral-200/80 bg-gradient-to-r from-white to-neutral-50/50 px-4 py-3.5 dark:border-white/10 dark:from-[#161616] dark:to-white/[0.02]">
+    <section className={cn(dashboardCard, "overflow-hidden")}>
+      <div className="flex items-center justify-between border-b border-black/[0.05] px-4 py-3 dark:border-white/10">
         <div>
-          <h3 className="text-base font-semibold tracking-[-0.02em] text-neutral-900 dark:text-white">
-            Activity trend
-          </h3>
-          <p className="text-xs text-neutral-500">Orders across the selected range</p>
+          <h3 className={dashboardTitle}>Activity trend</h3>
+          <p className={dashboardSubtitle}>Orders across the selected range</p>
         </div>
         <div className="text-right">
-          <p className="text-sm font-semibold text-neutral-900 dark:text-white">{totalOrders} orders</p>
-          <p className="text-[11px] text-neutral-500">{formatCurrency(totalRevenue, currency)}</p>
+          <p className="text-[12px] font-semibold tabular-nums text-neutral-900 dark:text-white">
+            {totalOrders} orders
+          </p>
+          <p className={dashboardSubtitle}>{formatCurrency(totalRevenue, currency)}</p>
         </div>
       </div>
 
       <div className="p-4">
-        <div className="flex h-36 items-end gap-1">
+        <div className="flex h-32 items-end gap-1">
           {points.map((point, index) => {
-            const height = `${Math.max((point.orders / maxOrders) * 100, point.orders > 0 ? 8 : 2)}%`;
+            const height = `${Math.max(
+              (point.orders / maxOrders) * 100,
+              point.orders > 0 ? 8 : 2
+            )}%`;
             return (
-              <div key={`${point.label}-${index}`} className="group flex min-w-0 flex-1 flex-col items-center gap-2">
+              <div
+                key={`${point.label}-${index}`}
+                className="group flex min-w-0 flex-1 flex-col items-center gap-1.5"
+              >
                 <div className="relative flex h-full w-full items-end justify-center">
                   <div
-                    className="w-full max-w-[18px] rounded-t-md bg-gradient-to-t from-[#007AFF] to-[#60A5FA] transition-all duration-500 group-hover:from-[#0066DB] group-hover:to-[#38BDF8]"
+                    className="w-full max-w-[14px] rounded-t-sm bg-[#007AFF] transition-colors group-hover:bg-[#0071EB]"
                     style={{ height }}
                     title={`${point.label}: ${point.orders} orders`}
                   />

@@ -34,7 +34,7 @@ export function EditorPanelSection({
           ) : null}
         </div>
         {count != null ? (
-          <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-neutral-500">
+          <span className="shrink-0 rounded-full bg-[#F5F5F7] px-2 py-0.5 text-[10px] font-semibold tabular-nums text-neutral-500">
             {count}
           </span>
         ) : null}

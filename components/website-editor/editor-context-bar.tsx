@@ -5,9 +5,11 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
+  Ellipsis,
   ExternalLink,
   FileText,
   Home,
+  Keyboard,
   LayoutGrid,
   Loader2,
   Monitor,
@@ -33,7 +35,14 @@ import type { EditorPageTarget } from "@/components/website-editor/editor-pages-
 import { EditorShortcutsHelp } from "@/components/website-editor/editor-shortcuts-help";
 import { DEVICE_LABELS } from "@/lib/builder/responsive-styles";
 import type { DeviceMode } from "@/lib/builder/types";
-import { dashboardGlassHeader, dashboardPrimaryBtn } from "@/lib/dashboard-ui";
+import {
+  dashboardGlassHeader,
+  dashboardPill,
+  dashboardPillActive,
+  dashboardPillGroup,
+  dashboardPillInactive,
+  dashboardPrimaryBtn,
+} from "@/lib/dashboard-ui";
 import type { StorePageRow } from "@/lib/pages";
 import { isEditorHiddenPageSlug } from "@/lib/editor-system-pages";
 import { getEditorPageLabel } from "@/lib/editor-pages-config";
@@ -99,25 +108,29 @@ export function EditorTopBar({
   onOpenBrand,
 }: EditorTopBarProps) {
   const pageName = getEditorPageLabel(activePage);
-  const DeviceIcon = DEVICE_ICONS[device];
   const customPages = pages.filter((page) => !isEditorHiddenPageSlug(page.slug));
   const productsPage = pages.find((page) => page.slug === "products") ?? null;
   const dirtySet = new Set(dirtyPageKeys);
 
   const savedLabel =
     draftSaveStatus === "saving"
-      ? "Saving draft…"
+      ? "Saving…"
       : draftSaveStatus === "error"
-        ? "Draft save failed"
+        ? "Save failed"
         : draftSaveStatus === "saved" && lastDraftSavedAt
           ? "Draft saved"
           : null;
 
   return (
-    <header className={cn(dashboardGlassHeader, "border-b border-neutral-200/80")}>
-      <div className="flex items-center justify-between gap-3 px-4 py-2 sm:px-5">
-        <div className="flex min-w-0 items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-lg" asChild>
+    <header className={cn(dashboardGlassHeader)}>
+      <div className="flex items-center justify-between gap-2 px-3 py-2 sm:gap-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 rounded-md text-neutral-500 hover:bg-black/[0.04] hover:text-neutral-900"
+            asChild
+          >
             <Link href="/dashboard/themes" aria-label="Back to themes">
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -127,18 +140,20 @@ export function EditorTopBar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex max-w-[min(100%,220px)] items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-left text-sm shadow-sm transition-colors hover:bg-neutral-50"
+                className="inline-flex max-w-[min(100%,200px)] items-center gap-1.5 rounded-md border border-black/[0.06] bg-white px-2.5 py-1.5 text-left text-[13px] transition-colors hover:bg-[#F5F5F7] sm:max-w-[240px]"
               >
                 {activePage.type === "home" ? (
                   <Home className="h-3.5 w-3.5 shrink-0 text-[#007AFF]" />
                 ) : (
                   <FileText className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
                 )}
-                <span className="truncate font-medium text-neutral-900">{pageName}</span>
+                <span className="truncate font-medium tracking-[-0.01em] text-neutral-900">
+                  {pageName}
+                </span>
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuContent align="start" className="w-56 rounded-[12px] border-black/[0.06]">
               <DropdownMenuItem onClick={() => onSelectPage({ type: "home" })}>
                 <Home className="mr-2 h-4 w-4 text-[#007AFF]" />
                 <span className="flex-1">Home</span>
@@ -196,14 +211,14 @@ export function EditorTopBar({
           </DropdownMenu>
 
           {dirty ? (
-            <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 sm:inline-flex">
+            <span className="hidden items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 sm:inline-flex">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" />
               {unpublishedPageCount > 1
-                ? `${unpublishedPageCount} pages unpublished`
-                : "Unpublished changes"}
+                ? `${unpublishedPageCount} unpublished`
+                : "Unpublished"}
             </span>
           ) : (
-            <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 sm:inline-flex">
+            <span className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 sm:inline-flex">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Live
             </span>
@@ -211,135 +226,93 @@ export function EditorTopBar({
           {savedLabel ? (
             <span
               className={cn(
-                "hidden items-center rounded-full border px-2.5 py-1 text-[11px] font-medium sm:inline-flex",
+                "hidden items-center rounded-full px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
                 draftSaveStatus === "error"
-                  ? "border-red-200 bg-red-50 text-red-700"
+                  ? "bg-red-50 text-red-700"
                   : draftSaveStatus === "saving"
-                    ? "border-neutral-200 bg-white text-neutral-500"
-                    : "border-sky-200 bg-sky-50 text-sky-800"
+                    ? "bg-[#F5F5F7] text-neutral-500"
+                    : "bg-[#E8F2FF] text-[#007AFF]"
               )}
             >
               {savedLabel}
             </span>
           ) : null}
           {zoomPercent != null ? (
-            <span className="hidden rounded-md bg-neutral-100 px-2 py-1 text-[10px] font-medium tabular-nums text-neutral-500 md:inline">
+            <span className="hidden rounded-md bg-[#F5F5F7] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-neutral-500 lg:inline">
               {zoomPercent}%
             </span>
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5">
-          <div
-            className={cn(
-              "inline-flex items-center rounded-lg border p-0.5 shadow-sm transition-colors",
-              undoAvailable || redoAvailable
-                ? "border-[#007AFF]/30 bg-[#007AFF]/5"
-                : "border-neutral-200 bg-white"
-            )}
-          >
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div className={cn(dashboardPillGroup, "hidden sm:inline-flex")}>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 gap-1.5 rounded-md px-2",
+                "h-7 gap-1 rounded-md px-2",
                 undoAvailable
-                  ? "text-neutral-900 hover:bg-white hover:text-[#007AFF]"
+                  ? "text-neutral-800 hover:bg-[#F5F5F7] hover:text-[#007AFF]"
                   : "text-neutral-300"
               )}
               onClick={onUndo}
               disabled={!undoAvailable}
-              title="Undo layout change (Ctrl/Cmd+Z) — does not undo brand/colors"
+              title="Undo (Ctrl/Cmd+Z)"
               aria-label="Undo layout"
             >
               <Undo2 className="h-3.5 w-3.5" />
-              <span className="hidden text-xs font-medium sm:inline">Undo</span>
             </Button>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className={cn(
-                "h-8 gap-1.5 rounded-md px-2",
+                "h-7 gap-1 rounded-md px-2",
                 redoAvailable
-                  ? "text-neutral-900 hover:bg-white hover:text-[#007AFF]"
+                  ? "text-neutral-800 hover:bg-[#F5F5F7] hover:text-[#007AFF]"
                   : "text-neutral-300"
               )}
               onClick={onRedo}
               disabled={!redoAvailable}
-              title="Redo layout change (Ctrl/Cmd+Shift+Z)"
+              title="Redo (Ctrl/Cmd+Shift+Z)"
               aria-label="Redo layout"
             >
               <Redo2 className="h-3.5 w-3.5" />
-              <span className="hidden text-xs font-medium sm:inline">Redo</span>
             </Button>
-            <EditorShortcutsHelp open={shortcutsOpen} onOpenChange={onShortcutsOpenChange} />
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 rounded-lg border-neutral-200 bg-white px-2.5 shadow-sm"
-              >
-                <DeviceIcon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{DEVICE_LABELS[device]}</span>
-                <ChevronDown className="h-3.5 w-3.5 text-neutral-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              {DEVICE_MODES.map((mode) => {
-                const Icon = DEVICE_ICONS[mode];
-                return (
-                  <DropdownMenuItem
-                    key={mode}
-                    onClick={() => onDeviceChange(mode)}
-                    className={cn(device === mode && "bg-neutral-50 font-medium")}
-                  >
-                    <Icon className="mr-2 h-4 w-4" />
-                    {DEVICE_LABELS[mode]}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {onOpenBrand ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
-              onClick={onOpenBrand}
-              title="Brand colors, logo, and fonts"
-            >
-              <Palette className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Brand</span>
-            </Button>
-          ) : null}
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium"
-            asChild
-            title="View live storefront"
-          >
-            <Link href={`/store/${storeSlug}`} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">View live</span>
-              <span className="sm:hidden">Live</span>
-            </Link>
-          </Button>
+          <div className={dashboardPillGroup} role="group" aria-label="Preview device">
+            {DEVICE_MODES.map((mode) => {
+              const Icon = DEVICE_ICONS[mode];
+              const active = device === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => onDeviceChange(mode)}
+                  className={cn(
+                    dashboardPill,
+                    "inline-flex h-7 items-center gap-1 px-2",
+                    active ? dashboardPillActive : dashboardPillInactive
+                  )}
+                  title={DEVICE_LABELS[mode]}
+                  aria-label={DEVICE_LABELS[mode]}
+                  aria-pressed={active}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="hidden text-[11px] lg:inline">{DEVICE_LABELS[mode]}</span>
+                </button>
+              );
+            })}
+          </div>
 
           {onSaveDraft ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 gap-1.5 rounded-lg border-neutral-200 bg-white px-2.5 shadow-sm"
+              className="h-8 gap-1.5 rounded-md border-black/[0.06] bg-white px-2.5 text-[12px] shadow-none"
               onClick={onSaveDraft}
               disabled={draftSaveStatus === "saving" || (!dirty && draftSaveStatus !== "error")}
               title="Save draft (Ctrl/Cmd+S)"
@@ -358,7 +331,7 @@ export function EditorTopBar({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-lg"
+              className="h-8 w-8 rounded-md text-neutral-500 hover:bg-black/[0.04]"
               onClick={onDiscard}
               title="Discard changes"
               aria-label="Discard changes"
@@ -371,12 +344,8 @@ export function EditorTopBar({
             size="sm"
             onClick={onPublish}
             disabled={!dirty || publishing}
-            className={cn("h-8 gap-1.5 rounded-lg px-3", dashboardPrimaryBtn)}
-            title={
-              dirty
-                ? "Go live (Ctrl/Cmd+Shift+S)"
-                : "No unpublished changes"
-            }
+            className={cn("h-8 gap-1.5 px-3", dashboardPrimaryBtn)}
+            title={dirty ? "Go live (Ctrl/Cmd+Shift+S)" : "No unpublished changes"}
           >
             {publishing ? (
               <>
@@ -390,6 +359,68 @@ export function EditorTopBar({
               </>
             )}
           </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-md text-neutral-500 hover:bg-black/[0.04]"
+                aria-label="More editor actions"
+              >
+                <Ellipsis className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-[12px] border-black/[0.06]">
+              {onOpenBrand ? (
+                <DropdownMenuItem onClick={onOpenBrand}>
+                  <Palette className="mr-2 h-4 w-4" />
+                  Brand
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem asChild>
+                <Link href={`/store/${storeSlug}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  View live store
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onShortcutsOpenChange?.(true)}>
+                <Keyboard className="mr-2 h-4 w-4" />
+                Shortcuts
+              </DropdownMenuItem>
+              <div className="flex gap-1 border-t border-black/[0.06] p-1 sm:hidden">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 flex-1"
+                  onClick={onUndo}
+                  disabled={!undoAvailable}
+                >
+                  <Undo2 className="mr-1 h-3.5 w-3.5" />
+                  Undo
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 flex-1"
+                  onClick={onRedo}
+                  disabled={!redoAvailable}
+                >
+                  <Redo2 className="mr-1 h-3.5 w-3.5" />
+                  Redo
+                </Button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <EditorShortcutsHelp
+            open={shortcutsOpen}
+            onOpenChange={onShortcutsOpenChange}
+            hideTrigger
+          />
         </div>
       </div>
     </header>

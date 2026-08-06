@@ -10,9 +10,21 @@ import type { ProductDetail } from "@/types";
 interface ProductDetailsEditorProps {
   details: ProductDetail[];
   onChange: (details: ProductDetail[]) => void;
+  presets?: readonly string[];
+  emptyHint?: string;
+  /** Labels managed elsewhere — kept in data but hidden from this editor. */
+  hideLabels?: readonly string[];
 }
 
-export function ProductDetailsEditor({ details, onChange }: ProductDetailsEditorProps) {
+export function ProductDetailsEditor({
+  details,
+  onChange,
+  presets = DETAIL_PRESETS,
+  emptyHint = "Add specs customers care about — brand, material, weight, care instructions.",
+  hideLabels = [],
+}: ProductDetailsEditorProps) {
+  const hidden = new Set(hideLabels.map((l) => l.toLowerCase()));
+  const visibleDetails = details.filter((d) => !hidden.has(d.label.toLowerCase()));
   const usedLabels = new Set(details.map((d) => d.label.toLowerCase()));
 
   const addRow = (label = "") => {
@@ -30,7 +42,12 @@ export function ProductDetailsEditor({ details, onChange }: ProductDetailsEditor
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {DETAIL_PRESETS.filter((preset) => !usedLabels.has(preset.toLowerCase())).map((preset) => (
+        {presets
+          .filter(
+            (preset) =>
+              !usedLabels.has(preset.toLowerCase()) && !hidden.has(preset.toLowerCase())
+          )
+          .map((preset) => (
           <Button
             key={preset}
             type="button"
@@ -44,13 +61,13 @@ export function ProductDetailsEditor({ details, onChange }: ProductDetailsEditor
         ))}
       </div>
 
-      {details.length === 0 ? (
+      {visibleDetails.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border/80 px-4 py-6 text-center text-sm text-muted-foreground">
-          Add specs customers care about — brand, material, weight, care instructions.
+          {emptyHint}
         </p>
       ) : (
         <div className="space-y-3">
-          {details.map((row, index) => (
+          {visibleDetails.map((row, index) => (
             <div
               key={row.id}
               className="grid grid-cols-1 gap-2 rounded-xl border border-border/70 bg-muted/15 p-3 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)_auto]"

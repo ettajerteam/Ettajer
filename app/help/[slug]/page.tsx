@@ -6,6 +6,7 @@ import { getLocalizedArticle } from "@/lib/help/help-i18n";
 import { getHelpSeo } from "@/lib/help/help-seo";
 import { getLocalizedCategory } from "@/lib/help/help-ui-i18n";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
+import { absoluteUrl } from "@/lib/seo/site-config";
 import { buildHelpArticleGraph } from "@/lib/seo/structured-data";
 
 type PageProps = {
@@ -44,6 +45,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     path: `/help/${slug}`,
     locale,
     type: "article",
+    alternateTypes: {
+      "text/plain": [
+        { url: absoluteUrl("/llms-full.txt"), title: "llms-full.txt" },
+      ],
+      "application/json": [
+        { url: absoluteUrl("/knowledge.json"), title: "knowledge.json" },
+      ],
+    },
   });
 }
 

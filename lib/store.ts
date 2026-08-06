@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { OnboardingData } from "@/types";
+import {
+  isBusinessModel,
+  type BusinessModel,
+} from "@/lib/onboarding/business-models";
 
 interface OnboardingStore {
   step: number;
@@ -10,16 +14,49 @@ interface OnboardingStore {
   reset: () => void;
 }
 
+function migrateOnboardingData(
+  data: Partial<OnboardingData> | undefined
+): Partial<OnboardingData> {
+  if (!data) return {};
+  const next = { ...data };
+
+  if ((!next.businessModels || next.businessModels.length === 0) && next.businessModel) {
+    if (isBusinessModel(next.businessModel)) {
+      next.businessModels = [next.businessModel];
+    }
+  }
+
+  if (Array.isArray(next.businessModels)) {
+    next.businessModels = next.businessModels.filter(isBusinessModel) as BusinessModel[];
+  }
+
+  return next;
+}
+
 export const useOnboardingStore = create<OnboardingStore>()(
   persist(
     (set) => ({
       step: 1,
       data: {},
       setStep: (step) => set({ step }),
-      setData: (data) => set((state) => ({ data: { ...state.data, ...data } })),
+      setData: (data) =>
+        set((state) => ({
+          data: migrateOnboardingData({ ...state.data, ...data }),
+        })),
       reset: () => set({ step: 1, data: {} }),
     }),
-    { name: "ettajer-onboarding" }
+    {
+      name: "ettajer-onboarding",
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<OnboardingStore>;
+        return {
+          ...current,
+          ...p,
+          data: migrateOnboardingData(p.data ?? current.data),
+          step: typeof p.step === "number" ? p.step : current.step,
+        };
+      },
+    }
   )
 );
 

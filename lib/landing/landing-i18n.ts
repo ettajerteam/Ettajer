@@ -28,6 +28,7 @@ export type LandingCopy = {
     pricing: string;
     signIn: string;
     startFree: string;
+    continueGoogle: string;
     languageAria: string;
   };
   hero: {
@@ -203,6 +204,7 @@ const EN_COPY: LandingCopy = {
     pricing: "Pricing",
     signIn: "Sign in",
     startFree: "Start free",
+    continueGoogle: "Continue with Google",
     languageAria: "Language",
   },
   hero: {
@@ -556,7 +558,7 @@ const EN_COPY: LandingCopy = {
   faq: {
     eyebrow: "Help center",
     title: "Frequently asked questions",
-    subtitle: "Quick answers about setup, pricing, migration, and launch.",
+    subtitle: "Quick answers about setup, Meta ads, pricing, migration, and launch.",
     stillHaveQuestions: "Still have questions?",
     browseHelpCenter: "Browse the help center",
     browseHelpCenterCta: "Browse help center",
@@ -570,10 +572,40 @@ const EN_COPY: LandingCopy = {
           "Most merchants go live in under five minutes. Sign up, add products, enable COD checkout, and publish your storefront. WhatsApp and SMS verification can be turned on immediately — no payment gateway or developer required.",
       },
       {
+        category: "Payments",
+        question: "Can I accept cards and PayPal?",
+        answer:
+          "Yes. In Settings → Payments, connect Stripe for cards (Apple Pay / Google Pay) and PayPal with your Client ID and Secret. Money goes to your Stripe or PayPal account — Ettajer never holds customer funds. Keep COD on for cash-on-delivery buyers. See the help center: Set up online payments.",
+      },
+      {
         category: "COD",
         question: "How does Ettajer reduce fake COD orders?",
         answer:
           "After checkout, buyers confirm or cancel via WhatsApp or SMS before you ship. Invalid numbers and unverified orders stay out of your fulfillment queue. Merchants typically see a sharp drop in refused deliveries and courier fees wasted on fake orders.",
+      },
+      {
+        category: "Marketing",
+        question: "How do I connect Meta Pixel and Conversions API?",
+        answer:
+          "Open Marketing → Meta and click Connect with Meta to pick a pixel — Ettajer also saves a Conversions API token. Enable events like Purchase and AddToCart. Browser Pixel and server CAPI share the same event_id so Meta dedupes conversions. See the help center for catalog feeds, audiences, and domain verification.",
+      },
+      {
+        category: "Marketing",
+        question: "Can I run Meta Dynamic Ads from my Ettajer catalog?",
+        answer:
+          "Yes. Marketing → Meta → Catalog gives you a scheduled product feed URL. Add it in Meta Commerce Manager as a scheduled data source. Product IDs match Pixel content_ids for Dynamic Ads and Advantage+ shopping. Connect a custom domain first if you also need Meta domain verification for AEM.",
+      },
+      {
+        category: "Marketing",
+        question: "How do I test Meta events before spending on ads?",
+        answer:
+          "Enable Test mode under Marketing → Meta → Advanced and paste a TEST code from Events Manager. Place a small live-store order, then check Meta Test events and Ettajer Diagnostics for Pixel + CAPI pairs sharing the same event_id. Turn Test mode off before real campaigns.",
+      },
+      {
+        category: "Catalog",
+        question: "Can I sell digital products or dropship?",
+        answer:
+          "Yes. Create a Digital product to upload ebooks/PDFs, or choose Dropshipping to import from AliExpress, CJ, or BigBuy. Variants (size/color), inventory, and COD checkout work the same as physical products. See the help center guides for digital delivery and supplier fulfillment tips.",
       },
       {
         category: "Domains",
@@ -591,13 +623,13 @@ const EN_COPY: LandingCopy = {
         category: "Pricing",
         question: "Do you charge transaction fees?",
         answer:
-          "Growth and Business plans include 0% Ettajer transaction fees — you keep more of every COD and card sale. Starter includes a small platform fee. Card processing fees from Stripe still apply only if you accept online payments.",
+          "Growth and Business plans include 0% Ettajer transaction fees — you keep more of every COD and online sale. Starter includes a small platform fee. Stripe and PayPal still charge their own processing fees when customers pay online; COD has no card fees.",
       },
       {
         category: "Growth",
         question: "What makes Ettajer better for Morocco than Shopify?",
         answer:
-          "Ettajer is built around COD: localized checkout fields, WhatsApp verification, fake order protection, address validation, and order automation out of the box. No plugins, no workarounds — just a storefront and admin designed for how Moroccan merchants actually sell.",
+          "Ettajer is built around COD plus optional Stripe and PayPal: localized checkout fields, WhatsApp verification, fake order protection, address validation, and order automation out of the box. No plugins, no workarounds — just a storefront and admin designed for how Moroccan merchants actually sell.",
       },
     ],
   },
@@ -713,6 +745,7 @@ const FR_COPY: LandingCopy = {
     pricing: "Tarifs",
     signIn: "Se connecter",
     startFree: "Commencer",
+    continueGoogle: "Continuer avec Google",
     languageAria: "Langue",
   },
   hero: {
@@ -1119,7 +1152,7 @@ const FR_COPY: LandingCopy = {
   faq: {
     eyebrow: "Centre d'aide",
     title: "Questions fréquentes",
-    subtitle: "Réponses rapides sur la configuration, les tarifs, la migration et le lancement.",
+    subtitle: "Réponses rapides sur la configuration, les pubs Meta, les tarifs, la migration et le lancement.",
     stillHaveQuestions: "Encore des questions ?",
     browseHelpCenter: "Parcourir le centre d'aide",
     browseHelpCenterCta: "Centre d'aide",
@@ -1133,10 +1166,40 @@ const FR_COPY: LandingCopy = {
           "La plupart des marchands sont en ligne en moins de cinq minutes. Inscrivez-vous, ajoutez des produits, activez le checkout COD et publiez votre boutique. La vérification WhatsApp et SMS est disponible immédiatement — sans passerelle ni développeur.",
       },
       {
+        category: "Paiements",
+        question: "Puis-je accepter les cartes et PayPal ?",
+        answer:
+          "Oui. Dans Paramètres → Paiements, connectez Stripe pour les cartes (Apple Pay / Google Pay) et PayPal avec Client ID et Secret. L’argent va sur votre compte Stripe ou PayPal — Ettajer ne détient jamais les fonds. Gardez le COD pour les livraisons en espèces. Voir le centre d’aide : Configurer les paiements en ligne.",
+      },
+      {
         category: "COD",
         question: "Comment Ettajer réduit-il les fausses commandes COD ?",
         answer:
           "Après le checkout, les acheteurs confirment ou annulent via WhatsApp ou SMS avant expédition. Les numéros invalides et commandes non vérifiées restent hors de votre file de préparation. Les marchands constatent une forte baisse des refus à la livraison.",
+      },
+      {
+        category: "Marketing",
+        question: "Comment connecter Meta Pixel et la Conversions API ?",
+        answer:
+          "Ouvrez Marketing → Meta et cliquez sur Connect with Meta pour choisir un pixel — Ettajer enregistre aussi un jeton Conversions API. Activez Purchase et AddToCart. Pixel navigateur et CAPI partagent le même event_id pour dédupliquer. Le centre d’aide couvre catalogue, audiences et vérification de domaine.",
+      },
+      {
+        category: "Marketing",
+        question: "Puis-je lancer des Dynamic Ads Meta avec mon catalogue Ettajer ?",
+        answer:
+          "Oui. Marketing → Meta → Catalog fournit une URL de flux produits planifié. Ajoutez-la dans Commerce Manager comme source planifiée. Les IDs produits correspondent aux content_ids Pixel pour Dynamic Ads et Advantage+. Connectez un domaine personnalisé si vous avez aussi besoin de la vérification de domaine Meta (AEM).",
+      },
+      {
+        category: "Marketing",
+        question: "Comment tester les événements Meta avant de dépenser ?",
+        answer:
+          "Activez le mode test sous Marketing → Meta → Avancé et collez un code TEST depuis Events Manager. Passez une petite commande sur la boutique live, puis vérifiez Test events Meta et Diagnostics Ettajer pour les paires Pixel + CAPI avec le même event_id. Désactivez le mode test avant les vraies campagnes.",
+      },
+      {
+        category: "Catalogue",
+        question: "Puis-je vendre du digital ou faire du dropshipping ?",
+        answer:
+          "Oui. Créez un produit Digital pour uploader ebooks/PDF, ou choisissez Dropshipping pour importer depuis AliExpress, CJ ou BigBuy. Variantes, stock et checkout COD fonctionnent comme pour le physique. Le centre d’aide détaille la livraison digitale et le fulfillment fournisseur.",
       },
       {
         category: "Domaines",
@@ -1148,19 +1211,19 @@ const FR_COPY: LandingCopy = {
         category: "Migration",
         question: "Puis-je migrer depuis Shopify ou WooCommerce ?",
         answer:
-          "Oui. Importez via CSV ou connectez Shopify directement. Nous conservons titres, images, variantes et URLs quand c'est possible. Reconstruisez votre vitrine dans l'éditeur visuel — la plupart des migrations se font en une journée.",
+          "Oui. Importez via CSV ou connectez Shopify directement. Nous conservons titres, images, variantes et URLs quand c’est possible. Reconstruisez votre vitrine dans l’éditeur visuel — la plupart des migrations se font en une journée.",
       },
       {
         category: "Tarifs",
         question: "Facturez-vous des frais de transaction ?",
         answer:
-          "Les forfaits Growth et Business incluent 0 % de frais Ettajer — vous gardez plus sur chaque vente COD ou carte. Starter inclut de petits frais plateforme. Les frais Stripe s'appliquent uniquement si vous acceptez les paiements en ligne.",
+          "Les forfaits Growth et Business incluent 0 % de frais Ettajer — vous gardez plus sur chaque vente COD ou en ligne. Starter inclut de petits frais plateforme. Stripe et PayPal facturent leurs propres frais de traitement ; le COD n’a pas de frais carte.",
       },
       {
         category: "Croissance",
         question: "Pourquoi Ettajer est-il meilleur pour le Maroc que Shopify ?",
         answer:
-          "Ettajer est pensé pour le COD : champs de checkout localisés, vérification WhatsApp, protection anti-fausses commandes, validation d'adresse et automatisation incluses. Pas de plugins — une vitrine et un admin conçus pour la vente marocaine.",
+          "Ettajer est pensé pour le COD plus Stripe et PayPal en option : champs de checkout localisés, vérification WhatsApp, protection anti-fausses commandes, validation d’adresse et automatisation incluses. Pas de plugins — une vitrine et un admin conçus pour la vente marocaine.",
       },
     ],
   },

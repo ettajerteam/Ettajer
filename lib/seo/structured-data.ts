@@ -131,13 +131,40 @@ export function buildBreadcrumbSchema(
   };
 }
 
-function looksLikeHowTo(body: string[]): boolean {
-  const stepLike = body.filter(
+const HOW_TO_SLUG_PREFIX =
+  /^(how-|connect-|create-|set-up-|setup-|fix-|verify-|test-|configure-|migrate-|sell-|start-|add-|share-|upgrade-|confirm-|read-|manage-|recover-|import-|publish-|customize-|preview-|reduce-|handle-|use-|track-|order-|product-|utm-|newsletter-|gift-|dropshipping-|ssl-|meta-|pixel-|checkout-|images-|store-|built-in-|change-|reset-|understand-)/i;
+
+function looksLikeHowTo(slug: string, body: string[]): boolean {
+  const paragraphs = body.filter((paragraph) => paragraph.trim().length > 0);
+  if (paragraphs.length < 2) return false;
+
+  const numbered = paragraphs.filter(
     (paragraph) =>
       /^(step\s*)?\d+[\).:\-]/i.test(paragraph.trim()) ||
       /^step\s+\d+/i.test(paragraph.trim()),
   );
-  return stepLike.length >= 2;
+  if (numbered.length >= 2) return true;
+
+  if (HOW_TO_SLUG_PREFIX.test(slug) && paragraphs.length >= 2) return true;
+
+  const instructional = paragraphs.filter((paragraph) =>
+    /^(open|go to|click|enable|add|create|set|copy|paste|choose|confirm|use|in |when |after |from |turn |disable|export|share|call |ask )/i.test(
+      paragraph.trim(),
+    ),
+  );
+  return instructional.length >= 2;
+}
+
+function helpSteps(body: string[]): SchemaNode[] {
+  return body
+    .filter((paragraph) => paragraph.trim().length > 0)
+    .slice(0, 16)
+    .map((paragraph, index) => ({
+      "@type": "HowToStep",
+      position: index + 1,
+      name: paragraph.split(/[.!?]/)[0]?.trim().slice(0, 120) || `Step ${index + 1}`,
+      text: paragraph,
+    }));
 }
 
 export function buildHelpArticleGraph(input: {
@@ -151,63 +178,68 @@ export function buildHelpArticleGraph(input: {
   keywords?: string[];
 }): SchemaNode[] {
   const articleUrl = absoluteUrl(`/help/${input.slug}`);
-  const isHowTo = looksLikeHowTo(input.body);
+  const isHowTo = looksLikeHowTo(input.slug, input.body);
   const lang = getLandingLang(input.locale);
   const helpLabel =
     input.locale === "fr" ? "Aide" : input.locale === "ar" ? "مساعدة" : "Help";
+  const articleBody = input.body.filter(Boolean).join("\n\n");
 
-  const articleNode: SchemaNode = isHowTo
-    ? {
-        "@type": "HowTo",
-        "@id": `${articleUrl}#howto`,
-        name: input.title,
-        description: input.excerpt,
-        url: articleUrl,
-        inLanguage: lang,
-        publisher: publisherReference(),
-        step: input.body
-          .filter((paragraph) => paragraph.trim().length > 0)
-          .slice(0, 12)
-          .map((paragraph, index) => ({
-            "@type": "HowToStep",
-            position: index + 1,
-            name: paragraph.split(/[.!?]/)[0]?.trim() || `Step ${index + 1}`,
-            text: paragraph,
-          })),
-      }
-    : {
-        "@type": "TechArticle",
-        "@id": `${articleUrl}#article`,
-        headline: input.title,
-        description: input.excerpt,
-        url: articleUrl,
-        inLanguage: lang,
-        author: publisherReference(),
-        publisher: publisherReference(),
-        articleSection: input.categoryTitle,
-        keywords: input.keywords?.join(", "),
-      };
+  const techArticle: SchemaNode = {
+    "@type": "TechArticle",
+    "@id": `${articleUrl}#article`,
+    headline: input.title,
+    description: input.excerpt,
+    articleBody,
+    url: articleUrl,
+    mainEntityOfPage: articleUrl,
+    inLanguage: lang,
+    author: publisherReference(),
+    publisher: publisherReference(),
+    articleSection: input.categoryTitle,
+    keywords: input.keywords?.join(", "),
+    isAccessibleForFree: true,
+  };
 
-  const breadcrumb = buildBreadcrumbSchema([
-    { name: "Ettajer", path: "/" },
-    { name: helpLabel, path: "/help" },
-    {
-      name: input.categoryTitle,
-      path: `/help/category/${input.categoryId}`,
-    },
-    { name: input.title },
-  ]);
+  const nodes: SchemaNode[] = [techArticle];
 
-  return [articleNode, breadcrumb];
+  if (isHowTo) {
+    nodes.push({
+      "@type": "HowTo",
+      "@id": `${articleUrl}#howto`,
+      name: input.title,
+      description: input.excerpt,
+      url: articleUrl,
+      inLanguage: lang,
+      publisher: publisherReference(),
+      totalTime: `PT${Math.max(3, input.body.length * 2)}M`,
+      step: helpSteps(input.body),
+    });
+  }
+
+  nodes.push(
+    buildBreadcrumbSchema([
+      { name: "Ettajer", path: "/" },
+      { name: helpLabel, path: "/help" },
+      {
+        name: input.categoryTitle,
+        path: `/help/category/${input.categoryId}`,
+      },
+      { name: input.title },
+    ]),
+  );
+
+  return nodes;
 }
 
-export function buildHelpIndexGraph(locale: LandingLocale): SchemaNode[] {
+export function buildHelpIndexGraph(
+  locale: LandingLocale,
+  faqItems?: { q: string; a: string }[],
+): SchemaNode[] {
   const seo = getLandingSeo(locale);
   const helpSeo = getHelpSeo(locale).index;
-
-  return [
+  const nodes: SchemaNode[] = [
     {
-      "@type": "WebPage",
+      "@type": "CollectionPage",
       "@id": `${absoluteUrl("/help")}#webpage`,
       name: helpSeo.title,
       description: helpSeo.description,
@@ -219,12 +251,23 @@ export function buildHelpIndexGraph(locale: LandingLocale): SchemaNode[] {
         name: "Ettajer merchant support",
         description: seo.description,
       },
+      significantLink: [
+        absoluteUrl("/llms.txt"),
+        absoluteUrl("/llms-full.txt"),
+        absoluteUrl("/knowledge.json"),
+      ],
     },
     buildBreadcrumbSchema([
       { name: "Ettajer", path: "/" },
       { name: helpSeo.title },
     ]),
   ];
+
+  if (faqItems && faqItems.length > 0) {
+    nodes.push(buildFaqPageSchema(locale, faqItems, "/help"));
+  }
+
+  return nodes;
 }
 
 export function buildHelpCategoryGraph(input: {

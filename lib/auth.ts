@@ -24,6 +24,8 @@ import { normalizeEmail } from "@/lib/password-reset";
 import { parseOAuthSignupCookies } from "@/lib/auth/oauth-signup";
 
 import { ensureBootstrapAdminRole } from "@/lib/admin/roles";
+import { authorizeGoogleOneTap } from "@/lib/auth/google-one-tap-authorize";
+import { loadUserPlan } from "@/lib/account-profile";
 
 import {
 
@@ -385,6 +387,28 @@ providers.push(
 
 );
 
+if (googleConfigured) {
+  providers.push(
+    CredentialsProvider({
+      id: "google-one-tap",
+      name: "Google One Tap",
+      credentials: {
+        credential: { label: "Google ID Token", type: "text" },
+      },
+      authorize: async (credentials) => {
+        const credential = credentials?.credential?.trim();
+        if (!credential) return null;
+        try {
+          return await authorizeGoogleOneTap(credential);
+        } catch (err) {
+          console.error("Google One Tap authorize failed:", err);
+          return null;
+        }
+      },
+    }),
+  );
+}
+
 
 
 export const authProviders = {
@@ -397,11 +421,17 @@ export const authProviders = {
 
 
 
-const SESSION_MAX_AGE_REMEMBER = 60 * 60 * 24 * 30;
+/** Keep me signed in: rolling 90-day session (cookie + JWT). */
+const SESSION_MAX_AGE_REMEMBER = 60 * 60 * 24 * 90;
 
+/** Without keep-me-signed-in: fixed 24h session. */
 const SESSION_MAX_AGE_DEFAULT = 60 * 60 * 24;
 
+const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
+const sessionCookieName = useSecureCookies
+  ? "__Secure-next-auth.session-token"
+  : "next-auth.session-token";
 
 export const authOptions: NextAuthOptions = {
 
@@ -427,6 +457,22 @@ export const authOptions: NextAuthOptions = {
 
     maxAge: SESSION_MAX_AGE_REMEMBER,
 
+    /** Re-issue cookie/JWT regularly so “keep me signed in” stays fresh while active. */
+    updateAge: 60 * 60,
+
+  },
+
+  cookies: {
+    sessionToken: {
+      name: sessionCookieName,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: SESSION_MAX_AGE_REMEMBER,
+      },
+    },
   },
 
   callbacks: {
@@ -442,6 +488,7 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user }) {
+      const now = Math.floor(Date.now() / 1000);
 
       if (user?.id) {
 
@@ -453,11 +500,12 @@ export const authOptions: NextAuthOptions = {
 
         token.remember = remember;
 
-        token.exp =
+        const maxAge = remember
+          ? SESSION_MAX_AGE_REMEMBER
+          : SESSION_MAX_AGE_DEFAULT;
 
-          Math.floor(Date.now() / 1000) +
-
-          (remember ? SESSION_MAX_AGE_REMEMBER : SESSION_MAX_AGE_DEFAULT);
+        token.sessionEndsAt = now + maxAge;
+        token.exp = token.sessionEndsAt;
 
       } else if (token.email && !token.id) {
 
@@ -473,10 +521,38 @@ export const authOptions: NextAuthOptions = {
 
       }
 
+      // Absolute expiry when “keep me signed in” was off
+      if (
+        typeof token.sessionEndsAt === "number" &&
+        now >= token.sessionEndsAt
+      ) {
+        return { ...token, exp: now - 1 };
+      }
+
+      // Rolling window while remembered — stays signed in across browser restarts
+      if (token.remember) {
+        token.sessionEndsAt = now + SESSION_MAX_AGE_REMEMBER;
+        token.exp = token.sessionEndsAt;
+      } else if (typeof token.sessionEndsAt === "number") {
+        token.exp = token.sessionEndsAt;
+      } else if (token.remember === undefined && token.id) {
+        // Legacy / OAuth tokens without remember flag — treat as remembered
+        token.remember = true;
+        token.sessionEndsAt = now + SESSION_MAX_AGE_REMEMBER;
+        token.exp = token.sessionEndsAt;
+      }
+
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { status: true, founderNumber: true, name: true, role: true, email: true },
+          select: {
+            status: true,
+            founderNumber: true,
+            name: true,
+            image: true,
+            role: true,
+            email: true,
+          },
         });
         if (dbUser) {
           let status = dbUser.status;
@@ -492,8 +568,10 @@ export const authOptions: NextAuthOptions = {
           const role = await ensureBootstrapAdminRole(token.id as string, dbUser.email, dbUser.role);
           token.status = status;
           token.founderNumber = dbUser.founderNumber;
+          token.plan = await loadUserPlan(token.id as string);
           token.role = role;
           if (dbUser.name) token.name = dbUser.name;
+          if (dbUser.image !== undefined) token.picture = dbUser.image;
           if (dbUser.email) token.email = dbUser.email;
         }
       }
@@ -504,9 +582,11 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.status = token.status as string | undefined;
         session.user.founderNumber = token.founderNumber as number | null | undefined;
+        session.user.plan = token.plan as string | null | undefined;
         session.user.role = token.role as string | undefined;
         if (token.name) session.user.name = token.name as string;
         if (token.email) session.user.email = token.email as string;
+        if (token.picture !== undefined) session.user.image = token.picture as string | null;
       }
       return session;
     },

@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/meta-audiences",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/email-queue",
+      "schedule": "5 4 * * *"
+    },
+    {
+      "path": "/api/cron/email-atlas",
+      "schedule": "15 4 * * *"
+    }
+  ]
+}

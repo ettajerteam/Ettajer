@@ -7,18 +7,31 @@ import { slugify } from "@/lib/utils";
 import { serializeStoreWithSettings } from "@/lib/store-settings";
 import { updateStoreSchema } from "@/lib/validations/store";
 import { DEFAULT_SHIPPING_ZONES, DEFAULT_PAYMENT_GATEWAYS, DEFAULT_TICKET_PRINTERS, DEFAULT_MARKETING_INTEGRATIONS } from "@/lib/store-settings";
-import { mergeSeoSettings, mergeShopPreferences } from "@/lib/shop-preferences";
-import { isBusinessModel } from "@/lib/onboarding/business-models";
+import {
+  normalizeMarketingIntegrations,
+  parseMarketingIntegrations,
+} from "@/lib/marketing-integrations";
+import {
+  mergeSeoSettings,
+  mergeShopPreferences,
+  type ShopPreferences,
+} from "@/lib/shop-preferences";
+import {
+  hasDigitalCatalog,
+  hasPhysicalCatalog,
+  resolveBusinessModelsFromBody,
+  serializeBusinessModels,
+} from "@/lib/onboarding/business-models";
 import {
   installWebsiteTemplateOnStore,
   parseWebsiteTemplateId,
 } from "@/lib/website-templates/install-to-store";
 import { isPlatformHost, normalizeCustomDomain } from "@/lib/storefront-urls";
-import { isApexHostname, isValidHostname } from "@/lib/domains/hostname";
+import { isApexHostname, isValidHostname, apexRoot } from "@/lib/domains/hostname";
 import {
   addVercelDomain,
-  addVercelWwwRedirect,
   removeVercelDomain,
+  syncApexWwwRedirect,
 } from "@/lib/domains/vercel";
 import type { StoreSeoSettings } from "@/lib/seo/storefront-metadata";
 
@@ -33,7 +46,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, category, currency, businessModel, websiteTemplateId } = body;
+    const {
+      name,
+      category,
+      currency,
+      websiteTemplateId,
+      description,
+      phone,
+      language,
+    } = body;
 
     if (!name || !category || !currency) {
       return NextResponse.json(
@@ -42,9 +63,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!businessModel || !isBusinessModel(businessModel)) {
+    const businessModels = resolveBusinessModelsFromBody(body);
+    if (businessModels.length === 0) {
       return NextResponse.json(
-        { message: "A valid business model is required" },
+        { message: "Select at least one way you sell" },
         { status: 400 }
       );
     }
@@ -74,14 +96,28 @@ export async function POST(request: Request) {
       slug = `${slug}-${Date.now().toString(36)}`;
     }
 
+    const descriptionValue =
+      typeof description === "string" && description.trim()
+        ? description.trim().slice(0, 500)
+        : null;
+    const phoneValue =
+      typeof phone === "string" && phone.trim() ? phone.trim().slice(0, 40) : null;
+    const languageValue =
+      typeof language === "string" && ["en", "fr", "ar"].includes(language)
+        ? language
+        : "en";
+
     const store = await prisma.store.create({
       data: {
         name,
         slug,
         category,
         currency,
-        businessModel,
+        businessModel: serializeBusinessModels(businessModels),
         websiteTemplateId: templateId,
+        description: descriptionValue,
+        phone: phoneValue,
+        language: languageValue,
         userId: session.user.id,
         settings: {
           create: {
@@ -96,6 +132,15 @@ export async function POST(request: Request) {
     });
 
     await installWebsiteTemplateOnStore(store.id, templateId);
+
+    if (hasDigitalCatalog(businessModels)) {
+      const { ensureDigitalCategories } = await import("@/lib/catalog");
+      await ensureDigitalCategories(store.id);
+    }
+    if (hasPhysicalCatalog(businessModels)) {
+      const { ensurePhysicalCategories } = await import("@/lib/catalog");
+      await ensurePhysicalCategories(store.id);
+    }
 
     const storeWithTemplate = await prisma.store.findFirst({
       where: { id: store.id },
@@ -179,13 +224,18 @@ export async function PUT(request: Request) {
 
     const data = parsed.data;
 
+    if (data.paymentGateways !== undefined) {
+      // Stripe is visible in Settings but not activatable yet
+      data.paymentGateways = { ...data.paymentGateways, stripe: false };
+    }
+
     if (
       data.paymentGateways !== undefined &&
       !data.paymentGateways.cashOnDelivery &&
-      !data.paymentGateways.stripe
+      !data.paymentGateways.paypal
     ) {
       return NextResponse.json(
-        { message: "Enable at least one payment method (COD or Stripe)" },
+        { message: "Enable at least one payment method" },
         { status: 400 }
       );
     }
@@ -226,7 +276,9 @@ export async function PUT(request: Request) {
       settingsUpdate.ticketPrinters = data.ticketPrinters as unknown as Prisma.InputJsonValue;
     }
     if (data.marketingIntegrations !== undefined) {
-      settingsUpdate.marketingIntegrations = data.marketingIntegrations as unknown as Prisma.InputJsonValue;
+      settingsUpdate.marketingIntegrations = normalizeMarketingIntegrations(
+        parseMarketingIntegrations(data.marketingIntegrations)
+      ) as unknown as Prisma.InputJsonValue;
     }
     if (data.customDomain !== undefined) {
       const previous = normalizeCustomDomain(existing.settings?.customDomain);
@@ -265,17 +317,26 @@ export async function PUT(request: Request) {
           );
         }
         if (isApexHostname(normalized)) {
-          await addVercelWwwRedirect(normalized);
+          await syncApexWwwRedirect(normalized, "apex");
         }
         if (previous && previous !== normalized) {
           await removeVercelDomain(previous);
-          if (isApexHostname(previous)) await removeVercelDomain(`www.${previous}`);
+          const prevApex = apexRoot(previous);
+          if (prevApex) {
+            await removeVercelDomain(`www.${prevApex}`);
+            if (previous !== prevApex) await removeVercelDomain(prevApex);
+          }
         }
       } else if (previous) {
         await removeVercelDomain(previous);
-        if (isApexHostname(previous)) await removeVercelDomain(`www.${previous}`);
+        const prevApex = apexRoot(previous);
+        if (prevApex) {
+          await removeVercelDomain(`www.${prevApex}`);
+          if (previous !== prevApex) await removeVercelDomain(prevApex);
+        }
       }
       settingsUpdate.customDomain = normalized;
+      settingsUpdate.domainPrimary = normalized && apexRoot(normalized) ? "apex" : null;
     }
 
     if (data.seo !== undefined || data.shop !== undefined) {
@@ -299,7 +360,10 @@ export async function PUT(request: Request) {
         seoJson = mergeSeoSettings(seoJson, seoPatch);
       }
       if (data.shop !== undefined) {
-        seoJson = mergeShopPreferences(seoJson, data.shop);
+        seoJson = mergeShopPreferences(
+          seoJson,
+          data.shop as Partial<ShopPreferences>
+        );
       }
       settingsUpdate.seo = seoJson as Prisma.InputJsonValue;
     }

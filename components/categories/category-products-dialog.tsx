@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { Package } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-import type { Category } from "@/types/catalog";
-import type { CategoryDetail } from "@/types/catalog";
+import type { Category, CategoryDetail } from "@/types/catalog";
 
 interface CategoryProductsDialogProps {
   category: Category | null;
@@ -33,52 +34,84 @@ export function CategoryProductsDialog({
       return;
     }
 
+    const controller = new AbortController();
     setLoading(true);
-    fetch(`/api/categories/${category.id}`)
+    fetch(`/api/categories/${category.id}`, { signal: controller.signal, cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        if (data.category) setDetail(data.category);
+        if (!controller.signal.aborted && data.category) setDetail(data.category);
       })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        /* aborted or failed — leave empty */
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
   }, [open, category]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[80vh] max-w-lg flex-col rounded-2xl border-border/80 p-0">
-        <DialogHeader className="border-b border-border/80 px-6 pb-4 pt-6">
-          <DialogTitle className="text-xl font-semibold tracking-[-0.02em]">
+      <DialogContent className="flex max-h-[80vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl">
+        <DialogHeader className="space-y-1 border-b border-black/[0.06] px-5 py-4 text-left dark:border-white/10">
+          <DialogTitle className="text-[17px] font-semibold text-foreground">
             {category?.name}
           </DialogTitle>
-          <DialogDescription className="mt-1">Products in this category</DialogDescription>
+          <DialogDescription className="text-[13px] leading-normal">
+            Products assigned to this category
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="premium-skeleton h-16 w-full animate-pulse" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-40 rounded-md" />
+                    <Skeleton className="h-3 w-24 rounded-md" />
+                  </div>
+                </div>
               ))}
             </div>
           ) : !detail?.products.length ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No products in this category
-            </p>
+            <div className="py-10 text-center">
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-500/10 text-muted-foreground">
+                <Package className="h-4 w-4" />
+              </span>
+              <p className="mt-3 text-[13px] font-medium text-foreground">No products yet</p>
+              <p className="mt-1 text-[12px] leading-normal text-muted-foreground">
+                Assign products to this category from the product editor.
+              </p>
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
               {detail.products.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex items-center gap-3 rounded-xl border border-border/80 bg-muted/20 p-3 transition-colors hover:bg-muted/35"
-                >
-                  <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-muted shrink-0">
+                <div key={product.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-black/[0.06] bg-muted dark:border-white/10">
                     {product.image ? (
-                      <Image src={product.image} alt="" fill className="object-cover" unoptimized />
-                    ) : null}
+                      <Image
+                        src={product.image}
+                        alt=""
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{product.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatCurrency(product.price, "MAD")} · Stock: {product.inventory}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium text-foreground">
+                      {product.title}
+                    </p>
+                    <p className="mt-0.5 text-[12px] leading-normal text-muted-foreground">
+                      {formatCurrency(product.price, "MAD")} · Stock {product.inventory}
                     </p>
                   </div>
                 </div>

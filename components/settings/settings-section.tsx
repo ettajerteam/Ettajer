@@ -43,7 +43,7 @@ export function SettingsSection({
 }
 
 interface SettingsFieldProps {
-  label: string;
+  label: ReactNode;
   htmlFor?: string;
   hint?: string;
   children: ReactNode;
@@ -61,7 +61,7 @@ export function SettingsField({
     <div className={cn("space-y-1.5", className)}>
       <label
         htmlFor={htmlFor}
-        className="block text-[11px] font-medium text-neutral-600 dark:text-neutral-400"
+        className="flex items-center justify-between gap-2 text-[11px] font-medium text-neutral-600 dark:text-neutral-400"
       >
         {label}
       </label>

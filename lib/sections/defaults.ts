@@ -120,7 +120,7 @@ export function getDefaultProductLayout(_theme: ThemeId = "minimal"): HomeLayout
       section("product-variants", { layout: "outline", padding: "0" }, "pdp-variants"),
       section(
         "product-buy-button",
-        { buttonText: "Order now — COD", layout: "full", padding: "0" },
+        { buttonText: "Buy now", layout: "full", padding: "0" },
         "pdp-buy"
       ),
       section(

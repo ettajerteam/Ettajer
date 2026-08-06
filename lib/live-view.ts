@@ -1,10 +1,7 @@
 import { prisma } from "@/lib/db";
 import { parseShippingAddress } from "@/lib/orders";
 import { countryToIso, getCountryName } from "@/lib/country-iso";
-import {
-  buildHourlyTrend,
-  percentChange,
-} from "@/lib/live-view-utils";
+import { buildHourlyTrend, percentChange } from "@/lib/live-view-utils";
 import {
   getLiveMapRangeLabel,
   type LiveMapRange,
@@ -28,41 +25,28 @@ export {
   getLiveMapRangeShortLabel,
 } from "@/lib/live-view-types";
 
-function buildCountryMap(
-  orders: { total: number; shippingAddress: unknown }[],
-  extraVisitors = 0
+function buildCountryMapFromViews(
+  views: { sessionId: string; country: string | null }[]
 ) {
   const countryMap = new Map<string, LiveVisitorCountry>();
+  const seen = new Set<string>();
 
-  function addActivity(
-    countryInput: string | null | undefined,
-    weight: { visitors?: number; orders?: number; revenue?: number }
-  ) {
-    const code = countryToIso(countryInput);
-    if (!code) return;
+  for (const view of views) {
+    const key = `${view.sessionId}:${view.country ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const code = countryToIso(view.country) || view.country;
+    if (!code) continue;
 
     const existing = countryMap.get(code) ?? {
       code,
-      name: getCountryName(code),
+      name: getCountryName(code) || code,
       visitors: 0,
       orders: 0,
       revenue: 0,
     };
-
-    existing.visitors += weight.visitors ?? 0;
-    existing.orders += weight.orders ?? 0;
-    existing.revenue += weight.revenue ?? 0;
+    existing.visitors += 1;
     countryMap.set(code, existing);
-  }
-
-  for (const order of orders) {
-    const address = parseShippingAddress(order.shippingAddress);
-    addActivity(address.country, { visitors: 2, orders: 1, revenue: order.total });
-  }
-
-  if (extraVisitors > 0) {
-    const topCountry = Array.from(countryMap.values()).sort((a, b) => b.visitors - a.visitors)[0];
-    if (topCountry) addActivity(topCountry.code, { visitors: extraVisitors });
   }
 
   return countryMap;
@@ -76,6 +60,7 @@ export async function getLiveViewData(
   const now = new Date();
   const oneHourAgo = new Date(now);
   oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+  const liveSince = new Date(now.getTime() - 5 * 60_000);
 
   const rangeStart = new Date(now);
   rangeStart.setHours(rangeStart.getHours() - range);
@@ -89,6 +74,9 @@ export async function getLiveViewData(
     hourOrders,
     rangeOrders,
     previousRangeOrders,
+    liveViews,
+    rangeViews,
+    previousViews,
   ] = await Promise.all([
     prisma.order.findMany({
       where: { storeId, status: { not: "draft" } },
@@ -122,25 +110,68 @@ export async function getLiveViewData(
       },
       select: { total: true, shippingAddress: true, createdAt: true },
     }),
+    prisma.storePageView.findMany({
+      where: { storeId, createdAt: { gte: liveSince } },
+      select: { sessionId: true, country: true, city: true, path: true, createdAt: true },
+    }),
+    prisma.storePageView.findMany({
+      where: { storeId, createdAt: { gte: rangeStart } },
+      select: { sessionId: true, country: true, path: true, createdAt: true },
+    }),
+    prisma.storePageView.findMany({
+      where: { storeId, createdAt: { gte: previousStart, lt: rangeStart } },
+      select: { sessionId: true, country: true },
+    }),
   ]);
 
   const revenueLastHour = hourOrders.reduce((sum, order) => sum + order.total, 0);
   const ordersInRange = rangeOrders.length;
   const revenueInRange = rangeOrders.reduce((sum, order) => sum + order.total, 0);
-  const activeVisitors = Math.max(abandonedCount + hourOrders.length, 1);
 
-  const countryMap = buildCountryMap(
-    rangeOrders,
-    abandonedCount > 0 && range <= 24 ? abandonedCount : 0
-  );
-  const previousCountryMap = buildCountryMap(previousRangeOrders);
+  const activeVisitors = new Set(liveViews.map((v) => v.sessionId)).size;
+  const rangeVisitorCount = new Set(rangeViews.map((v) => v.sessionId)).size;
+  const previousVisitors = new Set(previousViews.map((v) => v.sessionId)).size;
+
+  const liveCityMap = new Map<string, { city: string; country: string }>();
+  for (const view of liveViews) {
+    if (!view.city || liveCityMap.has(view.sessionId)) continue;
+    liveCityMap.set(view.sessionId, {
+      city: view.city,
+      country: view.country ? getCountryName(view.country) || view.country : "—",
+    });
+  }
+  const liveCities = Array.from(liveCityMap.entries())
+    .map(([sessionId, meta]) => ({
+      id: sessionId,
+      city: meta.city,
+      country: meta.country,
+      active: true as const,
+    }))
+    .slice(0, 8);
+
+  const countryMap = buildCountryMapFromViews(rangeViews);
+  // merge order countries as revenue/orders overlay
+  for (const order of rangeOrders) {
+    const address = parseShippingAddress(order.shippingAddress);
+    const code = countryToIso(address.country);
+    if (!code) continue;
+    const existing = countryMap.get(code) ?? {
+      code,
+      name: getCountryName(code),
+      visitors: 0,
+      orders: 0,
+      revenue: 0,
+    };
+    existing.orders += 1;
+    existing.revenue += order.total;
+    countryMap.set(code, existing);
+  }
 
   const visitorCountries = Array.from(countryMap.values()).sort((a, b) => b.visitors - a.visitors);
-
+  const previousCountryMap = buildCountryMapFromViews(previousViews);
+  const previousRegions = previousCountryMap.size;
   const previousOrders = previousRangeOrders.length;
   const previousRevenue = previousRangeOrders.reduce((sum, order) => sum + order.total, 0);
-  const previousVisitors = Math.max(previousOrders * 2, previousOrders > 0 ? 1 : 0);
-  const previousRegions = previousCountryMap.size;
 
   const mappedRecentOrders = recentOrders.map((order) => {
     const address = parseShippingAddress(order.shippingAddress);
@@ -156,11 +187,36 @@ export async function getLiveViewData(
     };
   });
 
+  const pageCounts = new Map<string, number>();
+  for (const view of rangeViews) {
+    const label =
+      view.path.includes("/product")
+        ? "Products"
+        : view.path.includes("/checkout")
+          ? "Checkout"
+          : view.path.includes("/collection")
+            ? "Collections"
+            : "Home";
+    pageCounts.set(label, (pageCounts.get(label) ?? 0) + 1);
+  }
+  const topPages = Array.from(pageCounts.entries())
+    .map(([page, views]) => ({ page, views }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 5);
+  if (topPages.length === 0) {
+    topPages.push(
+      { page: "Home", views: 0 },
+      { page: "Products", views: 0 },
+      { page: "Checkout", views: abandonedCount }
+    );
+  }
+
   return {
     currency,
     range,
     rangeLabel: getLiveMapRangeLabel(range),
     activeVisitors,
+    liveCities,
     cartsOpen: abandonedCount,
     ordersLastHour: hourOrders.length,
     revenueLastHour,
@@ -173,7 +229,7 @@ export async function getLiveViewData(
       regions: previousRegions,
       ordersChange: percentChange(ordersInRange, previousOrders),
       revenueChange: percentChange(revenueInRange, previousRevenue),
-      visitorsChange: percentChange(activeVisitors, previousVisitors),
+      visitorsChange: percentChange(rangeVisitorCount, previousVisitors),
       regionsChange: percentChange(visitorCountries.length, previousRegions),
     },
     hourlyTrend: buildHourlyTrend(rangeOrders, range, now),
@@ -189,10 +245,6 @@ export async function getLiveViewData(
     })),
     visitorCountries,
     recentOrders: mappedRecentOrders,
-    topPages: [
-      { page: "Home", views: activeVisitors * 3 },
-      { page: "Products", views: activeVisitors * 2 },
-      { page: "Checkout", views: abandonedCount + hourOrders.length },
-    ],
+    topPages,
   };
 }

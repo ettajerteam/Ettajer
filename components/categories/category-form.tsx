@@ -2,18 +2,13 @@
 
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import { categorySchema, type CategoryFormValues } from "@/lib/validations/catalog";
-import { slugify } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { SingleImageUpload } from "@/components/catalog/single-image-upload";
 import type { Category } from "@/types/catalog";
 
@@ -36,6 +31,7 @@ export function CategoryForm({ initialData, onSubmit, formId }: CategoryFormProp
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CategoryFormValues>({
     resolver: zodResolver(categorySchema),
@@ -50,67 +46,104 @@ export function CategoryForm({ initialData, onSubmit, formId }: CategoryFormProp
   });
 
   const name = watch("name");
+  const status = watch("status");
+  const isActive = status === "active";
   const slugPreview = slugify(name || "") || "category-slug";
 
   return (
-    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-7">
-      <section className="premium-card space-y-4 p-5">
-        <h3 className="text-sm font-semibold tracking-[-0.01em] text-foreground">Basic details</h3>
-        <div className="space-y-2">
-          <Label htmlFor="category-name">Name *</Label>
-          <Input
-            id="category-name"
-            className="rounded-xl"
-            placeholder="e.g. Accessories"
-            {...register("name")}
-          />
-          {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-          <p className="text-xs text-muted-foreground">
-            URL slug: <span className="font-mono text-foreground/70">{slugPreview}</span>
+    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-5 font-sans">
+      <section className="product-editor-card space-y-5">
+        <div>
+          <h3 className="text-[15px] font-semibold text-foreground">Category details</h3>
+          <p className="mt-1 text-[13px] leading-normal text-muted-foreground">
+            Name it the way shoppers browse — Clothing, Electronics, Home…
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="category-description">Description</Label>
+          <Label htmlFor="category-name" className="text-[13px] font-medium">
+            Name
+          </Label>
+          <Input
+            id="category-name"
+            className="h-11 rounded-xl border-black/[0.08] bg-white/80 text-[15px] dark:border-white/10 dark:bg-white/[0.04]"
+            placeholder="e.g. Accessories, Beauty, Footwear"
+            autoComplete="off"
+            {...register("name")}
+          />
+          {errors.name ? (
+            <p className="text-[12px] text-destructive">{errors.name.message}</p>
+          ) : (
+            <p className="text-[12px] leading-normal text-muted-foreground">
+              Store URL:{" "}
+              <span className="font-medium text-foreground/80">/categories/{slugPreview}</span>
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category-description" className="text-[13px] font-medium">
+            Description
+            <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+          </Label>
           <Textarea
             id="category-description"
-            className="rounded-xl"
-            placeholder="Optional description for this category"
+            className="min-h-[96px] rounded-xl border-black/[0.08] bg-white/80 text-[14px] leading-relaxed dark:border-white/10 dark:bg-white/[0.04]"
+            placeholder="A short line that can appear on the category page."
             rows={3}
             {...register("description")}
           />
         </div>
       </section>
 
-      <section className="premium-card space-y-4 p-5">
-        <h3 className="text-sm font-semibold tracking-[-0.01em] text-foreground">Cover image</h3>
+      <section className="product-editor-card space-y-4">
+        <div>
+          <h3 className="text-[15px] font-semibold text-foreground">Cover image</h3>
+          <p className="mt-1 text-[13px] leading-normal text-muted-foreground">
+            Shown on category pages and navigation. Square or landscape works best.
+          </p>
+        </div>
         <Controller
           name="image"
           control={control}
           render={({ field }) => (
-            <SingleImageUpload image={field.value ?? null} onChange={field.onChange} />
+            <SingleImageUpload
+              image={field.value ?? null}
+              onChange={field.onChange}
+              label="Cover"
+            />
           )}
         />
       </section>
 
-      <section className="premium-card space-y-4 p-5">
-        <h3 className="text-sm font-semibold tracking-[-0.01em] text-foreground">Visibility</h3>
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <Controller
-            name="status"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
+      <section className="product-editor-card">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <span
+              className={cn(
+                "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                isActive
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "bg-neutral-500/10 text-muted-foreground"
+              )}
+            >
+              {isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            </span>
+            <div className="min-w-0">
+              <Label htmlFor="category-active" className="text-[14px] font-medium text-foreground">
+                Active on storefront
+              </Label>
+              <p className="mt-1 text-[12px] leading-normal text-muted-foreground">
+                Inactive categories stay hidden from shoppers.
+              </p>
+            </div>
+          </div>
+          <Switch
+            id="category-active"
+            checked={isActive}
+            onCheckedChange={(checked) =>
+              setValue("status", checked ? "active" : "inactive", { shouldDirty: true })
+            }
           />
         </div>
       </section>

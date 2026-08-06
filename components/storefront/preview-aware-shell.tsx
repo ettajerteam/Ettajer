@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { getFontFamily } from "@/lib/storefront-fonts";
+import { getFontFamily, getStoreFontWeight } from "@/lib/storefront-fonts";
 import { getThemeTemplate } from "@/lib/themes";
 import {
   designTokensToCssVars,
@@ -77,7 +77,7 @@ export function PreviewAwareShell({ store, children }: PreviewAwareShellProps) {
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen font-light antialiased"
       style={
         {
           "--store-primary": live.primaryColor,
@@ -85,6 +85,7 @@ export function PreviewAwareShell({ store, children }: PreviewAwareShellProps) {
           "--store-font": getFontFamily(live.font),
           ...designTokensToCssVars(tokens),
           fontFamily: "var(--store-font)",
+          fontWeight: getStoreFontWeight(live.font),
           backgroundColor: live.theme === "bold" ? "#0A0A0A" : live.secondaryColor,
           color: tokens.textColor,
         } as React.CSSProperties

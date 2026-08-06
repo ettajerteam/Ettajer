@@ -45,6 +45,56 @@ export function isValidHostname(host: string): boolean {
 
 export type DomainMode = "subdomain" | "apex";
 
+export type DomainPrimary = "apex" | "www";
+
 export function detectDomainMode(host: string): DomainMode {
   return isApexHostname(host) ? "apex" : "subdomain";
+}
+
+/** Apex root if host is apex or www.apex; otherwise null (nested subdomain). */
+export function apexRoot(host: string): string | null {
+  const h = host.toLowerCase();
+  if (isApexHostname(h)) return h;
+  if (h.startsWith("www.") && isApexHostname(h.slice(4))) return h.slice(4);
+  return null;
+}
+
+export function parseDomainPrimary(
+  value: string | null | undefined
+): DomainPrimary {
+  return value === "www" ? "www" : "apex";
+}
+
+/** Canonical hostname customers should land on. */
+export function preferredHostname(
+  customDomain: string,
+  primary: DomainPrimary | null | undefined
+): string {
+  const apex = apexRoot(customDomain);
+  if (!apex) return customDomain.toLowerCase();
+  return parseDomainPrimary(primary) === "www" ? `www.${apex}` : apex;
+}
+
+/** The non-preferred host in an apex/www pair (for redirects). */
+export function alternateHostname(
+  customDomain: string,
+  primary: DomainPrimary | null | undefined
+): string | null {
+  const apex = apexRoot(customDomain);
+  if (!apex) return null;
+  return parseDomainPrimary(primary) === "www" ? apex : `www.${apex}`;
+}
+
+/** Hostnames that should resolve to the same store as `host`. */
+export function domainLookupCandidates(host: string): string[] {
+  const h = host.toLowerCase();
+  const out = new Set<string>([h]);
+  if (h.startsWith("www.")) out.add(h.slice(4));
+  else out.add(`www.${h}`);
+  const apex = apexRoot(h);
+  if (apex) {
+    out.add(apex);
+    out.add(`www.${apex}`);
+  }
+  return Array.from(out);
 }

@@ -24,6 +24,8 @@ interface ProductSheetProps {
   ticketPrinters?: TicketPrinter[];
   product?: Product | null;
   onSuccess: () => void;
+  storeSlug?: string;
+  storeName?: string;
 }
 
 export function ProductSheet({
@@ -33,6 +35,8 @@ export function ProductSheet({
   ticketPrinters = [],
   product,
   onSuccess,
+  storeSlug = "your-store",
+  storeName,
 }: ProductSheetProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!product;
@@ -112,6 +116,8 @@ export function ProductSheet({
             initialData={product ?? undefined}
             onSubmit={handleSubmit}
             formId={formId}
+            storeSlug={storeSlug}
+            storeName={storeName}
           />
         </div>
 

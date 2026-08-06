@@ -14,7 +14,6 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
   const s = settings as ProductGallerySectionSettings;
   const zone = useProductPageZone();
   const isBold = store.theme === "bold";
-  const isModern = store.theme === "modern";
   const inGallery = zone === "gallery";
   const layout = s.layout ?? "stack";
   const showThumbs = s.showThumbnails !== false && layout !== "single" && layout !== "carousel";
@@ -55,7 +54,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
   if (!product) {
     return (
       <ProductSectionShell>
-        <div className="flex aspect-[4/5] items-center justify-center rounded-3xl bg-neutral-100 text-sm text-neutral-400">
+        <div className="flex aspect-[4/5] items-center justify-center rounded-[1.5rem] bg-neutral-100/80 text-sm text-neutral-400 backdrop-blur-md">
           Product gallery preview
         </div>
       </ProductSectionShell>
@@ -65,6 +64,14 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
   const imageSrc = images[activeIndex] ?? images[0];
   const canNavigate = images.length > 1;
 
+  const glassControl = cn(
+    "absolute z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border backdrop-blur-xl transition duration-300",
+    "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100",
+    isBold
+      ? "border-white/15 bg-white/10 text-white hover:bg-white/20"
+      : "border-white/70 bg-white/70 text-neutral-800 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] hover:bg-white/90"
+  );
+
   const mainImage = (
     <div
       className={cn(
@@ -72,14 +79,8 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
         inGallery
           ? "aspect-[4/5] w-full lg:aspect-[4/5] lg:min-h-0"
           : "aspect-[4/5] w-full sm:aspect-square",
-        inGallery
-          ? isModern
-            ? "rounded-none"
-            : "rounded-none lg:rounded-none"
-          : isModern
-            ? "rounded-sm bg-stone-100"
-            : "rounded-3xl",
-        isBold ? "bg-zinc-900" : "bg-neutral-100"
+        inGallery ? "rounded-none" : "rounded-[1.5rem]",
+        isBold ? "bg-zinc-900" : "bg-neutral-100/70"
       )}
       onTouchStart={(e) => {
         touchStartX.current = e.changedTouches[0]?.clientX ?? null;
@@ -98,15 +99,22 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
         src={imageSrc}
         alt={product.title}
         fill
-        className="object-cover object-center transition duration-700 ease-out group-hover:scale-[1.02]"
+        className="object-cover object-center transition duration-700 ease-out group-hover:scale-[1.025]"
         priority
         sizes="(max-width: 1024px) 100vw, 55vw"
       />
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-70" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/5 opacity-80" />
 
       {canNavigate ? (
-        <div className="absolute bottom-4 left-4 z-10 rounded-full bg-black/50 px-3 py-1 text-[11px] font-medium tabular-nums tracking-wide text-white/95 backdrop-blur-md">
+        <div
+          className={cn(
+            "absolute bottom-4 left-4 z-10 rounded-full border px-3 py-1 text-[11px] font-medium tabular-nums tracking-wide backdrop-blur-xl",
+            isBold
+              ? "border-white/15 bg-white/10 text-white/95"
+              : "border-white/60 bg-white/70 text-neutral-800"
+          )}
+        >
           {activeIndex + 1} / {images.length}
         </div>
       ) : null}
@@ -115,12 +123,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
         type="button"
         aria-label="Zoom image"
         onClick={() => setLightboxOpen(true)}
-        className={cn(
-          "absolute right-3 top-3 z-10 inline-flex h-10 w-10 items-center justify-center bg-white/90 text-neutral-800 shadow-sm backdrop-blur-sm transition hover:bg-white",
-          isModern ? "rounded-sm" : "rounded-full",
-          "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100",
-          isBold && "bg-zinc-800/90 text-white hover:bg-zinc-800"
-        )}
+        className={cn(glassControl, "right-3 top-3")}
       >
         <ZoomIn className="h-4 w-4" />
       </button>
@@ -131,11 +134,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
             type="button"
             aria-label="Previous image"
             onClick={goPrev}
-            className={cn(
-              "absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-white/90 text-neutral-800 shadow-sm backdrop-blur-sm transition hover:bg-white",
-              isModern ? "rounded-sm" : "rounded-full",
-              "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-            )}
+            className={cn(glassControl, "left-3 top-1/2 -translate-y-1/2")}
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -143,11 +142,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
             type="button"
             aria-label="Next image"
             onClick={goNext}
-            className={cn(
-              "absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-white/90 text-neutral-800 shadow-sm backdrop-blur-sm transition hover:bg-white",
-              isModern ? "rounded-sm" : "rounded-full",
-              "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-            )}
+            className={cn(glassControl, "right-3 top-1/2 -translate-y-1/2")}
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -163,8 +158,8 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
               aria-label={`Image ${i + 1}`}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                "h-1.5 rounded-full transition-all",
-                activeIndex === i ? "w-5 bg-white" : "w-1.5 bg-white/45"
+                "h-1.5 rounded-full transition-all duration-300",
+                activeIndex === i ? "w-5 bg-white shadow-sm" : "w-1.5 bg-white/45"
               )}
             />
           ))}
@@ -181,7 +176,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
           sideThumbs
             ? "flex-col overflow-y-auto overflow-x-hidden py-1"
             : inGallery
-              ? "mt-0 gap-2 px-4 py-4 sm:px-5"
+              ? "mt-0 gap-2.5 px-4 py-4 sm:px-5"
               : "mt-3 px-1"
         )}
       >
@@ -191,12 +186,11 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
             type="button"
             onClick={() => setActiveIndex(i)}
             className={cn(
-              "relative shrink-0 overflow-hidden transition duration-200",
+              "relative shrink-0 overflow-hidden rounded-2xl transition duration-300",
               sideThumbs ? "h-[4.75rem] w-[4.75rem]" : "h-[4.25rem] w-[4.25rem]",
-              isModern ? "rounded-sm" : "rounded-2xl",
               activeIndex === i
                 ? "opacity-100 ring-2 ring-[var(--store-primary)] ring-offset-2 ring-offset-transparent"
-                : "opacity-60 ring-1 ring-black/5 hover:opacity-100"
+                : "opacity-55 ring-1 ring-black/5 hover:opacity-100"
             )}
           >
             <Image src={img} alt={`${product.title} view ${i + 1}`} fill className="object-cover" sizes="72px" />
@@ -210,7 +204,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
       {sideThumbs && thumbs ? (
         <div className={cn("flex gap-3", inGallery && "p-4 sm:p-5")}>
           <div className="shrink-0">{thumbs}</div>
-          <div className="min-w-0 flex-1 overflow-hidden rounded-2xl">{mainImage}</div>
+          <div className="min-w-0 flex-1 overflow-hidden rounded-[1.5rem]">{mainImage}</div>
         </div>
       ) : (
         <>
@@ -221,7 +215,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
 
       {lightboxOpen ? (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/92 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl"
           role="dialog"
           aria-modal="true"
           aria-label="Product image"
@@ -230,7 +224,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
           <button
             type="button"
             aria-label="Close"
-            className="absolute right-4 top-4 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+            className="absolute right-4 top-4 rounded-full border border-white/15 bg-white/10 p-2.5 text-white backdrop-blur-xl transition hover:bg-white/20"
             onClick={() => setLightboxOpen(false)}
           >
             <X className="h-5 w-5" />
@@ -240,7 +234,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
               <button
                 type="button"
                 aria-label="Previous image"
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-white/10 p-2.5 text-white backdrop-blur-xl transition hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation();
                   goPrev();
@@ -251,7 +245,7 @@ export function ProductGallerySection({ store, product, settings }: BlockRenderP
               <button
                 type="button"
                 aria-label="Next image"
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-white/10 p-2.5 text-white backdrop-blur-xl transition hover:bg-white/20"
                 onClick={(e) => {
                   e.stopPropagation();
                   goNext();

@@ -13,9 +13,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     const body = await request.json();
     const page = await updateStorePage(params.id, store.id, {
-      title: body.title,
-      content: body.content,
-      status: body.status,
+      title: typeof body.title === "string" ? body.title : undefined,
+      content: typeof body.content === "string" ? body.content : undefined,
+      status:
+        body.status === "published" || body.status === "draft"
+          ? body.status
+          : undefined,
+      slug: typeof body.slug === "string" ? body.slug : undefined,
     });
 
     return NextResponse.json({ page: serializeStorePage(page) });

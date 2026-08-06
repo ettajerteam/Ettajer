@@ -60,9 +60,9 @@ export function LeftPanelRailButtons({
   return (
     <>
       {LEFT_PANEL_RAIL_GROUPS.map((group, groupIndex) => (
-        <div key={group.id} className="flex flex-col items-center gap-1">
+        <div key={group.id} className="flex flex-col items-center gap-0.5">
           {groupIndex > 0 ? (
-            <div className="my-1 h-px w-6 bg-neutral-200" aria-hidden />
+            <div className="my-1.5 h-px w-5 bg-black/[0.08]" aria-hidden />
           ) : null}
           {group.items.map((item) => {
             const Icon = item.icon;
@@ -74,6 +74,7 @@ export function LeftPanelRailButtons({
                   : item.showDirty === "nav"
                     ? navigationDirty
                     : false;
+            const active = activeTab === item.value;
             return (
               <Button
                 key={item.value}
@@ -81,16 +82,17 @@ export function LeftPanelRailButtons({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "relative h-9 w-9 rounded-lg",
-                  activeTab === item.value && "bg-[#007AFF]/10 text-[#007AFF]"
+                  "relative h-9 w-9 rounded-md text-neutral-500 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-800",
+                  active && "bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF]/12 hover:text-[#007AFF]"
                 )}
                 onClick={() => onSelectTab(item.value)}
                 title={item.title}
                 aria-label={item.title}
+                aria-pressed={active}
               >
                 <Icon className="h-4 w-4" />
                 {isDirty ? (
-                  <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500 ring-2 ring-[#F5F5F7]" />
                 ) : null}
               </Button>
             );

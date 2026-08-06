@@ -1,6 +1,9 @@
 "use client";
 
-import { Plus, Trash2, Palette, Ruler, Tag } from "lucide-react";
+import { useRef, useState } from "react";
+import Image from "next/image";
+import { ImagePlus, Loader2, Plus, Trash2, Palette, Ruler, Tag } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,18 +22,22 @@ const PRESETS = [
 ] as const;
 
 export function VariantEditor({ variants, onChange }: VariantEditorProps) {
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pendingUpload = useRef<{ variantId: string; option: string } | null>(null);
+
   const hasVariant = (name: string) =>
     variants.some((v) => v.name.trim().toLowerCase() === name.toLowerCase());
 
   const addPreset = (name: string) => {
     if (hasVariant(name)) return;
-    onChange([...variants, { id: crypto.randomUUID(), name, options: [""] }]);
+    onChange([...variants, { id: crypto.randomUUID(), name, options: [""], optionImages: {} }]);
   };
 
   const addCustom = () => {
     onChange([
       ...variants,
-      { id: crypto.randomUUID(), name: "", options: [""] },
+      { id: crypto.randomUUID(), name: "", options: [""], optionImages: {} },
     ]);
   };
 
@@ -52,26 +59,99 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
 
   const updateOption = (variantId: string, index: number, value: string) => {
     onChange(
-      variants.map((v) =>
-        v.id === variantId
-          ? { ...v, options: v.options.map((o, i) => (i === index ? value : o)) }
-          : v
-      )
+      variants.map((v) => {
+        if (v.id !== variantId) return v;
+        const prev = v.options[index];
+        const options = v.options.map((o, i) => (i === index ? value : o));
+        const optionImages = { ...(v.optionImages ?? {}) };
+        if (prev && optionImages[prev] && prev !== value) {
+          optionImages[value] = optionImages[prev];
+          delete optionImages[prev];
+        }
+        return { ...v, options, optionImages };
+      })
     );
   };
 
   const removeOption = (variantId: string, index: number) => {
     onChange(
-      variants.map((v) =>
-        v.id === variantId
-          ? { ...v, options: v.options.filter((_, i) => i !== index) }
-          : v
-      )
+      variants.map((v) => {
+        if (v.id !== variantId) return v;
+        const removed = v.options[index];
+        const options = v.options.filter((_, i) => i !== index);
+        const optionImages = { ...(v.optionImages ?? {}) };
+        if (removed) delete optionImages[removed];
+        return { ...v, options, optionImages };
+      })
     );
+  };
+
+  const setOptionImage = (variantId: string, option: string, url: string | null) => {
+    onChange(
+      variants.map((v) => {
+        if (v.id !== variantId) return v;
+        const optionImages = { ...(v.optionImages ?? {}) };
+        if (!url) delete optionImages[option];
+        else optionImages[option] = url;
+        return { ...v, optionImages };
+      })
+    );
+  };
+
+  const pickImage = (variantId: string, option: string) => {
+    if (!option.trim()) {
+      toast.error("Enter the option name first (e.g. Red)");
+      return;
+    }
+    pendingUpload.current = { variantId, option };
+    fileRef.current?.click();
+  };
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const pending = pendingUpload.current;
+    e.target.value = "";
+    if (!file || !pending) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file");
+      return;
+    }
+
+    const key = `${pending.variantId}:${pending.option}`;
+    setUploadingKey(key);
+    try {
+      const formData = new FormData();
+      formData.append("files", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Upload failed");
+      const url =
+        Array.isArray(data.assets) && data.assets[0]?.url
+          ? data.assets[0].url
+          : Array.isArray(data.urls)
+            ? data.urls[0]
+            : null;
+      if (!url) throw new Error("No image returned");
+      setOptionImage(pending.variantId, pending.option, url);
+      toast.success("Variant image added");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingKey(null);
+      pendingUpload.current = null;
+    }
   };
 
   return (
     <div className="space-y-4">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onFileChange}
+      />
+
       <div className="flex flex-wrap gap-2">
         {PRESETS.map((preset) => {
           const Icon = preset.icon;
@@ -107,7 +187,6 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
           (p) => p.name.toLowerCase() === variant.name.trim().toLowerCase()
         );
         const Icon = preset?.icon ?? Tag;
-
         return (
           <div key={variant.id} className="space-y-3 rounded-xl border bg-muted/20 p-4">
             <div className="flex items-center justify-between gap-2">
@@ -132,26 +211,61 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Values</Label>
-              {variant.options.map((option, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Input
-                    placeholder={preset?.placeholder ?? "e.g. Value"}
-                    value={option}
-                    onChange={(e) => updateOption(variant.id, index, e.target.value)}
-                  />
-                  {variant.options.length > 1 && (
-                    <Button
+              <Label className="text-xs text-muted-foreground">
+                Values · each can have its own image
+              </Label>
+              {variant.options.map((option, index) => {
+                const img = option.trim()
+                  ? variant.optionImages?.[option.trim()] ?? variant.optionImages?.[option]
+                  : undefined;
+                const uploadKey = `${variant.id}:${option}`;
+                const busy = uploadingKey === uploadKey;
+
+                return (
+                  <div key={index} className="flex items-center gap-2">
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeOption(variant.id, index)}
+                      onClick={() => pickImage(variant.id, option.trim() || option)}
+                      className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/10 bg-white/70 text-muted-foreground hover:border-[#007AFF]/40 hover:text-[#007AFF] dark:border-white/15 dark:bg-white/5"
+                      title="Variant image"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                      {busy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : img ? (
+                        <Image src={img} alt="" fill className="object-cover" unoptimized />
+                      ) : (
+                        <ImagePlus className="h-4 w-4" />
+                      )}
+                    </button>
+                    <Input
+                      placeholder={preset?.placeholder ?? "e.g. Value"}
+                      value={option}
+                      onChange={(e) => updateOption(variant.id, index, e.target.value)}
+                    />
+                    {img ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        title="Remove image"
+                        onClick={() => setOptionImage(variant.id, option, null)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : null}
+                    {variant.options.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeOption(variant.id, index)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
               <Button
                 type="button"
                 variant="ghost"

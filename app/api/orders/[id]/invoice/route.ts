@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { prisma } from "@/lib/db";
 import { getAuthenticatedStore } from "@/lib/products";
 import { getOrderForStore, serializeOrderDetail } from "@/lib/orders";
 import { InvoiceDocument } from "@/components/orders/invoice-document";
 import { getAppUrl } from "@/lib/app-url";
+import { parseShopPreferences } from "@/lib/shop-preferences";
 import type { ReactElement } from "react";
 
 interface RouteParams {
@@ -30,12 +32,27 @@ export async function GET(_request: Request, { params }: RouteParams) {
         : `${baseUrl}${store.logo}`
       : null;
 
+    const settings = await prisma.storeSettings.findUnique({
+      where: { storeId: store.id },
+      select: { seo: true },
+    });
+    const shop = parseShopPreferences(settings?.seo);
+    const invoice = shop.invoice;
+
     const buffer = await renderToBuffer(
       InvoiceDocument({
         order: serialized,
         storeName: store.name,
         storeLogo: logoUrl,
         currency: store.currency,
+        documentTitle: invoice.documentTitle,
+        footerNote: invoice.footerNote,
+        showLogo: invoice.showLogo,
+        showPaymentStatus: invoice.showPaymentStatus,
+        companyDetails: invoice.companyDetails,
+        template: invoice.template,
+        showTax: shop.tax.showOnInvoice,
+        taxLabel: shop.tax.label,
       }) as ReactElement
     );
     return new NextResponse(new Uint8Array(buffer), {

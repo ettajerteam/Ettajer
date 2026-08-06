@@ -211,6 +211,9 @@ export function EditorPagesPanel({
         layout: current.layout,
         metaTitle: updates.metaTitle ?? current.metaTitle,
         metaDescription: updates.metaDescription ?? current.metaDescription,
+        keywords: current.keywords,
+        ogImage: current.ogImage,
+        noIndex: current.noIndex,
       }),
     };
     onSelect({ type: "custom", page: { ...customPage, ...next } });

@@ -170,6 +170,65 @@ export function slugFromName(name: string): string {
   return slugify(name) || "item";
 }
 
+/** Create missing digital product categories for a store (idempotent). */
+export async function ensureDigitalCategories(storeId: string): Promise<Category[]> {
+  const { DIGITAL_PRODUCT_CATEGORIES, digitalCategorySlug } = await import(
+    "@/lib/catalog-defaults"
+  );
+  return ensureNamedCategories(storeId, DIGITAL_PRODUCT_CATEGORIES, digitalCategorySlug);
+}
+
+/** Create missing physical product categories for a store (idempotent). */
+export async function ensurePhysicalCategories(storeId: string): Promise<Category[]> {
+  const { PHYSICAL_PRODUCT_CATEGORIES, physicalCategorySlug } = await import(
+    "@/lib/catalog-defaults"
+  );
+  return ensureNamedCategories(storeId, PHYSICAL_PRODUCT_CATEGORIES, physicalCategorySlug);
+}
+
+async function ensureNamedCategories(
+  storeId: string,
+  list: readonly { name: string; description: string }[],
+  slugFn: (name: string) => string
+): Promise<Category[]> {
+  const existing = await prisma.category.findMany({
+    where: { storeId },
+    select: { slug: true, name: true },
+  });
+  const existingSlugs = new Set(existing.map((c) => c.slug));
+  const existingNames = new Set(
+    existing.map((c) => c.name.trim().toLowerCase())
+  );
+
+  const created: Category[] = [];
+
+  for (const cat of list) {
+    const slug = slugFn(cat.name);
+    if (existingSlugs.has(slug) || existingNames.has(cat.name.toLowerCase())) {
+      continue;
+    }
+    try {
+      const row = await prisma.category.create({
+        data: {
+          storeId,
+          name: cat.name,
+          slug,
+          description: cat.description,
+          status: "active",
+        },
+        include: { _count: { select: { products: true } } },
+      });
+      existingSlugs.add(slug);
+      existingNames.add(cat.name.toLowerCase());
+      created.push(serializeCategory(row));
+    } catch {
+      // Unique race — ignore
+    }
+  }
+
+  return created;
+}
+
 export async function validateProductIds(storeId: string, productIds: string[]) {
   if (productIds.length === 0) return true;
   const count = await prisma.product.count({

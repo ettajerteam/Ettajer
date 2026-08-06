@@ -4,6 +4,7 @@ import {
   isValidSubscriberEmail,
   subscribeToNewsletter,
 } from "@/lib/newsletter";
+import { maybeSendWelcomeNewsletterEmail } from "@/lib/newsletter-automations";
 
 interface RouteParams {
   params: { slug: string };
@@ -26,7 +27,10 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const email = typeof body?.email === "string" ? body.email : "";
     if (!isValidSubscriberEmail(email)) {
-      return NextResponse.json({ message: "Enter a valid email address" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Enter a valid email address" },
+        { status: 400 }
+      );
     }
 
     const source =
@@ -38,7 +42,17 @@ export async function POST(request: Request, { params }: RouteParams) {
       storeId: store.id,
       email,
       source,
+      explicitOptIn: false,
     });
+
+    if (result.requiresOptIn) {
+      return NextResponse.json({
+        ok: true,
+        ...result,
+        message:
+          "This email is unsubscribed from marketing. Use Manage Preferences in a previous email to opt in again.",
+      });
+    }
 
     const message = result.created
       ? "You're on the list"
@@ -46,9 +60,20 @@ export async function POST(request: Request, { params }: RouteParams) {
         ? "Welcome back — you're subscribed again"
         : "You're already subscribed";
 
+    void maybeSendWelcomeNewsletterEmail({
+      storeId: store.id,
+      email,
+      shouldSend: result.created || result.reactivated,
+      subscriberId: result.subscriberId,
+      occurrence: result.reactivated ? "reactivate" : "signup",
+    });
+
     return NextResponse.json({ ok: true, message, ...result });
   } catch (error) {
     console.error("Newsletter subscribe error:", error);
-    return NextResponse.json({ message: "Failed to subscribe" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to subscribe" },
+      { status: 500 }
+    );
   }
 }

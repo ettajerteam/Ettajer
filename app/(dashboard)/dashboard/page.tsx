@@ -5,6 +5,7 @@ import { getExecutiveDashboardData } from "@/lib/dashboard-analytics";
 import { DashboardLayout } from "@/components/shared/dashboard-layout";
 import { HomeDashboard } from "@/components/dashboard/home/home-dashboard";
 import type { DashboardRange } from "@/types/dashboard";
+import { getServerLocale } from "@/lib/seo/page-metadata";
 
 export const metadata = { title: "Dashboard" };
 
@@ -18,7 +19,7 @@ function parseRange(value?: string): DashboardRange {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { range?: string };
+  searchParams: { range?: string; launch?: string };
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -38,10 +39,18 @@ export default async function DashboardPage({
   );
 
   const firstName = session.user.name?.split(" ")[0];
+  const cookieLocale = await getServerLocale();
+  const locale = store.language || cookieLocale;
 
   return (
     <DashboardLayout>
-      <HomeDashboard data={dashboardData} userName={firstName} storeSlug={store.slug} />
+      <HomeDashboard
+        data={dashboardData}
+        userName={firstName}
+        storeSlug={store.slug}
+        locale={locale}
+        launchMode={searchParams.launch === "1"}
+      />
     </DashboardLayout>
   );
 }

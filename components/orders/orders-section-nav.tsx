@@ -61,8 +61,10 @@ export function OrdersSectionNav({ counts = EMPTY_ORDERS_SECTION_COUNTS }: Order
             {tab.label}
             <span
               className={cn(
-                "inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums",
-                active ? "bg-[#007AFF]/10 text-[#007AFF]" : "bg-muted text-muted-foreground"
+                "inline-flex min-w-[1.1rem] items-center justify-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                active
+                  ? "bg-white text-neutral-700 dark:bg-white/10 dark:text-neutral-200"
+                  : "bg-[#F5F5F7] text-neutral-400 dark:bg-white/[0.06]"
               )}
             >
               {count}

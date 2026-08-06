@@ -77,14 +77,15 @@ export function HelpArticleView({
       </p>
 
       <div className="mt-8 space-y-5 border-t border-[#E5E5EA] pt-8 md:mt-10 md:border-neutral-200 md:pt-10">
-        {localized.body.map((paragraph) => (
-          <p
-            key={paragraph}
-            className="text-[17px] leading-[1.65] text-neutral-700 md:text-base md:leading-relaxed"
-          >
-            {paragraph}
-          </p>
-        ))}
+        <ol className="list-none space-y-5 p-0">
+          {localized.body.map((paragraph, index) => (
+            <li key={`${index}-${paragraph.slice(0, 24)}`}>
+              <p className="text-[17px] leading-[1.65] text-neutral-700 md:text-base md:leading-relaxed">
+                {paragraph}
+              </p>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <HelpMobileCard className="mt-10 md:mt-12 md:rounded-2xl md:border md:border-neutral-200 md:bg-neutral-50 md:shadow-none">

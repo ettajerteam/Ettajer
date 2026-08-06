@@ -73,9 +73,22 @@ async function tryCustomDomainRewrite(req: NextRequest) {
       headers: { "x-middleware-domain-lookup": "1" },
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { slug?: string | null };
+    const data = (await res.json()) as {
+      slug?: string | null;
+      canonicalHost?: string | null;
+      aliasHosts?: string[];
+    };
     const slug = data.slug;
     if (!slug) return null;
+
+    const canonical = data.canonicalHost?.toLowerCase() ?? null;
+    const aliases = (data.aliasHosts ?? []).map((h) => h.toLowerCase());
+    if (canonical && host !== canonical && aliases.includes(host)) {
+      const dest = new URL(
+        `https://${canonical}${pathname}${req.nextUrl.search}`
+      );
+      return NextResponse.redirect(dest, 308);
+    }
 
     if (pathname === `/store/${slug}` || pathname.startsWith(`/store/${slug}/`)) {
       return NextResponse.next();

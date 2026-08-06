@@ -467,7 +467,7 @@ const EN_COPY: FounderFlowCopy = {
   },
   onboarding: {
     pageTitle: "Welcome to Ettajer",
-    pageSubtitle: "Let's set up your store in 3 easy steps",
+    pageSubtitle: "Set up your store in a few guided steps",
     stepOf: (step, total) => `Step ${step} of ${total}`,
     steps: {
       storeName: { title: "Store Name", description: "What should we call your store?" },
@@ -654,7 +654,7 @@ const FR_COPY: FounderFlowCopy = {
   },
   onboarding: {
     pageTitle: "Bienvenue sur Ettajer",
-    pageSubtitle: "Configurons votre boutique en 3 étapes simples",
+    pageSubtitle: "Configurez votre boutique en quelques étapes guidées",
     stepOf: (step, total) => `Étape ${step} sur ${total}`,
     steps: {
       storeName: { title: "Nom de la boutique", description: "Comment appeler votre boutique ?" },
@@ -840,7 +840,7 @@ const AR_COPY: FounderFlowCopy = {
   },
   onboarding: {
     pageTitle: "مرحباً بك في إيتاجر",
-    pageSubtitle: "لنُعدّ متجرك في 3 خطوات بسيطة",
+    pageSubtitle: "أعد متجرك عبر خطوات موجّهة",
     stepOf: (step, total) => `الخطوة ${step} من ${total}`,
     steps: {
       storeName: { title: "اسم المتجر", description: "ما اسم متجرك؟" },

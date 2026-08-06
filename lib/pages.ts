@@ -59,17 +59,47 @@ export async function getStorePageById(id: string, storeId: string) {
 export async function updateStorePage(
   id: string,
   storeId: string,
-  data: { title?: string; content?: string; status?: string }
+  data: {
+    title?: string;
+    content?: string;
+    status?: string;
+    slug?: string;
+  }
 ) {
   const page = await getStorePageById(id, storeId);
   if (!page) throw new Error("Page not found");
 
+  let nextSlug = page.slug;
+  if (data.slug !== undefined && data.slug.trim()) {
+    let candidate = slugify(data.slug);
+    const clash = await prisma.storePage.findFirst({
+      where: { storeId, slug: candidate, NOT: { id } },
+    });
+    if (clash) candidate = `${candidate}-${Date.now().toString(36)}`;
+    nextSlug = candidate;
+  } else if (
+    data.title !== undefined &&
+    data.title.trim() &&
+    data.title.trim() !== page.title &&
+    page.status === "draft"
+  ) {
+    let candidate = slugify(data.title);
+    const clash = await prisma.storePage.findFirst({
+      where: { storeId, slug: candidate, NOT: { id } },
+    });
+    if (clash) candidate = `${candidate}-${Date.now().toString(36)}`;
+    nextSlug = candidate;
+  }
+
+  const nextStatus = data.status ?? page.status;
+
   return prisma.storePage.update({
     where: { id },
     data: {
-      ...(data.title !== undefined ? { title: data.title } : {}),
-      ...(data.content !== undefined ? { content: data.content } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
+      title: data.title?.trim() || page.title,
+      slug: nextSlug,
+      content: data.content !== undefined ? data.content : page.content,
+      status: nextStatus,
     },
   });
 }
@@ -97,4 +127,23 @@ export async function deleteStorePage(id: string, storeId: string) {
   const page = await prisma.storePage.findFirst({ where: { id, storeId } });
   if (!page) throw new Error("Page not found");
   await prisma.storePage.delete({ where: { id } });
+}
+
+export async function duplicateStorePage(id: string, storeId: string) {
+  const page = await getStorePageById(id, storeId);
+  if (!page) throw new Error("Page not found");
+
+  let slug = `${page.slug}-copy`;
+  const clash = await prisma.storePage.findFirst({ where: { storeId, slug } });
+  if (clash) slug = `${slug}-${Date.now().toString(36)}`;
+
+  return prisma.storePage.create({
+    data: {
+      storeId,
+      title: `${page.title} (copy)`,
+      slug,
+      content: page.content,
+      status: "draft",
+    },
+  });
 }
