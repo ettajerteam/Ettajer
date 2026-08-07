@@ -37,6 +37,8 @@ import {
 
   isAccountLocked,
 
+  isLoginIpRateLimited,
+
   recordAuthEvent,
 
   recordFailedLogin,
@@ -168,6 +170,18 @@ providers.push(
 
 
       const { ipAddress, userAgent } = await getRequestMeta();
+
+      if (await isLoginIpRateLimited(ipAddress)) {
+        await recordAuthEvent({
+          email: email || "unknown",
+          action: "login",
+          success: false,
+          reason: "rate_limited",
+          ipAddress,
+          userAgent,
+        });
+        throw new Error("RATE_LIMITED");
+      }
 
       const user = await getSecurityUser(email);
 

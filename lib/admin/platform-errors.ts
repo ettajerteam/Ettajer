@@ -10,7 +10,20 @@ interface PlatformErrorParams {
   metadata?: Record<string, unknown>;
 }
 
+/** Next.js build/static analysis noise — not real runtime failures. */
+function isBenignFrameworkNoise(message: string): boolean {
+  return (
+    /couldn't be rendered statically/i.test(message) ||
+    /Dynamic server usage/i.test(message) ||
+    /unexpected end of json input/i.test(message)
+  );
+}
+
 export async function logPlatformError(params: PlatformErrorParams) {
+  if (isBenignFrameworkNoise(params.message)) {
+    return;
+  }
+
   try {
     await prisma.platformError.create({
       data: {

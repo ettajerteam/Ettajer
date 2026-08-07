@@ -107,6 +107,7 @@ export type AuthCopy = {
     noPasswordAccount: string;
     accountLocked: string;
     emailNotVerified: string;
+    rateLimited: string;
     default: string;
     accountLockedMinutes: (minutes: string) => string;
     invalidPasswordAttempts: (count: number) => string;
@@ -295,6 +296,7 @@ const EN_COPY: AuthCopy = {
     noPasswordAccount: "This account uses Google or email link sign-in. Try another method.",
     accountLocked: "Account temporarily locked due to failed sign-in attempts.",
     emailNotVerified: "Activate your account with the 6-digit code we emailed you.",
+    rateLimited: "Too many sign-in attempts from this network. Wait a bit and try again.",
     default: "Something went wrong. Please try again.",
     accountLockedMinutes: (minutes) =>
       `Too many failed attempts. Try again in ${minutes} minutes or reset your password.`,
@@ -488,6 +490,8 @@ const FR_COPY: AuthCopy = {
       "Ce compte utilise Google ou un lien e-mail. Essayez une autre méthode.",
     accountLocked: "Compte temporairement verrouillé après trop de tentatives.",
     emailNotVerified: "Activez votre compte avec le code à 6 chiffres envoyé par e-mail.",
+    rateLimited:
+      "Trop de tentatives de connexion depuis ce réseau. Attendez un moment et réessayez.",
     default: "Une erreur s'est produite. Veuillez réessayer.",
     accountLockedMinutes: (minutes) =>
       `Trop de tentatives. Réessayez dans ${minutes} minutes ou réinitialisez votre mot de passe.`,
@@ -678,6 +682,7 @@ const AR_COPY: AuthCopy = {
     noPasswordAccount: "هذا الحساب يستخدم Google أو رابط البريد. جرّب طريقة أخرى.",
     accountLocked: "الحساب مقفل مؤقتاً بسبب محاولات فاشلة.",
     emailNotVerified: "فعّل حسابك بالرمز المكوّن من 6 أرقام المرسل بالبريد.",
+    rateLimited: "محاولات تسجيل دخول كثيرة من هذه الشبكة. انتظر قليلاً ثم حاول مجدداً.",
     default: "حدث خطأ. يرجى المحاولة مجدداً.",
     accountLockedMinutes: (minutes) =>
       `محاولات كثيرة فاشلة. حاول بعد ${minutes} دقيقة أو أعد تعيين كلمة المرور.`,
@@ -781,6 +786,7 @@ export function getAuthErrorMap(copy: AuthCopy): Record<string, string> {
     NO_PASSWORD_ACCOUNT: copy.errors.noPasswordAccount,
     AccountLocked: copy.errors.accountLocked,
     EMAIL_NOT_VERIFIED: copy.errors.emailNotVerified,
+    RATE_LIMITED: copy.errors.rateLimited,
     Default: copy.errors.default,
   };
 }

@@ -11,6 +11,8 @@ import { loadUserPlan, serializeAccountProfile } from "@/lib/account-profile";
 import { isSignupPasswordValid } from "@/lib/validations/signup";
 import { logPlatformError } from "@/lib/admin/platform-errors";
 
+export const dynamic = "force-dynamic";
+
 const profileUpdateSchema = z.object({
   name: z.string().min(1).max(80).optional(),
   marketingEmails: z.boolean().optional(),

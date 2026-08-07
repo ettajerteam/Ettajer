@@ -7,6 +7,8 @@ import { IMAGE_MAX_SIZE, IMAGE_MIME_TYPES, IMAGE_RAW_MAX_SIZE } from "@/lib/medi
 import { loadUserPlan, serializeAccountProfile } from "@/lib/account-profile";
 import { logPlatformError } from "@/lib/admin/platform-errors";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     const session = await auth();

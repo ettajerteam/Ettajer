@@ -7,6 +7,8 @@ export const AUTH_SECURITY = {
   forgotPasswordMaxPerHour: 5,
   resetPasswordMaxPerHour: 10,
   signupMaxPerHour: 10,
+  /** Cap credential stuffing / probe noise from a single IP */
+  loginMaxFailuresPerIpPerHour: 40,
 } as const;
 
 export type AuthAction = "login" | "forgot_password" | "reset_password" | "signup";
@@ -118,6 +120,26 @@ export async function isRateLimited(params: {
   });
 
   return count >= params.maxAttempts;
+}
+
+/** IP-scoped rate limit for failed login attempts (credential stuffing). */
+export async function isLoginIpRateLimited(
+  ipAddress: string | null | undefined,
+): Promise<boolean> {
+  const ip = ipAddress?.trim();
+  if (!ip || ip === "unknown") return false;
+
+  const since = new Date(Date.now() - 60 * 60 * 1000);
+  const count = await prisma.loginAttempt.count({
+    where: {
+      action: "login",
+      success: false,
+      ipAddress: ip,
+      createdAt: { gte: since },
+    },
+  });
+
+  return count >= AUTH_SECURITY.loginMaxFailuresPerIpPerHour;
 }
 
 export async function recordFailedLogin(email: string): Promise<void> {

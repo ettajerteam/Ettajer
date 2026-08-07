@@ -65,7 +65,16 @@ async function persistSignupPreferences(
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body. Send JSON with your signup details." },
+        { status: 400 },
+      );
+    }
+
     const parsed = signupSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -203,15 +212,25 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Signup error:", error);
 
-    await logPlatformError({
-      source: "api/auth/signup",
-      message: error instanceof Error ? error.message : "Signup error",
-      stack: error instanceof Error ? error.stack : undefined,
-      path: "/api/auth/signup",
-      metadata: {
-        code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined,
-      },
-    });
+    const message = error instanceof Error ? error.message : "Signup error";
+    // Client/malformed body noise — do not fill the security dashboard
+    const isClientNoise =
+      /unexpected end of json|json\.parse|invalid json/i.test(message);
+
+    if (!isClientNoise) {
+      await logPlatformError({
+        source: "api/auth/signup",
+        message,
+        stack: error instanceof Error ? error.stack : undefined,
+        path: "/api/auth/signup",
+        metadata: {
+          code:
+            error instanceof Prisma.PrismaClientKnownRequestError
+              ? error.code
+              : undefined,
+        },
+      });
+    }
 
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
