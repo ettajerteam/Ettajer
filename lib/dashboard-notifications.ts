@@ -24,11 +24,15 @@ export type DashboardNotificationSummary = {
   abandoned: number;
 };
 
+/** Unread counts by kind — used for sidebar attention dots. */
+export type DashboardUnreadSummary = DashboardNotificationSummary;
+
 export type DashboardNotificationsPayload = {
   count: number;
   unread: number;
   items: DashboardNotificationItem[];
   summary: DashboardNotificationSummary;
+  unreadSummary: DashboardUnreadSummary;
   alerts: {
     orders: boolean;
     orderStatus: boolean;
@@ -82,8 +86,9 @@ export function isNotificationUnread(
 }
 
 export async function patchNotifications(body: {
-  action: "open" | "mark_all_read" | "dismiss";
+  action: "open" | "mark_all_read" | "dismiss" | "mark_kind_read";
   ids?: string[];
+  kinds?: DashboardNotificationKind[];
 }): Promise<boolean> {
   try {
     const res = await fetch("/api/dashboard/notifications", {

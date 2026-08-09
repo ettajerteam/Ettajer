@@ -27,9 +27,34 @@ function isKnownKind(kind: string): kind is DashboardNotificationKind {
 }
 
 const patchSchema = z.object({
-  action: z.enum(["open", "mark_all_read", "dismiss"]),
+  action: z.enum(["open", "mark_all_read", "dismiss", "mark_kind_read"]),
   ids: z.array(z.string().min(1)).optional(),
+  kinds: z
+    .array(z.enum(["order", "order_status", "message", "stock", "abandoned"]))
+    .optional(),
 });
+
+function emptySummary(): DashboardNotificationSummary {
+  return {
+    orders: 0,
+    orderStatus: 0,
+    messages: 0,
+    stock: 0,
+    abandoned: 0,
+  };
+}
+
+function applyKindCount(
+  summary: DashboardNotificationSummary,
+  kind: DashboardNotificationKind,
+  n: number
+) {
+  if (kind === "order") summary.orders = n;
+  else if (kind === "order_status") summary.orderStatus = n;
+  else if (kind === "message") summary.messages = n;
+  else if (kind === "stock") summary.stock = n;
+  else if (kind === "abandoned") summary.abandoned = n;
+}
 
 export async function GET(request: Request) {
   try {
@@ -59,13 +84,8 @@ export async function GET(request: Request) {
         count: 0,
         unread: 0,
         items: [],
-        summary: {
-          orders: 0,
-          orderStatus: 0,
-          messages: 0,
-          stock: 0,
-          abandoned: 0,
-        } satisfies DashboardNotificationSummary,
+        summary: emptySummary(),
+        unreadSummary: emptySummary(),
         alerts: {
           orders: alerts.orders,
           orderStatus: alerts.orderStatus,
@@ -128,29 +148,22 @@ export async function GET(request: Request) {
       _count: { _all: true },
     });
 
-    const summary: DashboardNotificationSummary = {
-      orders: 0,
-      orderStatus: 0,
-      messages: 0,
-      stock: 0,
-      abandoned: 0,
-    };
+    const summary = emptySummary();
+    const unreadSummary = emptySummary();
 
     let totalCount = 0;
     for (const row of kindCounts) {
       const n = row._count._all;
       totalCount += n;
       if (!isKnownKind(row.kind)) continue;
-      if (row.kind === "order") summary.orders = n;
-      else if (row.kind === "order_status") summary.orderStatus = n;
-      else if (row.kind === "message") summary.messages = n;
-      else if (row.kind === "stock") summary.stock = n;
-      else if (row.kind === "abandoned") summary.abandoned = n;
+      applyKindCount(summary, row.kind, n);
     }
 
     let unread = 0;
     for (const row of unreadRows) {
       unread += row._count._all;
+      if (!isKnownKind(row.kind)) continue;
+      applyKindCount(unreadSummary, row.kind, row._count._all);
     }
 
     return NextResponse.json({
@@ -158,6 +171,7 @@ export async function GET(request: Request) {
       unread,
       items,
       summary,
+      unreadSummary,
       alerts: {
         orders: alerts.orders,
         orderStatus: alerts.orderStatus,
@@ -188,7 +202,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ message: "Invalid request" }, { status: 400 });
     }
 
-    const { action, ids } = parsed.data;
+    const { action, ids, kinds } = parsed.data;
     const now = new Date();
 
     if (action === "dismiss") {
@@ -202,6 +216,22 @@ export async function PATCH(request: Request) {
           dismissedAt: null,
         },
         data: { dismissedAt: now, readAt: now },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "mark_kind_read") {
+      if (!kinds?.length) {
+        return NextResponse.json({ message: "kinds required" }, { status: 400 });
+      }
+      await prisma.notification.updateMany({
+        where: {
+          storeId: store.id,
+          kind: { in: kinds },
+          dismissedAt: null,
+          readAt: null,
+        },
+        data: { readAt: now },
       });
       return NextResponse.json({ ok: true });
     }
