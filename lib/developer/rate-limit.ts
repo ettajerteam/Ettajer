@@ -2,7 +2,8 @@
  * Rate limiter backend interface.
  *
  * RATE_LIMIT_BACKEND=memory (default) — suitable for local / single-instance.
- * RATE_LIMIT_BACKEND=redis — production multi-instance (requires REDIS_URL).
+ * RATE_LIMIT_BACKEND=redis — production multi-instance (requires
+ * UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN).
  *
  * API handlers depend only on DeveloperRateLimiter — never on a concrete class.
  */
@@ -83,10 +84,19 @@ export class RedisDeveloperRateLimiter implements DeveloperRateLimiter {
   }): Promise<RateLimitResult> {
     const rest = this.rest;
     if (!rest) {
+      const isProd =
+        process.env.VERCEL_ENV === "production" ||
+        process.env.NODE_ENV === "production";
+      if (isProd) {
+        // Fail closed: do not silently pretend redis is multi-instance-safe.
+        throw new Error(
+          "RATE_LIMIT_BACKEND=redis requires UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in production",
+        );
+      }
       if (!this.warned) {
         this.warned = true;
         console.warn(
-          "[rate-limit] RATE_LIMIT_BACKEND=redis but UPSTASH_REDIS_REST_URL/TOKEN unset — using in-memory fallback (not multi-instance safe).",
+          "[rate-limit] RATE_LIMIT_BACKEND=redis but UPSTASH_REDIS_REST_URL/TOKEN unset — using in-memory fallback (dev only).",
         );
       }
       return this.fallback.check(input);

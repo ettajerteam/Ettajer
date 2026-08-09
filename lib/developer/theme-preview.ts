@@ -5,6 +5,7 @@ import { logDeveloperAction } from "@/lib/developer/audit";
 import type { DeveloperAuthContext } from "@/lib/developer/auth-context";
 import { hasAnyScope } from "@/lib/developer/scopes";
 import { DeveloperApiError } from "@/lib/developer/errors";
+import { absoluteUrl } from "@/lib/seo/site-config";
 
 /** Create a short-lived storefront preview URL for a private theme. */
 export async function createThemePreviewAccess(
@@ -25,7 +26,8 @@ export async function createThemePreviewAccess(
     themeId,
   });
 
-  const previewUrl = `/store/${store.slug}?preview=true&previewThemeId=${encodeURIComponent(themeId)}&previewToken=${encodeURIComponent(issued.token)}`;
+  const path = `/store/${store.slug}?preview=true&previewThemeId=${encodeURIComponent(themeId)}&previewToken=${encodeURIComponent(issued.token)}`;
+  const previewUrl = absoluteUrl(path);
 
   await logDeveloperAction({
     applicationId: ctx.applicationId,

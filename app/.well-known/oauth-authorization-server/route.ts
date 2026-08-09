@@ -19,16 +19,16 @@ export async function GET() {
       response_types_supported: ["code"],
       grant_types_supported: ["authorization_code", "refresh_token"],
       code_challenge_methods_supported: ["S256"],
-      token_endpoint_auth_methods_supported: [
-        "client_secret_post",
-        "client_secret_basic",
-        "none",
-      ],
+      // Only advertise methods actually implemented by /api/oauth/token.
+      token_endpoint_auth_methods_supported: ["client_secret_post", "none"],
       scopes_supported: [
         "store:read",
         "products:read",
         "collections:read",
         "settings:read",
+        "orders:read",
+        "customers:read",
+        "checkout:read",
         "themes:read",
         "themes:create",
         "themes:write",

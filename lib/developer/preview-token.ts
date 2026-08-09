@@ -12,14 +12,26 @@ export type ThemePreviewTokenClaims = {
 };
 
 function previewSigningKey(): Buffer {
+  const dedicated = process.env.PREVIEW_TOKEN_SECRET?.trim();
+  const isProd =
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NODE_ENV === "production";
+
+  // Production must use a dedicated preview secret (not NEXTAUTH_SECRET).
+  if (isProd && !dedicated) {
+    throw new Error(
+      "PREVIEW_TOKEN_SECRET is required in production to sign preview tokens",
+    );
+  }
+
   const raw =
-    process.env.PREVIEW_TOKEN_SECRET?.trim() ||
+    dedicated ||
     process.env.NEXTAUTH_SECRET?.trim() ||
     process.env.EMAIL_SECRETS_KEY?.trim() ||
     "";
   if (!raw) {
     throw new Error(
-      "PREVIEW_TOKEN_SECRET, NEXTAUTH_SECRET, or EMAIL_SECRETS_KEY is required to sign preview tokens",
+      "PREVIEW_TOKEN_SECRET (preferred) or NEXTAUTH_SECRET is required to sign preview tokens",
     );
   }
   return createHmac("sha256", "ettajer-theme-preview-v1").update(raw).digest();
