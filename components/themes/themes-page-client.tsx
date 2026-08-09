@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ThemeStorefrontPreview } from "@/components/themes/theme-storefront-preview";
 import { ThemeShareFeature } from "@/components/themes/theme-share-feature";
 import { ThemesWebsiteGallery } from "@/components/themes/themes-website-gallery";
+import { ThemesAiDesignsSection } from "@/components/themes/themes-ai-designs-section";
 import { OnlineStorePageShell } from "@/components/online-store/online-store-page-shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -245,6 +246,8 @@ export function ThemesPageClient({ store: initialStore, previewPaths }: ThemesPa
           applyingId={applyingId}
           onApply={handleApplyTemplate}
         />
+
+      <ThemesAiDesignsSection storeSlug={saved.slug} />
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

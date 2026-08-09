@@ -253,8 +253,8 @@ export default async function OrderConfirmationPage({ params, searchParams }: Pa
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href={getStoreProductsUrl(store.slug)}
-              className="inline-flex h-12 w-full items-center justify-center rounded-full px-8 text-[13px] font-semibold text-white sm:w-auto"
-              style={{ backgroundColor: "var(--store-primary)" }}
+              className="inline-flex h-12 w-full items-center justify-center rounded-full px-8 text-[13px] font-semibold sm:w-auto"
+              style={{ backgroundColor: "var(--store-cta, var(--store-primary))", color: "var(--store-on-cta, #fff)" }}
             >
               Continue shopping
             </Link>

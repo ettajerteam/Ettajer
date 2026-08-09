@@ -39,10 +39,23 @@ import {
 import { USER_ROLE } from "@/lib/admin/constants";
 import { isBootstrapAdminEmail } from "@/lib/admin/auth-client";
 import { getMerchantPlanInfo } from "@/lib/merchant-plan";
+import { useSidebarAttention } from "@/components/shared/use-sidebar-attention";
 
 const BRAND_ICON = "/brand/App-Logo.png";
 const ease = [0.32, 0.72, 0, 1] as const;
 const panelSpring = { type: "spring" as const, damping: 32, stiffness: 380 };
+
+function AttentionDot({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#F02849]",
+        className
+      )}
+      aria-hidden
+    />
+  );
+}
 
 function resolveHref(href: string | undefined): string {
   if (!href) return "#";
@@ -70,6 +83,7 @@ export function Sidebar() {
   const [storeName, setStoreName] = useState("My Store");
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const { attention, clearKind } = useSidebarAttention();
 
   const isAdmin = session?.user?.role === USER_ROLE.ADMIN;
 
@@ -123,6 +137,9 @@ export function Sidebar() {
     const href = resolveHref(link.href);
     const active = isNavLinkActive(pathname, link.href, search);
     const isExternal = link.external;
+    const showDot =
+      (link.id === "orders-all" || link.id.startsWith("orders-")) &&
+      attention.orders;
 
     return (
       <li key={link.id}>
@@ -130,7 +147,10 @@ export function Sidebar() {
           href={href}
           target={isExternal ? "_blank" : undefined}
           rel={isExternal ? "noopener noreferrer" : undefined}
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false);
+            if (link.id.startsWith("orders-")) void clearKind("orders");
+          }}
           className={cn(
             "relative flex items-center gap-2 rounded-md text-[12px] transition-colors duration-200",
             nested ? "px-2.5 py-1.5 pl-9" : "px-2.5 py-1.5",
@@ -148,6 +168,7 @@ export function Sidebar() {
           )}
           <span className="relative z-10 flex min-w-0 items-center gap-1.5 truncate">
             <span className="truncate">{link.label}</span>
+            {showDot ? <AttentionDot /> : null}
             {link.comingSoon && (
               <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-400">
                 Soon
@@ -167,6 +188,9 @@ export function Sidebar() {
     const groupActive =
       (href && isNavLinkActive(pathname, group.href!, search)) ||
       sectionHasActiveChild(pathname, search, group);
+    const showOrdersDot = group.id === "orders" && attention.orders;
+    const showMessagesDot = group.id === "messages" && attention.messages;
+    const showDot = showOrdersDot || showMessagesDot;
 
     if (!hasChildren && href) {
       const active = isNavLinkActive(pathname, group.href!, search);
@@ -174,7 +198,11 @@ export function Sidebar() {
         <Link
           key={group.id}
           href={href}
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false);
+            if (group.id === "messages") void clearKind("messages");
+            if (group.id === "orders") void clearKind("orders");
+          }}
           title={isCollapsed ? group.label : undefined}
           className={cn(
             "group/item relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-200",
@@ -191,14 +219,24 @@ export function Sidebar() {
               transition={panelSpring}
             />
           )}
-          <group.icon
-            className={cn(
-              "relative z-10 h-3.5 w-3.5 shrink-0 transition-colors duration-200",
-              active ? "text-[#007AFF]" : "text-neutral-400 group-hover/item:text-neutral-500"
-            )}
-            strokeWidth={active ? 2 : 1.6}
-          />
-          {!isCollapsed && <span className="relative z-10 truncate">{group.label}</span>}
+          <span className="relative z-10 shrink-0">
+            <group.icon
+              className={cn(
+                "h-3.5 w-3.5 transition-colors duration-200",
+                active ? "text-[#007AFF]" : "text-neutral-400 group-hover/item:text-neutral-500"
+              )}
+              strokeWidth={active ? 2 : 1.6}
+            />
+            {isCollapsed && showDot ? (
+              <AttentionDot className="absolute -right-0.5 -top-0.5" />
+            ) : null}
+          </span>
+          {!isCollapsed && (
+            <span className="relative z-10 flex min-w-0 items-center gap-1.5 truncate">
+              <span className="truncate">{group.label}</span>
+              {showDot ? <AttentionDot /> : null}
+            </span>
+          )}
         </Link>
       );
     }
@@ -207,7 +245,13 @@ export function Sidebar() {
       <div key={group.id}>
         <button
           type="button"
-          onClick={() => toggleGroup(group.id)}
+          onClick={() => {
+            toggleGroup(group.id);
+            if (group.id === "orders" && attention.orders) {
+              // Expanding Orders acknowledges new-order attention
+              void clearKind("orders");
+            }
+          }}
           title={isCollapsed ? group.label : undefined}
           className={cn(
             "relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-200",
@@ -220,16 +264,24 @@ export function Sidebar() {
           {groupActive && !isExpanded && (
             <span className="absolute inset-0 rounded-md bg-black/[0.04] dark:bg-white/[0.06]" />
           )}
-          <group.icon
-            className={cn(
-              "relative z-10 h-3.5 w-3.5 shrink-0",
-              groupActive ? "text-[#007AFF]" : "text-neutral-400"
-            )}
-            strokeWidth={groupActive ? 2 : 1.6}
-          />
+          <span className="relative z-10 shrink-0">
+            <group.icon
+              className={cn(
+                "h-3.5 w-3.5",
+                groupActive ? "text-[#007AFF]" : "text-neutral-400"
+              )}
+              strokeWidth={groupActive ? 2 : 1.6}
+            />
+            {isCollapsed && showDot ? (
+              <AttentionDot className="absolute -right-0.5 -top-0.5" />
+            ) : null}
+          </span>
           {!isCollapsed && (
             <>
-              <span className="relative z-10 flex-1 truncate text-left">{group.label}</span>
+              <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1.5 truncate text-left">
+                <span className="truncate">{group.label}</span>
+                {showDot ? <AttentionDot /> : null}
+              </span>
               <ChevronDown
                 className={cn(
                   "relative z-10 h-3 w-3 shrink-0 text-neutral-400 transition-transform duration-200",

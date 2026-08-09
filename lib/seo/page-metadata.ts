@@ -135,6 +135,7 @@ export function buildRootMetadata(): Metadata {
         ],
         "application/json": [
           { url: absoluteUrl("/knowledge.json"), title: "knowledge.json" },
+          { url: absoluteUrl("/ai/openapi.json"), title: "openapi.json" },
         ],
       },
     },

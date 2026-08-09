@@ -7,6 +7,7 @@ import {
   designTokensToCssVars,
   resolveDesignTokens,
 } from "@/lib/design-tokens";
+import { resolveStoreCtaColors } from "@/lib/storefront/cta-contrast";
 import type { PublicStore } from "@/types/storefront";
 import type { NavItem } from "@/lib/navigation";
 import { isTrustedBridgeEvent } from "@/lib/builder/events";
@@ -74,6 +75,10 @@ export function PreviewAwareShell({ store, children }: PreviewAwareShellProps) {
     borderColor: live.borderColor,
     buttonRadius: live.buttonRadius,
   });
+  const cta = resolveStoreCtaColors(
+    live.primaryColor,
+    live.theme === "bold" ? "dark" : "light",
+  );
 
   return (
     <div
@@ -83,6 +88,7 @@ export function PreviewAwareShell({ store, children }: PreviewAwareShellProps) {
           "--store-primary": live.primaryColor,
           "--store-secondary": live.secondaryColor,
           "--store-font": getFontFamily(live.font),
+          ...cta.cssVars,
           ...designTokensToCssVars(tokens),
           fontFamily: "var(--store-font)",
           fontWeight: getStoreFontWeight(live.font),

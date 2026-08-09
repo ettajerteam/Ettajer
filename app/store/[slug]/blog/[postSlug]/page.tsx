@@ -26,6 +26,11 @@ import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
 import { buildBlogPostingSchema, buildBreadcrumbSchema } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/components/seo/json-ld";
 import Image from "next/image";
+import {
+  applyResolvedThemeBranding,
+  getThemeTemplateLayout,
+  resolveStorefrontThemeFromRequest,
+} from "@/lib/developer/storefront-theme-resolve";
 
 interface PageProps {
   params: { slug: string; postSlug: string };
@@ -37,6 +42,8 @@ interface PageProps {
     font?: string;
     logo?: string;
     layout?: string;
+    previewThemeId?: string;
+    previewToken?: string;
   };
 }
 
@@ -202,17 +209,40 @@ export default async function StoreBlogPostPage({ params, searchParams }: PagePr
   const storeData = await getStoreBySlug(params.slug);
   if (!storeData) notFound();
 
-  const isPreview = searchParams.preview === "true";
-  const store = applyPreviewOverrides(serializePublicStore(storeData, storeData.settings), searchParams);
+  const themeResolution = await resolveStorefrontThemeFromRequest({
+    storeId: storeData.id,
+    storeOwnerUserId: storeData.userId,
+    searchParams,
+  });
+  if (themeResolution.status === "forbidden") notFound();
+
+  const isPreview =
+    searchParams.preview === "true" || themeResolution.status === "preview";
+  let store = applyPreviewOverrides(
+    serializePublicStore(storeData, storeData.settings),
+    searchParams,
+  );
+  if (themeResolution.status === "preview") {
+    store = applyResolvedThemeBranding(store, themeResolution.resolved);
+  }
   const categories = storeData.categories.map(serializePublicCategory);
   const featuredCollections = storeData.collections.map(serializePublicCollection);
   const products = storeData.products.map(serializePublicProduct);
-  const themeId = (store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal") as ThemeId;
+  const themeId = (
+    store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal"
+  ) as ThemeId;
 
   const settingsExt = storeData.settings as typeof storeData.settings & {
     blogPostLayout?: unknown;
   };
-  const baseLayout = parseBlogPostLayout(settingsExt?.blogPostLayout, themeId);
+  const themeBlog =
+    themeResolution.status === "preview"
+      ? getThemeTemplateLayout(themeResolution.resolved.document, "blogPost")
+      : null;
+  const baseLayout = parseBlogPostLayout(
+    themeBlog ?? settingsExt?.blogPostLayout,
+    themeId,
+  );
 
   if (isPreviewBlogPostSlug(params.postSlug) && isPreview) {
     const post = getPreviewPlaceholderBlogPost();

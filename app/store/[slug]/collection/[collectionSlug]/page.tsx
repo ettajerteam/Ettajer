@@ -24,6 +24,11 @@ import {
   getStoreProductUrl,
   getStoreUrl,
 } from "@/lib/storefront-urls";
+import {
+  applyResolvedThemeBranding,
+  getThemeTemplateLayout,
+  resolveStorefrontThemeFromRequest,
+} from "@/lib/developer/storefront-theme-resolve";
 
 interface PageProps {
   params: { slug: string; collectionSlug: string };
@@ -37,6 +42,8 @@ interface PageProps {
     layout?: string;
     section?: string;
     device?: string;
+    previewThemeId?: string;
+    previewToken?: string;
   };
 }
 
@@ -61,16 +68,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function CollectionPage({ params, searchParams }: PageProps) {
-  const isPreview = searchParams.preview === "true";
+  const storeData = await getStoreBySlug(params.slug);
+  if (!storeData) notFound();
+
+  const themeResolution = await resolveStorefrontThemeFromRequest({
+    storeId: storeData.id,
+    storeOwnerUserId: storeData.userId,
+    searchParams,
+  });
+  if (themeResolution.status === "forbidden") notFound();
+
+  const isPreview =
+    searchParams.preview === "true" || themeResolution.status === "preview";
 
   if (isPreviewCollectionSlug(params.collectionSlug) && isPreview) {
-    const storeData = await getStoreBySlug(params.slug);
-    if (!storeData) notFound();
-
-    const store = applyPreviewOverrides(
+    let store = applyPreviewOverrides(
       serializePublicStore(storeData, storeData.settings),
-      searchParams
+      searchParams,
     );
+    if (themeResolution.status === "preview") {
+      store = applyResolvedThemeBranding(store, themeResolution.resolved);
+    }
     const categories = storeData.categories.map(serializePublicCategory);
     const collection = getPreviewPlaceholderCollection(store.theme);
     const theme = store.theme as "minimal" | "modern" | "bold";
@@ -78,9 +96,14 @@ export default async function CollectionPage({ params, searchParams }: PageProps
       collectionLayout?: unknown;
     };
     const savedLayout = parseCollectionLayout(settings?.collectionLayout, theme);
+    const themeLayout =
+      themeResolution.status === "preview"
+        ? getThemeTemplateLayout(themeResolution.resolved.document, "collection")
+        : null;
+    const fromTheme = themeLayout ? parseCollectionLayout(themeLayout, theme) : null;
     const previewLayout = searchParams.layout
-      ? decodeLayoutFromPreview(searchParams.layout) ?? savedLayout
-      : savedLayout;
+      ? decodeLayoutFromPreview(searchParams.layout) ?? fromTheme ?? savedLayout
+      : fromTheme ?? savedLayout;
 
     return (
       <CollectionPageRenderer
@@ -100,23 +123,30 @@ export default async function CollectionPage({ params, searchParams }: PageProps
   const data = await getStoreCollection(params.slug, params.collectionSlug);
   if (!data) notFound();
 
-  const store = applyPreviewOverrides(
+  let store = applyPreviewOverrides(
     serializePublicStore(data.store, data.store.settings),
-    searchParams
+    searchParams,
   );
+  if (themeResolution.status === "preview") {
+    store = applyResolvedThemeBranding(store, themeResolution.resolved);
+  }
   const categories = data.store.categories.map(serializePublicCategory);
   const products = data.collection.products.map(serializePublicProduct);
   const collection = serializePublicCollection(data.collection);
   const theme = store.theme as "minimal" | "modern" | "bold";
 
   const settings = data.store.settings as typeof data.store.settings & {
-    productLayout?: unknown;
     collectionLayout?: unknown;
   };
   const savedLayout = parseCollectionLayout(settings?.collectionLayout, theme);
+  const themeLayout =
+    themeResolution.status === "preview"
+      ? getThemeTemplateLayout(themeResolution.resolved.document, "collection")
+      : null;
+  const fromTheme = themeLayout ? parseCollectionLayout(themeLayout, theme) : null;
   const previewLayout = searchParams.layout
-    ? decodeLayoutFromPreview(searchParams.layout) ?? savedLayout
-    : savedLayout;
+    ? decodeLayoutFromPreview(searchParams.layout) ?? fromTheme ?? savedLayout
+    : fromTheme ?? savedLayout;
 
   return (
     <>

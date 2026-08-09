@@ -255,6 +255,8 @@ export function buildHelpIndexGraph(
         absoluteUrl("/llms.txt"),
         absoluteUrl("/llms-full.txt"),
         absoluteUrl("/knowledge.json"),
+        absoluteUrl("/ai"),
+        absoluteUrl("/ai/openapi.json"),
       ],
     },
     buildBreadcrumbSchema([

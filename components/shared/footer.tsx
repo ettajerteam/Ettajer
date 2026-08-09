@@ -51,6 +51,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/ai" className="transition-colors hover:text-foreground">
+                  For AI assistants
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact" className="transition-colors hover:text-foreground">
                   Contact
                 </Link>

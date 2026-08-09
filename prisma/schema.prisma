@@ -68,6 +68,9 @@ model User {
   sessions            Session[]
   loginAttempts       LoginAttempt[]
   paymentAccounts     PaymentAccount[]
+  developerApplications DeveloperApplication[]
+  oauthGrants         OAuthGrant[]
+  storeThemesCreated  StoreTheme[]   @relation("StoreThemeCreator")
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @default(now()) @updatedAt
 }
@@ -148,6 +151,10 @@ model Store {
   pageViews          StorePageView[]
   marketingEventLogs MarketingEventLog[]
   notifications      Notification[]
+  storeThemes        StoreTheme[]
+  oauthGrants        OAuthGrant[]
+  developerApiKeys   DeveloperApiKey[]
+  developerAuditLogs DeveloperAuditLog[]
 }
 
 model Notification {
@@ -1262,4 +1269,197 @@ model PlatformError {
 
   @@index([createdAt])
   @@index([source, createdAt])
+}
+
+// ─── Developer Platform ─────────────────────────────────────────────────────
+
+model DeveloperApplication {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String?  @db.Text
+  clientId              String   @unique
+  clientSecretHash      String
+  /** Encrypted raw secret for one-time reveal / regenerate only — never return in list APIs. */
+  clientSecretEncrypted String?  @db.Text
+  status                String   @default("active") // active | revoked
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  redirectUris      DeveloperRedirectUri[]
+  grants            OAuthGrant[]
+  apiKeys           DeveloperApiKey[]
+  auditLogs         DeveloperAuditLog[]
+  storeThemes       StoreTheme[]
+  idempotencyRecords DeveloperIdempotencyRecord[]
+
+  @@index([userId])
+  @@index([clientId])
+}
+
+model DeveloperRedirectUri {
+  id            String               @id @default(cuid())
+  applicationId String
+  application   DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  uri           String
+  createdAt     DateTime             @default(now())
+
+  @@unique([applicationId, uri])
+  @@index([applicationId])
+}
+
+model OAuthGrant {
+  id            String               @id @default(cuid())
+  applicationId String
+  application   DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId       String
+  store         Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  scopes        String[]
+  revokedAt     DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  authorizationCodes OAuthAuthorizationCode[]
+  accessTokens       OAuthAccessToken[]
+  refreshTokens      OAuthRefreshToken[]
+
+  @@index([applicationId, storeId])
+  @@index([userId])
+  @@index([storeId])
+}
+
+model OAuthAuthorizationCode {
+  id            String     @id @default(cuid())
+  codeHash      String     @unique
+  grantId       String
+  grant         OAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  redirectUri   String
+  codeChallenge String?
+  /** plain | S256 */
+  codeChallengeMethod String?
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime   @default(now())
+
+  @@index([grantId])
+  @@index([expiresAt])
+}
+
+model OAuthAccessToken {
+  id        String     @id @default(cuid())
+  tokenHash String     @unique
+  grantId   String
+  grant     OAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([grantId])
+  @@index([expiresAt])
+}
+
+model OAuthRefreshToken {
+  id             String     @id @default(cuid())
+  tokenHash      String     @unique
+  grantId        String
+  grant          OAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  rotatedFromId  String?
+  createdAt      DateTime   @default(now())
+
+  @@index([grantId])
+  @@index([expiresAt])
+}
+
+model DeveloperApiKey {
+  id            String               @id @default(cuid())
+  applicationId String
+  application   DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  storeId       String
+  store         Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name          String               @default("Default")
+  keyPrefix     String
+  keyHash       String               @unique
+  scopes        String[]
+  lastUsedAt    DateTime?
+  revokedAt     DateTime?
+  createdAt     DateTime             @default(now())
+
+  @@index([applicationId])
+  @@index([storeId])
+  @@index([keyPrefix])
+}
+
+model DeveloperAuditLog {
+  id            String                @id @default(cuid())
+  applicationId String?
+  application   DeveloperApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  userId        String?
+  storeId       String?
+  store         Store?                @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  /** oauth | api_key | merchant */
+  actorType     String
+  action        String
+  resource      String?
+  resourceId    String?
+  metadata      Json?
+  ip            String?
+  createdAt     DateTime              @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([applicationId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+}
+
+/** Idempotency-Key replay store for Developer API mutations (24h TTL). */
+model DeveloperIdempotencyRecord {
+  id            String               @id @default(cuid())
+  applicationId String
+  application   DeveloperApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  keyHash       String
+  method        String
+  path          String
+  bodyHash      String
+  statusCode    Int?
+  responseJson  Json?
+  requestId     String?
+  expiresAt     DateTime
+  createdAt     DateTime             @default(now())
+
+  @@unique([applicationId, keyHash])
+  @@index([expiresAt])
+}
+
+model StoreTheme {
+  id                      String                @id @default(cuid())
+  storeId                 String
+  store                   Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name                    String
+  description             String?               @db.Text
+  /** system | merchant | ai */
+  source                  String                @default("ai")
+  /** ettajer | claude | cursor | other */
+  provider                String                @default("other")
+  /** private (AI themes are always private) */
+  visibility              String                @default("private")
+  /** draft | active | archived */
+  status                  String                @default("draft")
+  /** Theme document: version, theme tokens, navigation, templates, pages */
+  document                Json
+  createdByApplicationId  String?
+  createdByApplication    DeveloperApplication? @relation(fields: [createdByApplicationId], references: [id], onDelete: SetNull)
+  createdByUserId         String?
+  createdByUser           User?                 @relation("StoreThemeCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  publishedAt             DateTime?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+
+  @@index([storeId, status])
+  @@index([storeId, createdAt])
+  @@index([createdByApplicationId])
 }

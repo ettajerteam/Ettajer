@@ -31,6 +31,12 @@ export const PUBLIC_STATIC_PATHS = [
   "/llms.txt",
   "/llms-full.txt",
   "/knowledge.json",
+  "/ai",
+  "/ai/openapi.json",
+  "/developers",
+  "/developers/llms.txt",
+  "/developers/openapi.json",
+  "/.well-known/llms.txt",
 ] as const;
 
 export function getPublicSitemapEntries(): { url: string; lastModified?: Date }[] {

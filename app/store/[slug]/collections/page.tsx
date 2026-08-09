@@ -24,6 +24,10 @@ import { getThemeAssets } from "@/lib/storefront-assets";
 import type { ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
+import {
+  applyResolvedThemeBranding,
+  resolveStorefrontThemeFromRequest,
+} from "@/lib/developer/storefront-theme-resolve";
 
 interface PageProps {
   params: { slug: string };
@@ -37,6 +41,8 @@ interface PageProps {
     layout?: string;
     section?: string;
     device?: string;
+    previewThemeId?: string;
+    previewToken?: string;
   };
 }
 
@@ -56,10 +62,26 @@ export default async function StoreCollectionsPage({ params, searchParams }: Pag
   const storeData = await getStoreBySlug(params.slug);
   if (!storeData) notFound();
 
-  const isPreview = searchParams.preview === "true";
-  const store = applyPreviewOverrides(serializePublicStore(storeData, storeData.settings), searchParams);
+  const themeResolution = await resolveStorefrontThemeFromRequest({
+    storeId: storeData.id,
+    storeOwnerUserId: storeData.userId,
+    searchParams,
+  });
+  if (themeResolution.status === "forbidden") notFound();
+
+  const isPreview =
+    searchParams.preview === "true" || themeResolution.status === "preview";
+  let store = applyPreviewOverrides(
+    serializePublicStore(storeData, storeData.settings),
+    searchParams,
+  );
+  if (themeResolution.status === "preview") {
+    store = applyResolvedThemeBranding(store, themeResolution.resolved);
+  }
   const categories = storeData.categories.map(serializePublicCategory);
-  const themeId = (store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal") as ThemeId;
+  const themeId = (
+    store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal"
+  ) as ThemeId;
   const isModern = themeId === "modern";
   const isBold = themeId === "bold";
   const assets = getThemeAssets(store.theme);
@@ -77,6 +99,10 @@ export default async function StoreCollectionsPage({ params, searchParams }: Pag
     themeId,
     isPreview,
     layoutParam: searchParams.layout,
+    previewThemeDocument:
+      themeResolution.status === "preview"
+        ? themeResolution.resolved.document
+        : null,
   });
 
   if (sectionLayout) {

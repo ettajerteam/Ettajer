@@ -21,6 +21,11 @@ import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
 import { parseProductSeo, resolveProductSeo } from "@/lib/product-seo";
 import { buildBreadcrumbSchema, buildProductSchema } from "@/lib/seo/structured-data";
 import { getStoreProductUrl, getStoreProductsUrl, getStoreUrl } from "@/lib/storefront-urls";
+import {
+  applyResolvedThemeBranding,
+  getThemeTemplateLayout,
+  resolveStorefrontThemeFromRequest,
+} from "@/lib/developer/storefront-theme-resolve";
 
 interface PageProps {
   params: { slug: string; productSlug: string };
@@ -34,6 +39,8 @@ interface PageProps {
     layout?: string;
     section?: string;
     device?: string;
+    previewThemeId?: string;
+    previewToken?: string;
   };
 }
 
@@ -69,24 +76,42 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ProductPage({ params, searchParams }: PageProps) {
-  const isPreview = searchParams.preview === "true";
+  const storeData = await getStoreBySlug(params.slug);
+  if (!storeData) notFound();
+
+  const themeResolution = await resolveStorefrontThemeFromRequest({
+    storeId: storeData.id,
+    storeOwnerUserId: storeData.userId,
+    searchParams,
+  });
+  if (themeResolution.status === "forbidden") notFound();
+
+  const isPreview =
+    searchParams.preview === "true" || themeResolution.status === "preview";
 
   if (isPreviewProductSlug(params.productSlug) && isPreview) {
-    const storeData = await getStoreBySlug(params.slug);
-    if (!storeData) notFound();
-
-    const store = applyPreviewOverrides(
+    let store = applyPreviewOverrides(
       serializePublicStore(storeData, storeData.settings),
-      searchParams
+      searchParams,
     );
+    if (themeResolution.status === "preview") {
+      store = applyResolvedThemeBranding(store, themeResolution.resolved);
+    }
     const product = getPreviewPlaceholderProduct(store);
     const theme = store.theme as "minimal" | "modern" | "bold";
     const settings = storeData.settings as typeof storeData.settings & {
       productLayout?: unknown;
     };
     const savedLayout = parseProductLayout(settings?.productLayout, theme);
+    const themeLayout =
+      themeResolution.status === "preview"
+        ? getThemeTemplateLayout(themeResolution.resolved.document, "product")
+        : null;
+    const fromTheme = themeLayout ? parseProductLayout(themeLayout, theme) : null;
     const decoded = searchParams.layout ? decodeLayoutFromPreview(searchParams.layout) : null;
-    const previewLayout = decoded ? parseProductLayout(decoded, theme) : savedLayout;
+    const previewLayout = decoded
+      ? parseProductLayout(decoded, theme)
+      : fromTheme ?? savedLayout;
 
     return (
       <ProductPageRenderer
@@ -105,7 +130,13 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   const data = await getStoreProduct(params.slug, params.productSlug);
   if (!data) notFound();
 
-  const store = applyPreviewOverrides(serializePublicStore(data.store, data.store.settings), searchParams);
+  let store = applyPreviewOverrides(
+    serializePublicStore(data.store, data.store.settings),
+    searchParams,
+  );
+  if (themeResolution.status === "preview") {
+    store = applyResolvedThemeBranding(store, themeResolution.resolved);
+  }
   const product = serializePublicProduct(data.product);
   const relatedRows = await prisma.product.findMany({
     where: { storeId: data.store.id, id: { not: data.product.id } },
@@ -117,11 +148,17 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
 
   const settings = data.store.settings as typeof data.store.settings & {
     productLayout?: unknown;
-    collectionLayout?: unknown;
   };
   const savedLayout = parseProductLayout(settings?.productLayout, theme);
+  const themeLayout =
+    themeResolution.status === "preview"
+      ? getThemeTemplateLayout(themeResolution.resolved.document, "product")
+      : null;
+  const fromTheme = themeLayout ? parseProductLayout(themeLayout, theme) : null;
   const decoded = searchParams.layout ? decodeLayoutFromPreview(searchParams.layout) : null;
-  const previewLayout = decoded ? parseProductLayout(decoded, theme) : savedLayout;
+  const previewLayout = decoded
+    ? parseProductLayout(decoded, theme)
+    : fromTheme ?? savedLayout;
 
   return (
     <>

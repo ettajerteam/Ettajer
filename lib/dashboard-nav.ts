@@ -9,6 +9,7 @@ import {
   Megaphone,
   Store,
   MessageSquare,
+  Code2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -91,6 +92,16 @@ export const mainNav: NavSection = {
         { id: "marketing-integrations", label: "Integrations", href: "/dashboard/marketing" },
         { id: "marketing-discounts", label: "Discounts", href: "/dashboard/marketing/discounts" },
         { id: "marketing-email", label: "Email", href: "/dashboard/marketing/email" },
+      ],
+    },
+    {
+      id: "developer",
+      label: "Developer",
+      icon: Code2,
+      children: [
+        { id: "developer-apps", label: "Apps & API", href: "/dashboard/developer" },
+        { id: "developer-activity", label: "Activity", href: "/dashboard/developer/activity" },
+        { id: "developer-docs", label: "Docs", href: "/developers", external: true },
       ],
     },
     {

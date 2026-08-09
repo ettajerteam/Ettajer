@@ -20,6 +20,11 @@ import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import type { ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
+import {
+  applyResolvedThemeBranding,
+  getThemePageBySlug,
+  resolveStorefrontThemeFromRequest,
+} from "@/lib/developer/storefront-theme-resolve";
 
 function stripHtmlForMeta(html: string) {
   return html
@@ -41,6 +46,8 @@ interface PageProps {
     layout?: string;
     section?: string;
     device?: string;
+    previewThemeId?: string;
+    previewToken?: string;
   };
 }
 
@@ -73,30 +80,58 @@ export default async function StoreCustomPage({ params, searchParams }: PageProp
   const storeData = await getStoreBySlug(params.slug);
   if (!storeData) notFound();
 
-  const isPreview = searchParams.preview === "true";
-  const page = await getStorePageBySlug(storeData.id, params.pageSlug, { includeDraft: isPreview });
+  const themeResolution = await resolveStorefrontThemeFromRequest({
+    storeId: storeData.id,
+    storeOwnerUserId: storeData.userId,
+    searchParams,
+  });
+  if (themeResolution.status === "forbidden") notFound();
 
-  if (!page && !isPreview) notFound();
+  const isPreview =
+    searchParams.preview === "true" || themeResolution.status === "preview";
+  const page = await getStorePageBySlug(storeData.id, params.pageSlug, {
+    includeDraft: isPreview,
+  });
 
-  const store = applyPreviewOverrides(
+  const themePage =
+    themeResolution.status === "preview"
+      ? getThemePageBySlug(themeResolution.resolved.document, params.pageSlug)
+      : null;
+
+  if (!page && !themePage && !isPreview) notFound();
+  if (!page && !themePage && isPreview && themeResolution.status !== "preview") {
+    notFound();
+  }
+  // Draft theme may include a page that is not live yet.
+  if (!page && !themePage) notFound();
+
+  let store = applyPreviewOverrides(
     serializePublicStore(storeData, storeData.settings),
-    searchParams
+    searchParams,
   );
+  if (themeResolution.status === "preview") {
+    store = applyResolvedThemeBranding(store, themeResolution.resolved);
+  }
   const products = resolveStorefrontCatalog(
     storeData.products.map(serializePublicProduct),
-    { preview: isPreview, theme: store.theme }
+    { preview: isPreview, theme: store.theme },
   );
   const categories = storeData.categories.map(serializePublicCategory);
   const featuredCollections = storeData.collections.map(serializePublicCollection);
-  const themeId = (store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal") as ThemeId;
+  const themeId = (
+    store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal"
+  ) as ThemeId;
 
   const parsedContent = page ? parsePageContent(page.content) : null;
   const savedLayout = parsedContent?.layout
     ? parseHomeLayout(parsedContent.layout, themeId)
-    : null;
+    : themePage
+      ? parseHomeLayout(themePage.layout, themeId)
+      : null;
+  const fromTheme = themePage ? parseHomeLayout(themePage.layout, themeId) : null;
   const previewLayout = searchParams.layout
-    ? decodeLayoutFromPreview(searchParams.layout) ?? savedLayout
-    : savedLayout;
+    ? decodeLayoutFromPreview(searchParams.layout) ?? fromTheme ?? savedLayout
+    : fromTheme ?? savedLayout;
   const previewDevice = parsePreviewDevice(searchParams.device);
   const useSectionLayout = Boolean(previewLayout?.sections?.length);
 
@@ -117,7 +152,7 @@ export default async function StoreCustomPage({ params, searchParams }: PageProp
   }
 
   const isBold = themeId === "bold";
-  const title = page?.title ?? params.pageSlug;
+  const title = themePage?.title ?? page?.title ?? params.pageSlug;
   const content = parsedContent?.body ?? "";
   const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(content);
 
@@ -137,7 +172,7 @@ export default async function StoreCustomPage({ params, searchParams }: PageProp
               <div
                 className={cn(
                   "prose prose-neutral mt-8 max-w-none prose-headings:tracking-tight prose-a:text-[#007AFF]",
-                  isBold && "prose-invert"
+                  isBold && "prose-invert",
                 )}
                 dangerouslySetInnerHTML={{ __html: content }}
               />
@@ -145,7 +180,7 @@ export default async function StoreCustomPage({ params, searchParams }: PageProp
               <div
                 className={cn(
                   "prose prose-neutral mt-8 max-w-none",
-                  isBold && "prose-invert"
+                  isBold && "prose-invert",
                 )}
               >
                 <p className="whitespace-pre-wrap text-base leading-relaxed">{content}</p>

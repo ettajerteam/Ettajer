@@ -18,6 +18,11 @@ import {
   buildStoreWebSiteSchema,
 } from "@/lib/seo/structured-data";
 import { getStoreSearchUrl, getStoreUrl } from "@/lib/storefront-urls";
+import {
+  applyResolvedThemeBranding,
+  getThemeTemplateLayout,
+  resolveStorefrontThemeFromRequest,
+} from "@/lib/developer/storefront-theme-resolve";
 
 interface PageProps {
   params: { slug: string };
@@ -31,6 +36,8 @@ interface PageProps {
     layout?: string;
     section?: string;
     device?: string;
+    previewThemeId?: string;
+    previewToken?: string;
   };
 }
 export const revalidate = 60;
@@ -59,22 +66,43 @@ export default async function StorePage({ params, searchParams }: PageProps) {
   const storeData = await getStoreBySlug(params.slug);
   if (!storeData) notFound();
 
-  const store = applyPreviewOverrides(serializePublicStore(storeData, storeData.settings), searchParams);
-  const isPreview = searchParams.preview === "true";
+  const themeResolution = await resolveStorefrontThemeFromRequest({
+    storeId: storeData.id,
+    storeOwnerUserId: storeData.userId,
+    searchParams,
+  });
+  if (themeResolution.status === "forbidden") notFound();
+
+  const isPreview =
+    searchParams.preview === "true" || themeResolution.status === "preview";
+
+  let store = applyPreviewOverrides(
+    serializePublicStore(storeData, storeData.settings),
+    searchParams,
+  );
+  if (themeResolution.status === "preview") {
+    store = applyResolvedThemeBranding(store, themeResolution.resolved);
+  }
+
   const products = resolveStorefrontCatalog(
     storeData.products.map(serializePublicProduct),
-    { preview: isPreview, theme: store.theme }
+    { preview: isPreview, theme: store.theme },
   );
   const categories = storeData.categories.map(serializePublicCategory);
   const featuredCollections = storeData.collections.map(serializePublicCollection);
 
   const savedLayout = parseHomeLayout(
     storeData.settings?.homeLayout,
-    store.theme as "minimal" | "modern" | "bold"
+    store.theme as "minimal" | "modern" | "bold",
   );
+  const themeHome =
+    themeResolution.status === "preview"
+      ? getThemeTemplateLayout(themeResolution.resolved.document, "home")
+      : null;
+
   const previewLayout = searchParams.layout
-    ? decodeLayoutFromPreview(searchParams.layout) ?? savedLayout
-    : savedLayout;
+    ? decodeLayoutFromPreview(searchParams.layout) ?? themeHome ?? savedLayout
+    : themeHome ?? savedLayout;
 
   const previewDevice = parsePreviewDevice(searchParams.device);
   const storePath = getStoreUrl(store.slug);

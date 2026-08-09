@@ -11,7 +11,7 @@ import {
 import { serializePublicCategory, serializePublicCollection } from "@/lib/catalog";
 import { getStorePageBySlug } from "@/lib/pages";
 import { applyPreviewOverrides } from "@/lib/preview-engine";
-import { decodeLayoutFromPreview } from "@/lib/sections/parse";
+import { decodeLayoutFromPreview, parseHomeLayout } from "@/lib/sections/parse";
 import { parsePreviewDevice } from "@/lib/builder/responsive-styles";
 import { extractLayoutFromPageContent } from "@/lib/page-layout";
 import { resolveStorefrontCatalog } from "@/lib/storefront-demo-products";
@@ -23,6 +23,11 @@ import type { ThemeId } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import { buildStorefrontMetadata } from "@/lib/seo/storefront-metadata";
 import { getStoreProductsUrl } from "@/lib/storefront-urls";
+import {
+  applyResolvedThemeBranding,
+  getThemePageBySlug,
+  resolveStorefrontThemeFromRequest,
+} from "@/lib/developer/storefront-theme-resolve";
 
 interface PageProps {
   params: { slug: string };
@@ -38,6 +43,8 @@ interface PageProps {
     layout?: string;
     section?: string;
     device?: string;
+    previewThemeId?: string;
+    previewToken?: string;
   };
 }
 
@@ -70,14 +77,30 @@ export default async function StoreProductsPage({ params, searchParams }: PagePr
   const storeData = await getStoreBySlug(params.slug);
   if (!storeData) notFound();
 
-  const isPreview = searchParams.preview === "true";
+  const themeResolution = await resolveStorefrontThemeFromRequest({
+    storeId: storeData.id,
+    storeOwnerUserId: storeData.userId,
+    searchParams,
+  });
+  if (themeResolution.status === "forbidden") notFound();
+
+  const isPreview =
+    searchParams.preview === "true" || themeResolution.status === "preview";
   const categorySlug = searchParams.category?.trim();
   const sort = parseProductSort(searchParams.sort);
-  const themeId = (storeData.theme in { minimal: 1, modern: 1, bold: 1 }
-    ? storeData.theme
-    : "minimal") as ThemeId;
 
-  const store = applyPreviewOverrides(serializePublicStore(storeData, storeData.settings), searchParams);
+  let store = applyPreviewOverrides(
+    serializePublicStore(storeData, storeData.settings),
+    searchParams,
+  );
+  if (themeResolution.status === "preview") {
+    store = applyResolvedThemeBranding(store, themeResolution.resolved);
+  }
+
+  const themeId = (
+    store.theme in { minimal: 1, modern: 1, bold: 1 } ? store.theme : "minimal"
+  ) as ThemeId;
+
   const categories = storeData.categories.map(serializePublicCategory);
   const featuredCollections = storeData.collections.map(serializePublicCollection);
 
@@ -91,13 +114,24 @@ export default async function StoreProductsPage({ params, searchParams }: PagePr
 
   const catalog = resolveStorefrontCatalog(
     catalogRows.map(serializePublicProduct),
-    { preview: isPreview, theme: store.theme }
+    { preview: isPreview, theme: store.theme },
   );
   const products = sortPublicProducts(catalog, sort);
 
-  const shopPage = await getStorePageBySlug(storeData.id, "products", { includeDraft: isPreview });
-  const pageLayout = shopPage?.content ? extractLayoutFromPageContent(shopPage.content, themeId) : null;
-  const useSectionLayout = Boolean(pageLayout?.sections?.length) || Boolean(searchParams.layout);
+  const shopPage = await getStorePageBySlug(storeData.id, "products", {
+    includeDraft: isPreview,
+  });
+  const themePage =
+    themeResolution.status === "preview"
+      ? getThemePageBySlug(themeResolution.resolved.document, "products")
+      : null;
+  const pageLayout = themePage
+    ? parseHomeLayout(themePage.layout, themeId)
+    : shopPage?.content
+      ? extractLayoutFromPageContent(shopPage.content, themeId)
+      : null;
+  const useSectionLayout =
+    Boolean(pageLayout?.sections?.length) || Boolean(searchParams.layout);
 
   if (useSectionLayout) {
     const savedLayout = pageLayout ?? { version: 1 as const, sections: [] };
@@ -105,7 +139,9 @@ export default async function StoreProductsPage({ params, searchParams }: PagePr
       ? decodeLayoutFromPreview(searchParams.layout) ?? savedLayout
       : savedLayout;
 
-    const gridIndex = previewLayout.sections.findIndex((s) => s.type === "product-grid" && s.visible);
+    const gridIndex = previewLayout.sections.findIndex(
+      (s) => s.type === "product-grid" && s.visible,
+    );
     const injectToolbar = gridIndex >= 0 && !isPreview;
 
     if (injectToolbar) {
@@ -122,7 +158,9 @@ export default async function StoreProductsPage({ params, searchParams }: PagePr
         <StorefrontShell store={store} preview={isPreview}>
           <div
             className={cn(themeId === "bold" && "bg-zinc-950")}
-            style={themeId === "modern" ? { backgroundColor: store.secondaryColor } : undefined}
+            style={
+              themeId === "modern" ? { backgroundColor: store.secondaryColor } : undefined
+            }
           >
             <SectionRenderer
               store={store}
@@ -135,7 +173,7 @@ export default async function StoreProductsPage({ params, searchParams }: PagePr
             <div
               className={cn(
                 "mx-auto px-6 pb-2 pt-6 sm:pt-8",
-                themeId === "modern" ? "max-w-7xl" : "max-w-6xl"
+                themeId === "modern" ? "max-w-7xl" : "max-w-6xl",
               )}
             >
               <Suspense fallback={null}>
