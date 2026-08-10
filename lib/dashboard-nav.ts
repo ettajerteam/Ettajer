@@ -10,6 +10,7 @@ import {
   Store,
   MessageSquare,
   Code2,
+  GraduationCap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -28,6 +29,8 @@ export interface NavGroup {
   icon: LucideIcon;
   href?: string;
   children?: NavLink[];
+  /** Show lock / Coming soon for merchants (e.g. Academy) */
+  comingSoon?: boolean;
 }
 
 export interface NavSection {
@@ -96,10 +99,10 @@ export const mainNav: NavSection = {
     },
     {
       id: "developer",
-      label: "Developer",
+      label: "Developers",
       icon: Code2,
       children: [
-        { id: "developer-apps", label: "Apps & API", href: "/dashboard/developer" },
+        { id: "developer-apps", label: "Console", href: "/dashboard/developer" },
         { id: "developer-activity", label: "Activity", href: "/dashboard/developer/activity" },
         { id: "developer-docs", label: "Docs", href: "/developers", external: true },
       ],
@@ -115,6 +118,13 @@ export const mainNav: NavSection = {
         { id: "store-pages", label: "Pages", href: "/dashboard/pages" },
         { id: "store-navigation", label: "Navigation", href: "/dashboard/navigation" },
       ],
+    },
+    {
+      id: "academy",
+      label: "Academy",
+      icon: GraduationCap,
+      href: "/dashboard/academy",
+      comingSoon: true,
     },
   ],
 };

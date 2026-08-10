@@ -48,6 +48,12 @@ import {
 } from "@/lib/builder/component-store";
 import type { StorePageRow } from "@/lib/pages";
 import type { StoreThemeData, PreviewPaths } from "@/types/theme";
+import type { StoreThemeSourceLabel } from "@/lib/developer/theme-editor-bridge";
+import {
+  collectLayoutsFromPageCache,
+  editorStateToDocument,
+} from "@/lib/developer/theme-editor-bridge";
+import { parsePageContent } from "@/lib/page-content";
 import {
   clearLayoutDrafts,
   getEditorTabId,
@@ -67,6 +73,10 @@ interface WebsiteEditorClientProps {
   previewPaths: PreviewPaths;
   initialPages: StorePageRow[];
   productCount?: number;
+  storeThemeId?: string;
+  storeThemeName?: string;
+  storeThemeSource?: StoreThemeSourceLabel;
+  initialNavigation?: NavItem[];
 }
 
 export function WebsiteEditorClient({
@@ -74,13 +84,17 @@ export function WebsiteEditorClient({
   previewPaths,
   initialPages,
   productCount = 0,
+  storeThemeId,
+  storeThemeName,
+  storeThemeSource,
+  initialNavigation = [],
 }: WebsiteEditorClientProps) {
   const router = useRouter();
   const [saved, setSaved] = useState(initialStore);
   const [pages, setPages] = useState(initialPages);
   const [previewKey, setPreviewKey] = useState(0);
-  const [savedNavigation, setSavedNavigation] = useState<NavItem[]>([]);
-  const [draftNavigation, setDraftNavigation] = useState<NavItem[]>([]);
+  const [savedNavigation, setSavedNavigation] = useState<NavItem[]>(initialNavigation);
+  const [draftNavigation, setDraftNavigation] = useState<NavItem[]>(initialNavigation);
   const [pendingWebsiteTemplateId, setPendingWebsiteTemplateId] = useState<string | null>(null);
   const [draftSaveStatus, setDraftSaveStatus] = useState<"idle" | "saving" | "saved" | "error">(
     "idle"
@@ -321,6 +335,10 @@ export function WebsiteEditorClient({
     const storeId = initialStore.id;
     if (!storeId) return;
 
+    // AI / private StoreTheme drafts hydrate from the server document — do not
+    // clobber with the live-store editor draft.
+    if (storeThemeId) return;
+
     void (async () => {
       const local = await loadLayoutDraftsAsync(storeId);
       let cloud: LayoutDraftBundle | null = null;
@@ -422,6 +440,7 @@ export function WebsiteEditorClient({
     draftLayout,
     activePage,
     storeId: initialStore.id,
+    storeThemeId,
     initialLayoutRevision: initialStore.layoutRevision ?? 0,
     initFromStore,
     initTemplateLayouts,
@@ -456,6 +475,57 @@ export function WebsiteEditorClient({
     );
     const navStillDirty =
       JSON.stringify(draftNavigation) !== JSON.stringify(savedNavigation);
+
+    // Private AI/merchant StoreTheme: persist the full document server-side.
+    if (storeThemeId) {
+      const collected = collectLayoutsFromPageCache(cache);
+      const pageRows = pages.map((page) => {
+        const fromCache = collected.pageLayouts[page.id];
+        const parsed = parsePageContent(page.content);
+        return {
+          id: page.id,
+          slug: page.slug,
+          title: page.title,
+          status: page.status,
+          layout: fromCache ?? parsed.layout ?? { version: 1 as const, sections: [] },
+        };
+      });
+      const document = editorStateToDocument({
+        theme: {
+          theme: draft.theme ?? saved.theme,
+          primaryColor: draft.primaryColor ?? saved.primaryColor,
+          secondaryColor: draft.secondaryColor ?? saved.secondaryColor,
+          font: draft.font ?? saved.font,
+          logo: draft.logo ?? saved.logo,
+        },
+        navigation: draftNavigation,
+        layouts: {
+          home: collected.home ?? saved.homeLayout,
+          product: collected.product ?? saved.productLayout,
+          collection: collected.collection ?? saved.collectionLayout,
+          blogPost: collected.blogPost,
+        },
+        pages: pageRows,
+      });
+      void fetch("/api/dashboard/store-themes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save", themeId: storeThemeId, document }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            setDraftSaveStatus("error");
+            toast.error("AI theme draft couldn’t be saved");
+            return;
+          }
+          setDraftSaveStatus("saved");
+          setLastDraftSavedAt(Date.now());
+        })
+        .catch(() => {
+          setDraftSaveStatus("error");
+        });
+      return true;
+    }
 
     void saveLayoutDraftsAsync(storeId, layouts, {
       ...(themeStillDirty ? { theme: draft } : {}),
@@ -495,6 +565,8 @@ export function WebsiteEditorClient({
     return Object.keys(layouts).length > 0 || themeStillDirty || navStillDirty;
   }, [
     initialStore.id,
+    storeThemeId,
+    pages,
     syncActivePageToCache,
     draft,
     draftNavigation,
@@ -956,6 +1028,11 @@ export function WebsiteEditorClient({
         undoAvailable={undoAvailable}
         redoAvailable={redoAvailable}
         storeSlug={saved.slug}
+        previewHref={
+          storeThemeId
+            ? `/store/${saved.slug}?preview=true&previewThemeId=${storeThemeId}`
+            : undefined
+        }
         draftSaveStatus={draftSaveStatus}
         lastDraftSavedAt={lastDraftSavedAt}
         unpublishedPageCount={unpublishedPageCount}
@@ -971,6 +1048,31 @@ export function WebsiteEditorClient({
         onRedo={handleRedo}
         onOpenBrand={() => setActiveTab("design")}
       />
+
+      {storeThemeId ? (
+        <div className="flex items-center justify-between gap-3 border-b border-[#007AFF]/20 bg-[#007AFF]/5 px-4 py-2 text-sm text-neutral-800">
+          <p>
+            Editing{" "}
+            <span className="font-semibold">{storeThemeName || "AI theme"}</span>
+            {storeThemeSource ? (
+              <span className="text-muted-foreground">
+                {" "}
+                ·{" "}
+                {storeThemeSource === "ai_active"
+                  ? "AI active theme"
+                  : storeThemeSource === "ai_draft"
+                    ? "AI draft"
+                    : storeThemeSource === "merchant"
+                      ? "Merchant theme"
+                      : storeThemeSource === "system"
+                        ? "System theme"
+                        : "AI archived"}
+              </span>
+            ) : null}
+            . Saves update this private draft until you publish.
+          </p>
+        </div>
+      ) : null}
 
       {multiTabNotice ? (
         <div className="flex items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-950">

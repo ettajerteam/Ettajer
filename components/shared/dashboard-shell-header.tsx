@@ -8,6 +8,7 @@ import { useSidebarStore } from "@/lib/store";
 import { DashboardCommandSearch } from "@/components/shared/dashboard-command-search";
 import { DashboardMessages } from "@/components/shared/dashboard-messages";
 import { DashboardNotifications } from "@/components/shared/dashboard-notifications";
+import { DashboardAccountMenu } from "@/components/shared/dashboard-account-menu";
 import { cn } from "@/lib/utils";
 
 function HeaderIconButton({
@@ -97,6 +98,7 @@ export function DashboardShellHeader() {
 
           <DashboardMessages />
           <DashboardNotifications />
+          <DashboardAccountMenu />
         </div>
       </div>
     </header>

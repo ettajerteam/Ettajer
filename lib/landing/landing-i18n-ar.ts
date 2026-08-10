@@ -509,6 +509,7 @@ export const AR_COPY: LandingCopy = {
         title: "الموارد",
         links: {
           helpCenter: "مركز المساعدة",
+          forAi: "للمساعدات الذكية",
           founderCard: "بطاقة المؤسس",
           contactSupport: "اتصل بالدعم",
           faq: "الأسئلة الشائعة",

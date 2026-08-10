@@ -12,7 +12,6 @@ import { SeoSettings } from "@/components/settings/seo-settings";
 import { WebsiteSettings } from "@/components/settings/website-settings";
 import { PrinterSettings } from "@/components/settings/printer-settings";
 import { MailHubSettingsClient } from "@/components/settings/mailhub-settings-client";
-import { ProfileSettings } from "@/components/settings/profile-settings";
 import { PlanSettings, type PlanSettingsUsage } from "@/components/settings/plan-settings";
 import { LegalSettings } from "@/components/settings/legal-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";
@@ -83,6 +82,10 @@ export function SettingsPageClient({ initialStore, initialProfile, planUsage, le
   useEffect(() => {
     if (tabParam === "design") {
       router.replace("/dashboard/themes/editor");
+      return;
+    }
+    if (tabParam === "profile") {
+      router.replace("/dashboard/profile");
       return;
     }
     if (tabParam === "contact") {
@@ -534,10 +537,6 @@ export function SettingsPageClient({ initialStore, initialProfile, planUsage, le
                   saving={saving}
                   dirty={dirty}
                 />
-              ) : null}
-
-              {activeTab === "profile" ? (
-                <ProfileSettings initialProfile={initialProfile} />
               ) : null}
 
               {activeTab === "plan" ? (

@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { EditorShellSkeleton } from "@/components/website-editor/editor-skeleton";
 import { useIsPhone } from "@/hooks/use-is-phone";
 import type { StorePageRow } from "@/lib/pages";
+import type { NavItem } from "@/lib/navigation";
 import type { StoreThemeData, PreviewPaths } from "@/types/theme";
+import type { StoreThemeSourceLabel } from "@/lib/developer/theme-editor-bridge";
 
 const WebsiteEditorClient = dynamic(
   () =>
@@ -25,6 +27,10 @@ interface WebsiteEditorDesktopOnlyProps {
   previewPaths: PreviewPaths;
   initialPages: StorePageRow[];
   productCount?: number;
+  storeThemeId?: string;
+  storeThemeName?: string;
+  storeThemeSource?: StoreThemeSourceLabel;
+  initialNavigation?: NavItem[];
 }
 
 /**
@@ -35,6 +41,10 @@ export function WebsiteEditorDesktopOnly({
   previewPaths,
   initialPages,
   productCount = 0,
+  storeThemeId,
+  storeThemeName,
+  storeThemeSource,
+  initialNavigation,
 }: WebsiteEditorDesktopOnlyProps) {
   const isPhone = useIsPhone();
 
@@ -61,12 +71,18 @@ export function WebsiteEditorDesktopOnly({
         </p>
         <div className="mt-8 flex w-full max-w-xs flex-col gap-2">
           <Button asChild className="h-12 rounded-xl bg-[#007AFF] hover:bg-[#0071EB]">
-            <Link href="/dashboard/themes">
-              Go to Themes
-            </Link>
+            <Link href="/dashboard/themes">Go to Themes</Link>
           </Button>
           <Button asChild variant="outline" className="h-12 rounded-xl">
-            <Link href={`/store/${store.slug}`} target="_blank" rel="noopener noreferrer">
+            <Link
+              href={
+                storeThemeId
+                  ? `/store/${store.slug}?preview=true&previewThemeId=${storeThemeId}`
+                  : `/store/${store.slug}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <ExternalLink className="mr-2 h-4 w-4" />
               Preview storefront
             </Link>
@@ -85,6 +101,10 @@ export function WebsiteEditorDesktopOnly({
       previewPaths={previewPaths}
       initialPages={initialPages}
       productCount={productCount}
+      storeThemeId={storeThemeId}
+      storeThemeName={storeThemeName}
+      storeThemeSource={storeThemeSource}
+      initialNavigation={initialNavigation}
     />
   );
 }

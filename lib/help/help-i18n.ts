@@ -1128,6 +1128,130 @@ export const HELP_TRANSLATIONS: Record<
       ],
     },
   },
+  "ettajer-developer-console-overview": {
+    fr: {
+      title: "Console Ettajer for Developers",
+      excerpt:
+        "Créez des apps OAuth, copiez les identifiants et connectez Claude ou Cursor.",
+      body: [
+        "Ouvrez Tableau de bord → Developer (ou /dashboard/developer). Connectez-vous en tant que marchand propriétaire de la boutique. Cette console est séparée du tableau de bord boutique.",
+        "Vous pouvez créer des applications, enregistrer des URI de redirection, copier ID client / secret, créer et faire tourner des clés API, voir les grants OAuth, révoquer l’accès, et consulter Activity.",
+        "Créez une app avec un nom clair (Claude MCP, Cursor MCP). Utilisez les presets de redirection ou collez les callbacks exacts — pas de wildcards.",
+        "Après création, une bannière unique affiche Client ID et secret. Copiez-les tout de suite. Le secret n’est plus jamais affiché ; sinon Régénérer le secret.",
+        "Dépliez une app pour copier l’ID, régénérer le secret, créer une clé API (etsk_live_…), et voir URI et grants. Révoquez un grant pour déconnecter un agent sans supprimer l’app.",
+        "Activity liste les actions récentes (thèmes, previews, API). L’endpoint MCP de production est affiché avec copie en un clic.",
+        "Docs : /developers (Quickstart, MCP, OAuth, API, Guides). Articles : /help/category/developers.",
+      ],
+    },
+    ar: {
+      title: "وحدة تحكم Ettajer for Developers",
+      excerpt:
+        "أنشئ تطبيقات OAuth وانسخ بيانات الاعتماد واربط Claude أو Cursor.",
+      body: [
+        "افتح لوحة التحكم → Developer (أو /dashboard/developer) بحساب التاجر مالك المتجر. هذه الوحدة منفصلة عن لوحة المتجر.",
+        "يمكنك إنشاء التطبيقات وتسجيل عناوين إعادة التوجيه ونسخ المعرف/السر وإنشاء مفاتيح API ومراجعتها ورؤية منح OAuth والإلغاء ومتابعة Activity.",
+        "أنشئ تطبيقاً باسم واضح واستخدم الإعدادات المسبقة لـ Claude وCursor أو الصق العناوين بدقة — بلا بدائل عامة.",
+        "بعد الإنشاء تظهر بطاقة لمرة واحدة بمعرف العميل والسر. انسخهما فوراً. لن يُعرض السر مجدداً؛ وإلا أعد توليده.",
+        "وسّع التطبيق لنسخ المعرف وتدوير السر وإنشاء مفتاح API (etsk_live_…) ومراجعة المنح. ألغِ المنح لفصل الوكيل دون حذف التطبيق.",
+        "Activity يعرض الإجراءات الأخيرة. نقطة MCP للإنتاج معروضة مع نسخ بنقرة.",
+        "التوثيق: /developers . المقالات: /help/category/developers .",
+      ],
+    },
+  },
+  "create-developer-oauth-app": {
+    fr: {
+      title: "Créer une app OAuth pour Claude ou Cursor",
+      excerpt:
+        "Enregistrez les URI exactes, sauvegardez les identifiants, puis autorisez la boutique.",
+      body: [
+        "Connectez-vous, ouvrez /dashboard/developer, Create app. Nommez l’app d’après le client (Claude MCP, Cursor MCP).",
+        "Presets : Claude https://claude.ai/api/mcp/auth_callback ; Cursor local http://localhost:8787/callback ; Cursor cloud https://www.cursor.com/agents/mcp/oauth/callback . Une URI par ligne.",
+        "Autres URI possibles : cursor://anysphere.cursor-mcp/oauth/callback et http://localhost:3000/callback pour tests locaux.",
+        "Créez l’app, copiez Client ID et secret immédiatement. Stockez-les dans un gestionnaire de mots de passe — pas dans git.",
+        "Dans Claude/Cursor, démarrez OAuth PKCE S256. Approuvez les scopes pour une seule boutique. Le jeton est lié à cette boutique — n’envoyez jamais storeId.",
+        "Scopes thème IA recommandés : store:read, products:read, collections:read, settings:read, themes:read/create/write/preview, pages:*, media:*, navigation:* . Ajoutez themes:publish seulement si besoin.",
+        "En cas d’erreur redirect_uri, comparez caractère par caractère. Voir l’article Fix MCP OAuth redirect mismatch.",
+        "Référence : /developers/oauth et /developers/ai-integration .",
+      ],
+    },
+    ar: {
+      title: "إنشاء تطبيق OAuth لـ Claude أو Cursor",
+      excerpt:
+        "سجّل عناوين إعادة التوجيه بدقة واحفظ البيانات ثم فوّض متجرك.",
+      body: [
+        "سجّل الدخول وافتح /dashboard/developer ثم Create app وسمِّه حسب العميل.",
+        "الإعدادات المسبقة: Claude وCursor المحلي والسحابي. عنوان واحد في كل سطر دون بدائل عامة.",
+        "أنشئ التطبيق وانسخ Client ID والسر فوراً إلى مدير كلمات مرور — ليس إلى git.",
+        "في Claude أو Cursor ابدأ OAuth مع PKCE S256 ووافق على النطاقات لمتجر واحد. الرمز مرتبط بذلك المتجر ولا ترسل storeId.",
+        "نطاقات السمات الموصى بها تشمل القراءة والإنشاء والمعاينة دون themes:publish إلا عند الحاجة.",
+        "عند خطأ redirect_uri قارن العناوين حرفاً بحرف. راجع مقال إصلاح عدم تطابق إعادة التوجيه.",
+        "المراجع: /developers/oauth و/developers/ai-integration .",
+      ],
+    },
+  },
+  "connect-claude-or-cursor-mcp": {
+    fr: {
+      title: "Connecter Claude ou Cursor avec MCP",
+      excerpt:
+        "Pointez votre client IA vers l’endpoint MCP Ettajer et autorisez via OAuth.",
+      body: [
+        "Endpoint : https://www.ettajer.com/api/v1/mcp — POST, JSON-RPC 2.0, Authorization: Bearer <token ou etsk_live_…>.",
+        "Prérequis : app OAuth avec URI corrects, puis flux authorize ou clé API.",
+        "Dans Claude/Cursor, ajoutez le serveur MCP Ettajer et terminez OAuth. Testez initialize, tools/list, resources/list.",
+        "Flux agent : get_context → get_theme_schema → create_theme si besoin → apply_theme_batch → preview_theme → publication marchande (ou publish_theme avec themes:publish).",
+        "Outils : get_store, get_context, produits/collections, thèmes/pages/sections/média/navigation, preview_theme, publish_theme.",
+        "preview_theme renvoie une previewUrl signée courte durée. Gardez themes:publish désactivé pour l’IA par défaut.",
+        "Principe : l’IA conçoit la présentation ; Ettajer garde panier, checkout et commandes. Ne jamais coller secrets dans le chat.",
+        "Docs : /developers/mcp , /developers/quickstart , /developers/ai-system-prompt .",
+      ],
+    },
+    ar: {
+      title: "ربط Claude أو Cursor عبر MCP",
+      excerpt:
+        "وجّه عميل الذكاء الاصطناعي إلى نقطة MCP في إيتاجر وفوّض عبر OAuth.",
+      body: [
+        "النقطة: https://www.ettajer.com/api/v1/mcp — POST وJSON-RPC وBearer.",
+        "المتطلبات: تطبيق OAuth بعناوين صحيحة ثم التفويض أو مفتاح API.",
+        "أضف خادم MCP في Claude أو Cursor وأكمل OAuth ثم اختبر initialize وtools/list.",
+        "التدفق: get_context ← المخطط ← إنشاء مسودة ← دفعة ← معاينة ← نشر التاجر (أو publish مع themes:publish).",
+        "المعاينة تعيد رابطاً موقّعاً قصير العمر. اترك النشر معطّلاً للذكاء الاصطناعي افتراضياً.",
+        "المبدأ: الذكاء الاصطناعي للعرض وإيتاجر للتجارة. لا تلصق الأسرار في المحادثات.",
+        "التوثيق: /developers/mcp و/developers/quickstart .",
+      ],
+    },
+  },
+  "ai-theme-preview-without-publishing": {
+    fr: {
+      title: "Design de thème IA sans publication",
+      excerpt:
+        "Brouillons, lots validés et previews signés. La mise en ligne reste au marchand.",
+      body: [
+        "Règle : l’IA contrôle la présentation ; Ettajer contrôle panier, checkout et commandes.",
+        "Commencez par get_context / GET /api/v1/context et suivez workflow.next. Réutilisez un brouillon existant.",
+        "Chargez get_theme_schema, créez un brouillon si besoin, appliquez apply_theme_batch (validation fail-closed).",
+        "preview_theme ou POST /api/v1/themes/:id/preview-token donne une URL signée. Les sessions marchand peuvent aussi prévisualiser.",
+        "Itérez sans themes:publish. Le marchand publie depuis Themes → AI Designs quand c’est prêt.",
+        "Sécurité locataire : pas d’accès cross-store (NOT_FOUND). Scope manquant → INSUFFICIENT_SCOPE.",
+        "Prompt système : /developers/ai-system-prompt . Guides : /developers/ai-integration et /developers/themes .",
+        "Astuce : testez la preview sur mobile — la plupart des acheteurs marocains naviguent sur téléphone.",
+      ],
+    },
+    ar: {
+      title: "تصميم السمة بالذكاء الاصطناعي دون نشر",
+      excerpt:
+        "مسودات ودفعات معتمدة ومعاينات موقّعة. يبقى النشر بيد التاجر.",
+      body: [
+        "القاعدة: الذكاء الاصطناعي للعرض وإيتاجر للسلة والدفع والطلبات.",
+        "ابدأ بـ get_context واتبع workflow.next. أعد استخدام المسودة إن وُجدت.",
+        "حمّل المخطط وأنشئ مسودة عند الحاجة وطبق apply_theme_batch بتحقق صارم.",
+        "المعاينة عبر preview_theme أو رمز موقّع. جلسات التاجر يمكنها المعاينة أيضاً.",
+        "كرّر بدون themes:publish. ينشر التاجر من Themes → AI Designs.",
+        "لا وصول عبر المتاجر (NOT_FOUND). نقص النطاق → INSUFFICIENT_SCOPE.",
+        "المزيد: /developers/ai-system-prompt و/developers/ai-integration و/developers/themes .",
+        "جرّب المعاينة على الجوال — أغلب المشترين في المغرب يتصفحون من الهاتف.",
+      ],
+    },
+  },
 };
 
 export function getLocalizedArticle(
@@ -1169,6 +1293,7 @@ export function getContactTopicForCategory(
     "domains-hosting": "technical",
     account: "general",
     "getting-started": "general",
+    developers: "technical",
   };
   return map[categoryId] ?? "general";
 }

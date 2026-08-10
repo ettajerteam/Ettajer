@@ -65,6 +65,7 @@ interface EditorTopBarProps {
   undoAvailable: boolean;
   redoAvailable: boolean;
   storeSlug: string;
+  previewHref?: string;
   zoomPercent?: number;
   draftSaveStatus?: "idle" | "saving" | "saved" | "error";
   lastDraftSavedAt?: number | null;
@@ -91,6 +92,7 @@ export function EditorTopBar({
   undoAvailable,
   redoAvailable,
   storeSlug,
+  previewHref,
   zoomPercent,
   draftSaveStatus = "idle",
   lastDraftSavedAt = null,
@@ -380,9 +382,13 @@ export function EditorTopBar({
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem asChild>
-                <Link href={`/store/${storeSlug}`} target="_blank" rel="noopener noreferrer">
+                <Link
+                  href={previewHref ?? `/store/${storeSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  View live store
+                  {previewHref ? "Preview draft theme" : "View live store"}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onShortcutsOpenChange?.(true)}>

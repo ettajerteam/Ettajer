@@ -24,7 +24,7 @@ export async function GET() {
   }
 
   const apps = await prisma.developerApplication.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, status: "active" },
     include: {
       redirectUris: true,
       grants: {
@@ -236,6 +236,39 @@ export async function POST(request: Request) {
       },
       secret: raw,
     });
+  }
+
+  if (body.action === "delete_app" && body.applicationId) {
+    const app = await prisma.developerApplication.findFirst({
+      where: { id: body.applicationId, userId: session.user.id },
+    });
+    if (!app) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.developerApplication.update({
+        where: { id: app.id },
+        data: { status: "revoked" },
+      }),
+      prisma.oAuthGrant.updateMany({
+        where: { applicationId: app.id, revokedAt: null },
+        data: { revokedAt: now },
+      }),
+      prisma.developerApiKey.updateMany({
+        where: { applicationId: app.id, revokedAt: null },
+        data: { revokedAt: now },
+      }),
+    ]);
+    await logDeveloperAction({
+      applicationId: app.id,
+      userId: session.user.id,
+      actorType: "merchant",
+      action: "application.revoked",
+      resource: "application",
+      resourceId: app.id,
+    });
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });

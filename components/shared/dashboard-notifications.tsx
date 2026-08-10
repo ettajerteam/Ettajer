@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotificationListItem } from "@/components/shared/notification-list-item";
+import { UnreadCountBadge } from "@/components/shared/unread-count-badge";
 import {
   isNotificationUnread,
   patchNotifications,
@@ -35,7 +36,6 @@ export function DashboardNotifications() {
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
   const [unread, setUnread] = useState(0);
-  const [badgeCleared, setBadgeCleared] = useState(false);
   const [items, setItems] = useState<DashboardNotificationItem[]>([]);
   const [summary, setSummary] =
     useState<DashboardNotificationSummary>(EMPTY_SUMMARY);
@@ -50,11 +50,7 @@ export function DashboardNotifications() {
       if (!res.ok) return;
       const data = (await res.json()) as DashboardNotificationsPayload;
       setCount(data.count ?? 0);
-      const nextUnread = data.unread ?? 0;
-      setUnread((prev) => {
-        if (nextUnread > prev) setBadgeCleared(false);
-        return nextUnread;
-      });
+      setUnread(data.unread ?? 0);
       setItems(Array.isArray(data.items) ? data.items : []);
       setSummary(data.summary ?? EMPTY_SUMMARY);
     } catch {
@@ -88,7 +84,7 @@ export function DashboardNotifications() {
     return () => window.clearInterval(timer);
   }, [open, fetchNotifications]);
 
-  const hasRedDot = unread > 0 && !badgeCleared;
+  const hasUnread = unread > 0;
 
   const unreadCount = useMemo(
     () => items.filter((item) => isNotificationUnread(item)).length,
@@ -107,7 +103,6 @@ export function DashboardNotifications() {
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
-      setBadgeCleared(true);
       setTab("all");
       void patchNotifications({ action: "open" });
       void fetchNotifications();
@@ -117,7 +112,6 @@ export function DashboardNotifications() {
   async function handleMarkAllRead() {
     await patchNotifications({ action: "mark_all_read" });
     setUnread(0);
-    setBadgeCleared(true);
     setItems((prev) =>
       prev.map((item) =>
         item.readAt == null
@@ -148,16 +142,23 @@ export function DashboardNotifications() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="relative flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 transition-colors duration-200 hover:bg-black/[0.06] hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white"
-          aria-label={hasRedDot ? "New notifications" : "Notifications"}
+          className={cn(
+            "relative flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-200 hover:bg-black/[0.06] dark:hover:bg-white/10",
+            hasUnread
+              ? "text-neutral-900 dark:text-white"
+              : "text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white",
+          )}
+          aria-label={
+            hasUnread
+              ? `${unread} unread notification${unread === 1 ? "" : "s"}`
+              : "Notifications"
+          }
         >
-          <Bell className="h-4 w-4" />
-          {hasRedDot ? (
-            <span
-              className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#F02849] ring-2 ring-white dark:ring-[#121212]"
-              aria-hidden
-            />
-          ) : null}
+          <Bell
+            className="h-[18px] w-[18px]"
+            strokeWidth={hasUnread ? 2.75 : 2.5}
+          />
+          <UnreadCountBadge count={unread} />
         </button>
       </DropdownMenuTrigger>
 

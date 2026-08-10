@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   UserRound,
+  Lock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ import { USER_ROLE } from "@/lib/admin/constants";
 import { isBootstrapAdminEmail } from "@/lib/admin/auth-client";
 import { getMerchantPlanInfo } from "@/lib/merchant-plan";
 import { useSidebarAttention } from "@/components/shared/use-sidebar-attention";
+import { AcademyComingSoonModal } from "@/components/academy/academy-coming-soon-modal";
 
 const BRAND_ICON = "/brand/App-Logo.png";
 const ease = [0.32, 0.72, 0, 1] as const;
@@ -83,6 +85,7 @@ export function Sidebar() {
   const [storeName, setStoreName] = useState("My Store");
   const [storeSlug, setStoreSlug] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [academySoonOpen, setAcademySoonOpen] = useState(false);
   const { attention, clearKind } = useSidebarAttention();
 
   const isAdmin = session?.user?.role === USER_ROLE.ADMIN;
@@ -194,6 +197,46 @@ export function Sidebar() {
 
     if (!hasChildren && href) {
       const active = isNavLinkActive(pathname, group.href!, search);
+      const academyLocked = group.id === "academy" && group.comingSoon && !isAdmin;
+
+      if (academyLocked) {
+        return (
+          <button
+            key={group.id}
+            type="button"
+            onClick={() => {
+              setAcademySoonOpen(true);
+              setOpen(false);
+            }}
+            title={isCollapsed ? `${group.label} · Coming soon` : undefined}
+            className={cn(
+              "group/item relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-200",
+              isCollapsed && "justify-center px-0",
+              "font-normal text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200",
+            )}
+          >
+            <span className="relative z-10 shrink-0">
+              <group.icon
+                className="h-3.5 w-3.5 text-neutral-400 transition-colors duration-200 group-hover/item:text-neutral-500"
+                strokeWidth={1.6}
+              />
+            </span>
+            {!isCollapsed && (
+              <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1.5 truncate">
+                <span className="truncate">{group.label}</span>
+                <Lock
+                  className="ml-auto h-3 w-3 shrink-0 text-neutral-300"
+                  strokeWidth={2}
+                />
+              </span>
+            )}
+            {isCollapsed && (
+              <Lock className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 text-neutral-400" strokeWidth={2.5} />
+            )}
+          </button>
+        );
+      }
+
       return (
         <Link
           key={group.id}
@@ -478,7 +521,7 @@ export function Sidebar() {
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild className="rounded-lg text-[12px]">
-                <Link href="/dashboard/settings?tab=profile">
+                <Link href="/dashboard/profile">
                   <UserRound className="mr-2 h-3.5 w-3.5" />
                   Profile
                 </Link>
@@ -549,6 +592,11 @@ export function Sidebar() {
           </>
         )}
       </AnimatePresence>
+
+      <AcademyComingSoonModal
+        open={academySoonOpen}
+        onClose={() => setAcademySoonOpen(false)}
+      />
     </>
   );
 }

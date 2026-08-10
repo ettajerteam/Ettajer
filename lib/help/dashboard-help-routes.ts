@@ -38,6 +38,9 @@ const DASHBOARD_HELP_ROUTES: Record<string, string> = {
   "/dashboard/settings": "configure-checkout-settings",
   "/dashboard/domains": "connect-a-custom-domain",
   "/dashboard/gift-cards": "gift-cards-for-customers",
+  "/dashboard/developer": "ettajer-developer-console-overview",
+  "/dashboard/developer/activity": "ettajer-developer-console-overview",
+  "/dashboard/profile": "change-store-name-currency-language",
 };
 
 /** Settings tab → help article (query `?tab=`). */

@@ -12,7 +12,7 @@ const EN: HelpSeoCopy = {
   index: {
     title: "Get Help",
     description:
-      "Search Ettajer help articles and step-by-step guides for COD, Stripe, PayPal, Email Marketing, Meta ads, domains, and store setup. Also available as llms.txt and knowledge.json for AI assistants.",
+      "Search Ettajer help articles and step-by-step guides for COD, Stripe, PayPal, Email Marketing, Meta ads, domains, and store setup. Also available as llms.txt, knowledge.json, and /ai for AI assistants.",
     keywords: [
       "ettajer help",
       "support",
@@ -21,6 +21,7 @@ const EN: HelpSeoCopy = {
       "meta pixel guide",
       "store builder guide",
       "llms.txt",
+      "ettajer ai",
     ],
   },
   articleTitleSuffix: " — Help",

@@ -292,7 +292,7 @@ export function ProductCodOrderForm({
         type="submit"
         disabled={loading || product.inventory <= 0}
         className="pdp-cta w-full disabled:opacity-50"
-        style={{ backgroundColor: "var(--store-primary)" }}
+        style={{ backgroundColor: "var(--store-cta, var(--store-primary))", color: "var(--store-on-cta, #fff)" }}
       >
         {loading ? (
           <span className="inline-flex items-center gap-2">

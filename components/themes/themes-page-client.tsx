@@ -230,6 +230,18 @@ export function ThemesPageClient({ store: initialStore, previewPaths }: ThemesPa
           <Button
             variant="outline"
             className="h-7 rounded-md border-black/[0.06] px-2.5 text-[11px] shadow-none dark:border-white/10"
+            onClick={() =>
+              document.getElementById("themes-ai-designs")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              })
+            }
+          >
+            AI Designs
+          </Button>
+          <Button
+            variant="outline"
+            className="h-7 rounded-md border-black/[0.06] px-2.5 text-[11px] shadow-none dark:border-white/10"
             asChild
           >
             <a href={storeUrl} target="_blank" rel="noopener noreferrer">
@@ -247,7 +259,7 @@ export function ThemesPageClient({ store: initialStore, previewPaths }: ThemesPa
           onApply={handleApplyTemplate}
         />
 
-      <ThemesAiDesignsSection storeSlug={saved.slug} />
+      <ThemesAiDesignsSection storeSlug={saved.slug} storeName={saved.name} />
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>

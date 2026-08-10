@@ -12,6 +12,7 @@ import { HelpChecklistSection } from "@/components/help/help-checklist-section";
 import { HelpPaymentGuidesSection } from "@/components/help/help-payment-guides-section";
 import { HelpMarketingGuidesSection } from "@/components/help/help-marketing-guides-section";
 import { HelpDomainGuidesSection } from "@/components/help/help-domain-guides-section";
+import { HelpDeveloperGuidesSection } from "@/components/help/help-developer-guides-section";
 import { useHelpLocale } from "@/components/help/help-locale-provider";
 import {
   HELP_ARTICLES,
@@ -99,6 +100,8 @@ export function GetHelpPage({ initialQuery = "" }: { initialQuery?: string }) {
       ) : (
         <>
           <HelpChecklistSection />
+
+          <HelpDeveloperGuidesSection />
 
           <HelpPaymentGuidesSection />
 

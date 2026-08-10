@@ -22,6 +22,11 @@ import type { ThemeId } from "@/lib/themes";
 import type { StoreThemeSettings } from "@/types/storefront";
 import type { StoreThemeData } from "@/types/theme";
 import { ensureTemplateLayouts, useCentralBuilderStore } from "@/lib/website-layout-store";
+import {
+  collectLayoutsFromPageCache,
+  editorStateToDocument,
+} from "@/lib/developer/theme-editor-bridge";
+import { parsePageContent } from "@/lib/page-content";
 
 type PreviewDraft = StoreThemeSettings;
 
@@ -43,6 +48,7 @@ export function useEditorPublish({
   draftLayout,
   activePage,
   storeId,
+  storeThemeId,
   initialLayoutRevision,
   initFromStore,
   initTemplateLayouts,
@@ -71,6 +77,7 @@ export function useEditorPublish({
   draftLayout: HomeLayout;
   activePage: EditorPageTarget;
   storeId?: string;
+  storeThemeId?: string;
   initialLayoutRevision: number;
   initFromStore: (settings: StoreThemeSettings & { theme: string }) => void;
   initTemplateLayouts: (
@@ -249,6 +256,73 @@ export function useEditorPublish({
     setPublishing(true);
     const completedSteps: string[] = [];
     try {
+      if (storeThemeId) {
+        const collected = collectLayoutsFromPageCache(layoutCache);
+        const pageRows = pages.map((page) => {
+          const fromCache = collected.pageLayouts[page.id];
+          const parsed = parsePageContent(page.content);
+          return {
+            id: page.id,
+            slug: page.slug,
+            title: page.title,
+            status: page.status,
+            layout: fromCache ?? parsed.layout ?? { version: 1 as const, sections: [] },
+          };
+        });
+        const document = editorStateToDocument({
+          theme: {
+            theme: previewDraft.theme ?? saved.theme,
+            primaryColor: previewDraft.primaryColor ?? saved.primaryColor,
+            secondaryColor: previewDraft.secondaryColor ?? saved.secondaryColor,
+            font: previewDraft.font ?? saved.font,
+            logo: previewDraft.logo ?? saved.logo ?? null,
+          },
+          navigation: draftNavigation,
+          layouts: {
+            home: collected.home ?? saved.homeLayout,
+            product: collected.product ?? saved.productLayout,
+            collection: collected.collection ?? saved.collectionLayout,
+            blogPost: collected.blogPost,
+          },
+          pages: pageRows,
+        });
+        const saveRes = await fetchWithRetry("/api/dashboard/store-themes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "save", themeId: storeThemeId, document }),
+        });
+        if (!saveRes.ok) {
+          throw new Error("Failed to save AI theme draft before publish");
+        }
+        const pubRes = await fetchWithRetry("/api/dashboard/store-themes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "publish", themeId: storeThemeId }),
+        });
+        if (!pubRes.ok) {
+          throw new Error("Failed to publish AI theme");
+        }
+        completedSteps.push("AI theme");
+        if (storeId) clearLayoutDrafts(storeId);
+        commitSavedLayouts();
+        setSavedNavigation(draftNavigation);
+        setDraftSaveStatus("idle");
+        setLastDraftSavedAt(null);
+        setConfirmOpen(false);
+        setPublishSuccessOpen(true);
+        setLastPublishSummary(
+          storeThemeId
+            ? "AI theme published to your live storefront. Cart and checkout stay on Ettajer."
+            : null
+        );
+        setA11yStatus("AI theme published");
+        markLaunchChecklistPublished();
+        setPreviewKey((k) => k + 1);
+        toast.success("AI theme is live");
+        setPublishing(false);
+        return;
+      }
+
       type Step = { label: string; run: () => Promise<Response> };
       const steps: Step[] = [
         {

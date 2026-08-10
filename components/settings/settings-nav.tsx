@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Banknote,
   CreditCard,
@@ -53,6 +54,8 @@ export type SettingsNavItem = {
   group: SettingsGroupId;
   /** Placeholder section — no full product yet */
   comingSoon?: boolean;
+  /** External route (e.g. dedicated profile page) */
+  href?: string;
 };
 
 export const SETTINGS_NAV: SettingsNavItem[] = [
@@ -139,6 +142,7 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     description: "Your name, photo, and password",
     icon: UserRound,
     group: "account",
+    href: "/dashboard/profile",
   },
   {
     id: "plan",
@@ -179,19 +183,14 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
           {SETTINGS_NAV.map((item) => {
             const active = item.id === activeTab;
             const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onChange(item.id)}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium transition",
-                  active
-                    ? "border-[#007AFF]/30 bg-[#007AFF]/10 text-[#007AFF]"
-                    : "border-black/[0.06] bg-white text-neutral-600 hover:text-neutral-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-neutral-300"
-                )}
-              >
+            const className = cn(
+              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium transition",
+              active
+                ? "border-[#007AFF]/30 bg-[#007AFF]/10 text-[#007AFF]"
+                : "border-black/[0.06] bg-white text-neutral-600 hover:text-neutral-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-neutral-300"
+            );
+            const content = (
+              <>
                 <Icon className="h-3.5 w-3.5 opacity-80" />
                 {item.label}
                 {item.comingSoon ? (
@@ -199,6 +198,29 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
                     Soon
                   </span>
                 ) : null}
+              </>
+            );
+            if (item.href) {
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={className}
+                >
+                  {content}
+                </Link>
+              );
+            }
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onChange(item.id)}
+                aria-current={active ? "page" : undefined}
+                className={className}
+              >
+                {content}
               </button>
             );
           })}
@@ -218,19 +240,14 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
                   {items.map((item) => {
                     const active = item.id === activeTab;
                     const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => onChange(item.id)}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition",
-                          active
-                            ? "bg-[#007AFF]/10 text-[#007AFF]"
-                            : "text-neutral-600 hover:bg-black/[0.03] hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/[0.04] dark:hover:text-white"
-                        )}
-                      >
+                    const className = cn(
+                      "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition",
+                      active
+                        ? "bg-[#007AFF]/10 text-[#007AFF]"
+                        : "text-neutral-600 hover:bg-black/[0.03] hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-white/[0.04] dark:hover:text-white"
+                    );
+                    const content = (
+                      <>
                         <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
                         <span className="min-w-0 flex-1 truncate text-[12px] font-medium tracking-[-0.01em]">
                           {item.label}
@@ -240,6 +257,29 @@ export function SettingsNav({ activeTab, onChange }: SettingsNavProps) {
                             Soon
                           </span>
                         ) : null}
+                      </>
+                    );
+                    if (item.href) {
+                      return (
+                        <Link
+                          key={item.id}
+                          href={item.href}
+                          aria-current={active ? "page" : undefined}
+                          className={className}
+                        >
+                          {content}
+                        </Link>
+                      );
+                    }
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onChange(item.id)}
+                        aria-current={active ? "page" : undefined}
+                        className={className}
+                      >
+                        {content}
                       </button>
                     );
                   })}

@@ -58,6 +58,8 @@ export function CartDrawer({ store }: CartDrawerProps) {
     freeThreshold > 0 ? Math.min((subtotal / freeThreshold) * 100, 100) : 0;
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const primary = "var(--store-primary)";
+  const ctaBg = "var(--store-cta, var(--store-primary, #0a0a0a))";
+  const ctaFg = "var(--store-on-cta, #ffffff)";
   const t = getStorefrontCopy(store.language);
   const rtl = isStorefrontRtl(store.language);
 
@@ -237,8 +239,8 @@ export function CartDrawer({ store }: CartDrawerProps) {
                   <Link
                     href={getStoreCheckoutUrl(store.slug)}
                     onClick={closeCart}
-                    className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[13px] font-semibold text-white transition hover:opacity-95 active:scale-[0.99]"
-                    style={{ backgroundColor: primary }}
+                    className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[13px] font-semibold transition hover:opacity-95 active:scale-[0.99]"
+                    style={{ backgroundColor: ctaBg, color: ctaFg }}
                   >
                     {t.cart.checkout}
                     <ArrowRight className={`h-4 w-4 ${rtl ? "rotate-180" : ""}`} />

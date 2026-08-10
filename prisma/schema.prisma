@@ -71,6 +71,7 @@ model User {
   developerApplications DeveloperApplication[]
   oauthGrants         OAuthGrant[]
   storeThemesCreated  StoreTheme[]   @relation("StoreThemeCreator")
+  academyProgress     AcademyProgress[]
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @default(now()) @updatedAt
 }
@@ -1462,4 +1463,19 @@ model StoreTheme {
   @@index([storeId, status])
   @@index([storeId, createdAt])
   @@index([createdByApplicationId])
+}
+
+model AcademyProgress {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseSlug       String
+  completedLessons String[] @default([])
+  lastLessonSlug   String?
+  startedAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
+
+  @@unique([userId, courseSlug])
+  @@index([userId])
 }

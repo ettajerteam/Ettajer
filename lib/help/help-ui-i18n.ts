@@ -568,6 +568,11 @@ const FR: HelpCopy = {
       title: "Dépannage",
       description: "Résoudre les problèmes courants rapidement.",
     },
+    developers: {
+      title: "Développeurs & IA",
+      description:
+        "OAuth, MCP, API et design de thèmes IA pour Claude et Cursor.",
+    },
   },
 };
 
@@ -804,6 +809,11 @@ const AR: HelpCopy = {
     troubleshooting: {
       title: "استكشاف الأخطاء",
       description: "حل المشكلات الشائعة بسرعة.",
+    },
+    developers: {
+      title: "المطورون والذكاء الاصطناعي",
+      description:
+        "OAuth وMCP وAPI وتصميم السمات بالذكاء الاصطناعي لـ Claude وCursor.",
     },
   },
 };

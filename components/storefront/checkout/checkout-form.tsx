@@ -200,6 +200,8 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
   const minOrder = store.checkout.minOrderAmount ?? 0;
   const belowMinOrder = minOrder > 0 && subtotal < minOrder;
   const primary = "var(--store-primary)";
+  const ctaBg = "var(--store-cta, var(--store-primary, #0a0a0a))";
+  const ctaFg = "var(--store-on-cta, #ffffff)";
   const fields = store.checkout.fields ?? DEFAULT_CHECKOUT_FIELDS;
   const theme = store.checkout.checkoutTheme ?? "classic";
   const styles = getCheckoutThemeStyles(theme);
@@ -1510,8 +1512,8 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
             {!isSinglePage && step < 3 ? (
               <Button
                 onClick={goNext}
-                className={cn("flex-[1.4] text-white", styles.btnHeight, styles.btn)}
-                style={{ backgroundColor: primary }}
+                className={cn("flex-[1.4]", styles.btnHeight, styles.btn)}
+                style={{ backgroundColor: ctaBg, color: ctaFg }}
               >
                 {continueLabel}
               </Button>
@@ -1533,8 +1535,8 @@ export function CheckoutForm({ store }: CheckoutFormProps) {
                   void handleSubmit();
                 }}
                 disabled={loading || belowMinOrder || (requireTerms && !acceptedTerms)}
-                className={cn("flex-[1.4] text-white", styles.btnHeight, styles.btn)}
-                style={{ backgroundColor: primary }}
+                className={cn("flex-[1.4]", styles.btnHeight, styles.btn)}
+                style={{ backgroundColor: ctaBg, color: ctaFg }}
               >
                 {loading ? (
                   <span className="inline-flex items-center gap-2">

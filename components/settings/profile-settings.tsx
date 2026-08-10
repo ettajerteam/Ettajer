@@ -62,10 +62,11 @@ function initials(name: string | null, email: string) {
 function formatDate(iso: string | null) {
   if (!iso) return null;
   try {
-    return new Intl.DateTimeFormat(undefined, {
+    return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: "UTC",
     }).format(new Date(iso));
   } catch {
     return null;

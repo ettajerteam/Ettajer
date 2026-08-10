@@ -78,10 +78,10 @@ export function StorefrontQuietState({
               href={primaryAction.href}
               onClick={primaryAction.onClick}
               className={cn(
-                "inline-flex h-11 items-center px-6 text-[13px] font-semibold text-white transition hover:opacity-90",
+                "inline-flex h-11 items-center px-6 text-[13px] font-semibold transition hover:opacity-90",
                 shape
               )}
-              style={{ backgroundColor: "var(--store-primary, #0a0a0a)" }}
+              style={{ backgroundColor: "var(--store-cta, var(--store-primary, #0a0a0a))", color: "var(--store-on-cta, #fff)" }}
             >
               {primaryAction.label}
             </Link>

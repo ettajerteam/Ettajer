@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { Sidebar } from "@/components/shared/sidebar";
 import { DashboardShellHeader } from "@/components/shared/dashboard-shell-header";
+import { AcademyComingSoonQueryOpener } from "@/components/academy/academy-coming-soon-query-opener";
 import { useSidebarStore } from "@/lib/store";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -27,6 +28,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className={cn("min-h-screen", isDark ? "bg-[#0a0a0a]" : "bg-[#F5F5F7]")}>
       <Suspense fallback={<SidebarFallback />}>
         <Sidebar />
+      </Suspense>
+      <Suspense fallback={null}>
+        <AcademyComingSoonQueryOpener />
       </Suspense>
       <div
         className={cn(

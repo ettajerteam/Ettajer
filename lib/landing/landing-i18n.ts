@@ -676,6 +676,7 @@ const EN_COPY: LandingCopy = {
         title: "Resources",
         links: {
           helpCenter: "Help center",
+          forAi: "For AI assistants",
           founderCard: "Founder card",
           contactSupport: "Contact support",
           faq: "FAQ",
@@ -1270,6 +1271,7 @@ const FR_COPY: LandingCopy = {
         title: "Ressources",
         links: {
           helpCenter: "Centre d'aide",
+          forAi: "Pour les assistants IA",
           founderCard: "Carte fondateur",
           contactSupport: "Contacter le support",
           faq: "FAQ",
@@ -1554,6 +1556,7 @@ export function getFooterNavGroups(locale: LandingLocale) {
       title: copy.resources.title,
       links: [
         { label: copy.resources.links.helpCenter, href: "/help" },
+        { label: copy.resources.links.forAi, href: "/ai" },
         { label: copy.resources.links.founderCard, href: "/founder-card" },
         { label: copy.resources.links.contactSupport, href: "/contact" },
         { label: copy.resources.links.faq, href: "#faq" },

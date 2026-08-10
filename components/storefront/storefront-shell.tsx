@@ -6,6 +6,7 @@ import {
   designTokensToCssVars,
   resolveDesignTokens,
 } from "@/lib/design-tokens";
+import { resolveStoreCtaColors } from "@/lib/storefront/cta-contrast";
 import { getStorefrontCopy, getStorefrontDir, getStorefrontLang } from "@/lib/storefront/storefront-i18n";
 import { StorefrontCartProvider } from "@/components/storefront/cart/storefront-cart-provider";
 import { MarketingPixels } from "@/components/storefront/marketing-pixels";
@@ -46,6 +47,8 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
   const showAnnounce =
     store.announceBarEnabled && Boolean(store.announceBarText?.trim());
   const fontWeight = getStoreFontWeight(store.font);
+  const ctaSurface = store.theme === "bold" ? "dark" : "light";
+  const cta = resolveStoreCtaColors(store.primaryColor, ctaSurface);
 
   const inner = (
     <>
@@ -56,8 +59,11 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
       )}
       {showAnnounce ? (
         <div
-          className="px-4 py-2 text-center text-[12px] font-medium tracking-wide text-white sm:text-[13px]"
-          style={{ backgroundColor: store.primaryColor }}
+          className="px-4 py-2 text-center text-[12px] font-medium tracking-wide sm:text-[13px]"
+          style={{
+            backgroundColor: cta.fill,
+            color: cta.onFill,
+          }}
           role="status"
         >
           {store.announceBarText}
@@ -100,6 +106,7 @@ export function StorefrontShell({ store, children, preview, purchaseEvent }: Sto
           "--store-primary": store.primaryColor,
           "--store-secondary": store.secondaryColor,
           "--store-font": getFontFamily(store.font),
+          ...cta.cssVars,
           ...designTokensToCssVars(tokens),
           fontFamily: "var(--store-font)",
           fontWeight,

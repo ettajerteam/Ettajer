@@ -1,10 +1,12 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth/auth-form";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { GoogleOneTapHost } from "@/components/auth/google-one-tap";
 import { getAuthSeo } from "@/lib/auth/auth-seo";
 import { getAuthProviders } from "@/lib/auth-providers";
+import { auth } from "@/lib/auth-session";
 import { buildPageMetadata, getServerLocale } from "@/lib/seo/page-metadata";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +50,26 @@ function AuthFormFallback() {
   );
 }
 
-export default function LoginPage() {
+/** Only allow same-origin relative paths (open-redirect safe). */
+function safeCallbackUrl(raw: string | string[] | undefined): string {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value || typeof value !== "string") return "/dashboard";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/dashboard";
+  return value;
+}
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { callbackUrl?: string | string[] };
+}) {
+  const callbackUrl = safeCallbackUrl(searchParams?.callbackUrl);
+
+  const session = await auth();
+  if (session?.user?.id) {
+    redirect(callbackUrl);
+  }
+
   const providers = getAuthProviders();
   const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim() || "";
 

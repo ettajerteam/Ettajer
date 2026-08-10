@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
+import { UnreadCountBadge } from "@/components/shared/unread-count-badge";
 import { formatNotificationTime } from "@/lib/dashboard-notifications";
 import { cn } from "@/lib/utils";
 
@@ -89,7 +90,6 @@ export function DashboardMessages() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<ContactMessage[]>([]);
   const [unread, setUnread] = useState(0);
-  const [badgeCleared, setBadgeCleared] = useState(false);
   const [tab, setTab] = useState<"all" | "unread">("all");
   const [query, setQuery] = useState("");
   const [ettajerPreview, setEttajerPreview] = useState<SupportPreview | null>(
@@ -111,11 +111,7 @@ export function DashboardMessages() {
         };
         const next = Array.isArray(data.submissions) ? data.submissions : [];
         setItems(next);
-        const nextUnread = data.unread ?? 0;
-        setUnread((prev) => {
-          if (nextUnread > prev) setBadgeCleared(false);
-          return nextUnread;
-        });
+        setUnread(data.unread ?? 0);
       }
 
       if (supportRes.ok) {
@@ -164,7 +160,7 @@ export function DashboardMessages() {
     return () => window.clearInterval(timer);
   }, [open, fetchMessages]);
 
-  const hasRedDot = unread > 0 && !badgeCleared;
+  const hasUnread = unread > 0;
 
   const showEttajer = useMemo(() => {
     if (tab === "unread") return false;
@@ -195,7 +191,6 @@ export function DashboardMessages() {
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (next) {
-      setBadgeCleared(true);
       setTab("all");
       setQuery("");
       void fetchMessages();
@@ -250,16 +245,23 @@ export function DashboardMessages() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="relative flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 transition-colors duration-200 hover:bg-black/[0.06] hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-white/10 dark:hover:text-white"
-          aria-label={hasRedDot ? "New messages" : "Messages"}
+          className={cn(
+            "relative flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-200 hover:bg-black/[0.06] dark:hover:bg-white/10",
+            hasUnread
+              ? "text-neutral-900 dark:text-white"
+              : "text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white",
+          )}
+          aria-label={
+            hasUnread
+              ? `${unread} unread message${unread === 1 ? "" : "s"}`
+              : "Messages"
+          }
         >
-          <MessageSquare className="h-4 w-4" />
-          {hasRedDot ? (
-            <span
-              className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-[#F02849] ring-2 ring-white dark:ring-[#121212]"
-              aria-hidden
-            />
-          ) : null}
+          <MessageSquare
+            className="h-[18px] w-[18px]"
+            strokeWidth={hasUnread ? 2.75 : 2.5}
+          />
+          <UnreadCountBadge count={unread} />
         </button>
       </DropdownMenuTrigger>
 
