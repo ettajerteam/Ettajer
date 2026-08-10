@@ -8,6 +8,8 @@ import {
   Check,
   ChevronDown,
   Copy,
+  Eye,
+  EyeOff,
   KeyRound,
   Plus,
   RefreshCw,
@@ -1165,6 +1167,11 @@ function SecretRow({
   copied?: boolean;
   onCopy: () => void;
 }) {
+  const [visible, setVisible] = useState(!sensitive);
+  const displayValue = sensitive && !visible
+    ? "•".repeat(Math.min(Math.max(value.length, 24), 48))
+    : value;
+
   return (
     <div className="rounded-xl border border-black/[0.06] bg-[#F5F5F7] px-3 py-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -1176,21 +1183,42 @@ function SecretRow({
             </span>
           ) : null}
         </div>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-[#007AFF] px-2.5 text-[11px] font-semibold text-white transition hover:bg-[#0066D6]"
-        >
-          {copied ? (
-            <Check className="h-3 w-3" />
-          ) : (
-            <Copy className="h-3 w-3" />
-          )}
-          {copied ? "Copied" : "Copy"}
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {sensitive ? (
+            <button
+              type="button"
+              onClick={() => setVisible((v) => !v)}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-neutral-500 transition hover:bg-black/[0.05] hover:text-neutral-800"
+              aria-label={visible ? `Hide ${label}` : `Show ${label}`}
+            >
+              {visible ? (
+                <EyeOff className="h-3.5 w-3.5" />
+              ) : (
+                <Eye className="h-3.5 w-3.5" />
+              )}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onCopy}
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-[#007AFF] px-2.5 text-[11px] font-semibold text-white transition hover:bg-[#0066D6]"
+          >
+            {copied ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
       </div>
-      <p className="mt-1.5 break-all font-mono text-[12px] leading-relaxed text-neutral-900">
-        {value}
+      <p
+        className={cn(
+          "mt-1.5 break-all font-mono text-[12px] leading-relaxed text-neutral-900",
+          sensitive && !visible && "tracking-[0.12em]",
+        )}
+      >
+        {displayValue}
       </p>
     </div>
   );
