@@ -23,7 +23,7 @@ declare module "next-auth/jwt" {
     plan?: string | null;
     role?: string;
     remember?: boolean;
-    /** Absolute unix expiry when remember is false; rolling when true. */
+    /** Absolute unix expiry; extended on each JWT refresh while signed in. */
     sessionEndsAt?: number;
     name?: string | null;
   }

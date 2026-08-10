@@ -435,11 +435,8 @@ export const authProviders = {
 
 
 
-/** Keep me signed in: rolling 90-day session (cookie + JWT). */
-const SESSION_MAX_AGE_REMEMBER = 60 * 60 * 24 * 90;
-
-/** Without keep-me-signed-in: fixed 24h session. */
-const SESSION_MAX_AGE_DEFAULT = 60 * 60 * 24;
+/** Stay signed in until explicit logout: rolling 90-day session (cookie + JWT). */
+const SESSION_MAX_AGE = 60 * 60 * 24 * 90;
 
 const useSecureCookies = (process.env.NEXTAUTH_URL ?? "").startsWith("https://");
 
@@ -469,9 +466,9 @@ export const authOptions: NextAuthOptions = {
 
     strategy: "jwt",
 
-    maxAge: SESSION_MAX_AGE_REMEMBER,
+    maxAge: SESSION_MAX_AGE,
 
-    /** Re-issue cookie/JWT regularly so “keep me signed in” stays fresh while active. */
+    /** Re-issue cookie/JWT regularly so the session stays fresh while active. */
     updateAge: 60 * 60,
 
   },
@@ -484,7 +481,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: useSecureCookies,
-        maxAge: SESSION_MAX_AGE_REMEMBER,
+        maxAge: SESSION_MAX_AGE,
       },
     },
   },
@@ -510,15 +507,10 @@ export const authOptions: NextAuthOptions = {
 
         if (user.name) token.name = user.name;
 
-        const remember = (user as { remember?: boolean }).remember !== false;
+        // Always persist until explicit sign-out (ignore short-lived remember=false).
+        token.remember = true;
 
-        token.remember = remember;
-
-        const maxAge = remember
-          ? SESSION_MAX_AGE_REMEMBER
-          : SESSION_MAX_AGE_DEFAULT;
-
-        token.sessionEndsAt = now + maxAge;
+        token.sessionEndsAt = now + SESSION_MAX_AGE;
         token.exp = token.sessionEndsAt;
 
       } else if (token.email && !token.id) {
@@ -535,7 +527,7 @@ export const authOptions: NextAuthOptions = {
 
       }
 
-      // Absolute expiry when “keep me signed in” was off
+      // Drop only after absolute inactivity window (never force-logout while rolling).
       if (
         typeof token.sessionEndsAt === "number" &&
         now >= token.sessionEndsAt
@@ -543,16 +535,10 @@ export const authOptions: NextAuthOptions = {
         return { ...token, exp: now - 1 };
       }
 
-      // Rolling window while remembered — stays signed in across browser restarts
-      if (token.remember) {
-        token.sessionEndsAt = now + SESSION_MAX_AGE_REMEMBER;
-        token.exp = token.sessionEndsAt;
-      } else if (typeof token.sessionEndsAt === "number") {
-        token.exp = token.sessionEndsAt;
-      } else if (token.remember === undefined && token.id) {
-        // Legacy / OAuth tokens without remember flag — treat as remembered
+      // Rolling window — stays signed in across browser restarts until Log out.
+      if (token.id) {
         token.remember = true;
-        token.sessionEndsAt = now + SESSION_MAX_AGE_REMEMBER;
+        token.sessionEndsAt = now + SESSION_MAX_AGE;
         token.exp = token.sessionEndsAt;
       }
 
