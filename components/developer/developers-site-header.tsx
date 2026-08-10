@@ -15,14 +15,14 @@ import { OpenConsoleLink } from "@/components/developer/open-console-link";
 
 const BRAND_ICON = "/brand/App-Logo.png";
 
-const NAV = [
+const NAV: { href: string; label: string; exact?: boolean }[] = [
   { href: "/developers", label: "Overview", exact: true },
   { href: "/developers/quickstart", label: "Quickstart" },
   { href: "/developers/mcp", label: "MCP" },
   { href: "/developers/api", label: "API" },
   { href: "/developers/oauth", label: "OAuth" },
   { href: "/developers/guides", label: "Guides" },
-] as const;
+];
 
 export function DevelopersSiteHeader() {
   const pathname = usePathname();

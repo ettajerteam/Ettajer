@@ -75,9 +75,9 @@ export function collectConnectedAiClients(
     if (!app.grants.length) continue;
     const detected = detectAiClient(app);
     const key = `${detected.kind}:${app.id}`;
-    const storeNames = [
-      ...new Set(app.grants.map((g) => g.storeName).filter(Boolean)),
-    ];
+    const storeNames = Array.from(
+      new Set(app.grants.map((g) => g.storeName).filter(Boolean)),
+    );
     byKind.set(key, {
       kind: detected.kind,
       label: detected.label,
@@ -97,7 +97,7 @@ export function collectConnectedAiClients(
     "other",
   ];
 
-  return [...byKind.values()].sort(
+  return Array.from(byKind.values()).sort(
     (a, b) => order.indexOf(a.kind) - order.indexOf(b.kind),
   );
 }
