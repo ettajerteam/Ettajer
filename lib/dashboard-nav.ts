@@ -64,6 +64,7 @@ export const mainNav: NavSection = {
         { id: "products-collections", label: "Collections", href: "/dashboard/collections" },
         { id: "products-categories", label: "Categories", href: "/dashboard/categories" },
         { id: "products-gift-cards", label: "Gift cards", href: "/dashboard/gift-cards" },
+        { id: "products-etsy", label: "Etsy", href: "/dashboard/channels/etsy" },
       ],
     },
     {
@@ -98,16 +99,6 @@ export const mainNav: NavSection = {
       ],
     },
     {
-      id: "developer",
-      label: "Developers",
-      icon: Code2,
-      children: [
-        { id: "developer-apps", label: "Console", href: "/dashboard/developer" },
-        { id: "developer-activity", label: "Activity", href: "/dashboard/developer/activity" },
-        { id: "developer-docs", label: "Docs", href: "/developers", external: true },
-      ],
-    },
-    {
       id: "online-store",
       label: "Online Store",
       icon: Store,
@@ -117,6 +108,16 @@ export const mainNav: NavSection = {
         { id: "store-blog", label: "Blog posts", href: "/dashboard/blog" },
         { id: "store-pages", label: "Pages", href: "/dashboard/pages" },
         { id: "store-navigation", label: "Navigation", href: "/dashboard/navigation" },
+      ],
+    },
+    {
+      id: "developer",
+      label: "Developers",
+      icon: Code2,
+      children: [
+        { id: "developer-apps", label: "Console", href: "/dashboard/developer" },
+        { id: "developer-activity", label: "Activity", href: "/dashboard/developer/activity" },
+        { id: "developer-docs", label: "Docs", href: "/developers", external: true },
       ],
     },
     {

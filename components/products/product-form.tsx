@@ -80,6 +80,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableMultiSelect } from "@/components/catalog/searchable-multi-select";
+import { ProductChannelPanel } from "@/components/channels/product-channel-panel";
+import { EtsySeoPanel } from "@/components/channels/etsy-seo-panel";
+import { SmartPricingPanel } from "@/components/channels/smart-pricing-panel";
 
 const RichTextEditor = dynamic(
   () => import("@/components/products/rich-text-editor").then((m) => m.RichTextEditor),
@@ -93,6 +96,8 @@ interface ProductFormProps {
   currency: string;
   ticketPrinters?: TicketPrinter[];
   initialData?: Product;
+  /** Prefill for new products (e.g. Academy Market import) — never auto-publishes */
+  seedValues?: Partial<ProductFormValues>;
   onSubmit: (data: ProductFormValues) => Promise<void>;
   formId: string;
   layout?: "sheet" | "page";
@@ -235,6 +240,7 @@ export function ProductForm({
   currency,
   ticketPrinters = [],
   initialData,
+  seedValues,
   onSubmit,
   formId,
   layout = "sheet",
@@ -281,6 +287,11 @@ export function ProductForm({
           ...defaultValues,
           sku: generateProductSku(),
           barcode: generateProductBarcode(),
+          ...seedValues,
+          commerce: {
+            ...defaultValues.commerce,
+            ...(seedValues?.commerce ?? {}),
+          },
         },
   });
 
@@ -1297,6 +1308,30 @@ export function ProductForm({
           )}
         />
       </Section>
+
+      {initialData?.id ? (
+        <Section
+          title="Sales Channels"
+          description="Publish this product to other marketplaces and keep pricing + SEO on point."
+        >
+          <div className="space-y-3">
+            <ProductChannelPanel productId={initialData.id} productTitle={title} />
+            <EtsySeoPanel
+              title={title || ""}
+              tags={tags ?? []}
+              description={description ?? ""}
+              imageCount={Array.isArray(images) ? images.length : 0}
+              onApplyTags={(nextTags) => setValue("tags", nextTags, { shouldDirty: true })}
+              onApplySeoTitle={(nextTitle) => setValue("title", nextTitle, { shouldDirty: true })}
+            />
+            <SmartPricingPanel
+              cost={costPrice ?? 0}
+              currency={currency}
+              onApplyPrice={(nextPrice) => setValue("price", nextPrice, { shouldDirty: true })}
+            />
+          </div>
+        </Section>
+      ) : null}
 
       <section className="product-editor-card space-y-4">
         <div>

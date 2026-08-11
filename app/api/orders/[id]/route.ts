@@ -13,9 +13,47 @@ import { sendOrderStatusEmail } from "@/lib/email";
 import { getNextStatuses, getStatusLabel } from "@/types/orders";
 import type { OrderStatus } from "@/types";
 import { createStoreNotification } from "@/lib/notifications/create-store-notification";
+import { enqueueChannelJob } from "@/lib/channels/sync-queue";
+import { DEFAULT_CHANNEL_AUTOPILOT, type ChannelAutopilotFlags } from "@/lib/channels/types";
 
 interface RouteParams {
   params: { id: string };
+}
+
+function readTrackingSyncEnabled(autopilot: unknown): boolean {
+  const obj = autopilot && typeof autopilot === "object" ? (autopilot as Record<string, unknown>) : {};
+  const flags: ChannelAutopilotFlags = {
+    ...DEFAULT_CHANNEL_AUTOPILOT,
+    inventorySync: obj.inventorySync === true,
+    orderSync: obj.orderSync === true,
+    trackingSync: obj.trackingSync === true,
+    priceSync: obj.priceSync === true,
+  };
+  return flags.trackingSync;
+}
+
+/** When a channel-linked order is marked shipped, enqueue tracking push. */
+async function enqueueChannelTrackingForOrder(storeId: string, orderId: string) {
+  const links = await prisma.channelOrder.findMany({
+    where: { storeId, orderId },
+    select: {
+      connectionId: true,
+      channel: true,
+      connection: { select: { status: true, autopilot: true } },
+    },
+  });
+
+  for (const link of links) {
+    if (link.connection.status !== "CONNECTED") continue;
+    if (!readTrackingSyncEnabled(link.connection.autopilot)) continue;
+    await enqueueChannelJob({
+      storeId,
+      connectionId: link.connectionId,
+      operation: "sync_tracking",
+      payload: { orderId },
+      idempotencyKey: `${link.channel}:${link.connectionId}:sync_tracking:order:${orderId}`,
+    });
+  }
 }
 
 export async function GET(_request: Request, { params }: RouteParams) {
@@ -206,6 +244,10 @@ async function updateOrder(request: Request, orderId: string) {
       locale: store.language,
       storeId: store.id,
     });
+  }
+
+  if (status === "shipped" && status !== currentStatus) {
+    void enqueueChannelTrackingForOrder(store.id, existing.id);
   }
 
   return NextResponse.json({
