@@ -68,7 +68,7 @@ async function handle(request: Request) {
   }
 }
 
-/** Vercel Cron — enqueue AutoPilot work, then process the channel sync queue every 5 minutes */
+/** Vercel Cron (daily on Hobby) + optional external/GitHub Actions 5-minute pings — enqueue AutoPilot work, then process the channel sync queue */
 export async function GET(request: Request) {
   return handle(request);
 }

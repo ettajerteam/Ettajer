@@ -126,13 +126,13 @@ const AUTOPILOT_TOGGLES: AutopilotToggleDef[] = [
   {
     key: "inventorySync",
     label: "Inventory sync",
-    description: "Push Ettajer stock to Etsy about every hour (checked every 5 minutes).",
+    description: "Push Ettajer stock to Etsy on the channel sync schedule (hour-bucketed).",
     supported: true,
   },
   {
     key: "orderSync",
     label: "Order sync",
-    description: "Pull new Etsy orders into Ettajer about every hour (checked every 5 minutes).",
+    description: "Pull new Etsy orders into Ettajer on the channel sync schedule (hour-bucketed).",
     supported: true,
   },
   {
@@ -449,7 +449,7 @@ export function EtsyChannelClient(_props: EtsyChannelClientProps) {
             <h3 className={dashboardTitle}>AutoPilot</h3>
           </div>
           <p className={cn(dashboardSubtitle, "mt-0.5")}>
-            Cron checks every 5 minutes and runs enabled syncs about once per hour.
+            Platform cron runs daily; hour-bucketed jobs also work with an external 5-minute ping to the channel-sync endpoint.
           </p>
         </div>
         <div className="divide-y divide-black/[0.05] dark:divide-white/10">
