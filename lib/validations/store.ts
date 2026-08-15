@@ -60,6 +60,8 @@ export const marketingPlatformLinkSchema = z.object({
   testEventCode: z.string().nullable().optional(),
   accountId: z.string().nullable().optional(),
   accessToken: z.string().nullable().optional(),
+  adsConversionId: z.string().nullable().optional(),
+  adsConversionLabel: z.string().nullable().optional(),
   catalogId: z.string().nullable().optional(),
   catalogFeedToken: z.string().nullable().optional(),
   adAccountId: z.string().nullable().optional(),
@@ -88,6 +90,14 @@ export const updateStoreSchema = z.object({
     .min(2)
     .max(60)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, and hyphens")
+    .refine(
+      (s) =>
+        !s.includes("http") &&
+        !s.includes("www") &&
+        !s.includes("aliexpress") &&
+        !s.includes("amazon"),
+      "Slug cannot look like a pasted URL",
+    )
     .optional(),
   description: z.string().max(2000).optional().nullable(),
   logo: z.string().nullable().optional(),

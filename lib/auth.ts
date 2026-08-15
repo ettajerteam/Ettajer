@@ -489,10 +489,23 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
 
     async signIn({ user, account }) {
-      // Allow Google signup even when founder cards are sold out —
-      // createUser will simply skip assigning a founder number/card.
-      if (account?.provider === "google" && user?.email) {
-        return true;
+      // Google already verified the email — mirror One Tap so users aren't
+      // sent to /activate and aren't counted as "unverified" in admin.
+      if (account?.provider === "google") {
+        if (user?.id) {
+          await prisma.user.updateMany({
+            where: { id: user.id, emailVerified: null },
+            data: { emailVerified: new Date() },
+          });
+        } else if (user?.email) {
+          await prisma.user.updateMany({
+            where: {
+              email: normalizeEmail(user.email),
+              emailVerified: null,
+            },
+            data: { emailVerified: new Date() },
+          });
+        }
       }
 
       return true;

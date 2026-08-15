@@ -508,6 +508,57 @@ export function buildStoreLiveEmailHtml(
   });
 }
 
+export function buildFirstProductEmailHtml(
+  merchantName: string,
+  storeName: string,
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.firstProduct;
+  const productsUrl = `${getAppUrl()}/dashboard/products/new`;
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText(storeName),
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#eff6ff",
+    greeting: t.greeting(merchantName),
+    body: t.body(escapeHtml(storeName)),
+    cta: { label: t.cta, url: productsUrl },
+    steps: t.steps,
+    highlight: { title: t.highlightTitle, body: t.highlightBody },
+    footerNote: t.footerNote,
+  });
+}
+
+export function buildShareStoreEmailHtml(
+  merchantName: string,
+  storeName: string,
+  storeSlug: string,
+  locale: LandingLocale = "en",
+): string {
+  const { copy, shell, locale: loc } = emailOpts(locale);
+  const t = copy.shareStore;
+  const storeUrl = getAbsoluteStoreUrl(storeSlug);
+
+  return buildModernEmailHtml({
+    locale: loc,
+    shell,
+    previewText: t.previewText(storeName),
+    title: t.title,
+    badge: t.badge,
+    badgeColor: "#fef3c7",
+    greeting: t.greeting(merchantName),
+    body: t.body(escapeHtml(storeName), storeUrl),
+    cta: { label: t.cta, url: storeUrl },
+    steps: t.steps,
+    highlight: { title: t.highlightTitle, body: t.highlightBody },
+    footerNote: t.footerNote,
+  });
+}
+
 const STATUS_COLORS: Record<OrderStatus, string> = {
   draft: "#f5f5f5",
   pending: "#eff6ff",

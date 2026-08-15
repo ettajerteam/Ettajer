@@ -36,7 +36,7 @@ export default async function AdminErrorsPage() {
       <div className={adminPage}>
         <AdminPageHeader
           title="Errors & security"
-          description="Failed logins and application errors across the platform."
+          description="Security-relevant failed logins (wrong password, unknown account, lockouts) and application errors. Unverified-email and OAuth-only password attempts are excluded."
         />
 
         <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">

@@ -169,6 +169,32 @@ export type EmailCopy = {
     highlightBody: string;
     footerNote: string;
   };
+  firstProduct: {
+    subject: (storeName: string) => string;
+    previewText: (storeName: string) => string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (storeName: string) => string;
+    cta: string;
+    steps: string[];
+    highlightTitle: string;
+    highlightBody: string;
+    footerNote: string;
+  };
+  shareStore: {
+    subject: (storeName: string) => string;
+    previewText: (storeName: string) => string;
+    title: string;
+    badge: string;
+    greeting: (name: string) => string;
+    body: (storeName: string, storeUrl: string) => string;
+    cta: string;
+    steps: string[];
+    highlightTitle: string;
+    highlightBody: string;
+    footerNote: string;
+  };
   orderConfirmed: {
     subject: (orderNumber: string) => string;
     previewText: (orderNumber: string) => string;
@@ -257,7 +283,7 @@ const EN: EmailCopy = {
     buttonNotWorking: "Button not working? Copy this link:",
     needHelp: "Need help?",
     visitHelpCenter: "Visit Help Center",
-    tagline: "Built for Moroccan merchants",
+    tagline: "Ecommerce to launch your online store",
   },
   magicLink: {
     subject: "Sign in to Ettajer",
@@ -473,6 +499,48 @@ const EN: EmailCopy = {
     highlightBody:
       "Merchants who share their link with 10 contacts in the first week see faster first orders. COD checkout is already enabled.",
     footerNote: "You're receiving this because you published a store on Ettajer.",
+  },
+  firstProduct: {
+    subject: (storeName) => `Add your first product to ${storeName}`,
+    previewText: (storeName) =>
+      `${storeName} is ready — add a product to start selling.`,
+    title: "Your store needs a product",
+    badge: "Next step",
+    greeting: (name) => `Hi ${name},`,
+    body: (storeName) =>
+      `You created <strong>${storeName}</strong> on Ettajer — nice start. Stores with at least one product get discovered and can take COD orders. Add your first product now (photo, price, and stock is enough).`,
+    cta: "Add first product",
+    steps: [
+      "Upload a clear product photo",
+      "Set price in MAD and stock",
+      "Publish — your storefront updates instantly",
+    ],
+    highlightTitle: "Takes a few minutes",
+    highlightBody:
+      "Merchants who list a first product in the first week are far more likely to get an order. COD checkout is already set up for you.",
+    footerNote:
+      "You're receiving this because you created a store on Ettajer and haven't added a product yet.",
+  },
+  shareStore: {
+    subject: (storeName) => `Share ${storeName} and get your first order`,
+    previewText: (storeName) =>
+      `${storeName} has products — share your link to start selling.`,
+    title: "Your catalog is ready",
+    badge: "First sale",
+    greeting: (name) => `Hi ${name},`,
+    body: (storeName, storeUrl) =>
+      `<strong>${storeName}</strong> already has products live. Merchants who share their storefront in the first week get orders faster. Send this link on WhatsApp: <a href="${storeUrl}" style="color:#3b82f6;">${storeUrl}</a>`,
+    cta: "Open my storefront",
+    steps: [
+      "Copy your store link",
+      "Share it with 10 contacts on WhatsApp",
+      "COD checkout is already enabled",
+    ],
+    highlightTitle: "Quick win",
+    highlightBody:
+      "A short message + your store link is enough. Ask friends to place a small COD test order so you can practice fulfilling.",
+    footerNote:
+      "You're receiving this because your Ettajer store has products but no real orders yet.",
   },
   orderConfirmed: {
     subject: (orderNumber) => `Order confirmed — ${orderNumber}`,
@@ -823,6 +891,48 @@ const FR: EmailCopy = {
       "Les marchands qui partagent leur lien avec 10 contacts la première semaine obtiennent leurs premières commandes plus vite. Le COD est déjà activé.",
     footerNote: "Vous recevez cet e-mail car vous avez publié une boutique sur Ettajer.",
   },
+  firstProduct: {
+    subject: (storeName) => `Ajoutez votre premier produit à ${storeName}`,
+    previewText: (storeName) =>
+      `${storeName} est prête — ajoutez un produit pour vendre.`,
+    title: "Votre boutique a besoin d'un produit",
+    badge: "Étape suivante",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (storeName) =>
+      `Vous avez créé <strong>${storeName}</strong> sur Ettajer — bon début. Les boutiques avec au moins un produit peuvent recevoir des commandes COD. Ajoutez votre premier produit (photo, prix et stock suffisent).`,
+    cta: "Ajouter mon premier produit",
+    steps: [
+      "Ajoutez une photo claire",
+      "Indiquez le prix en MAD et le stock",
+      "Publiez — votre vitrine se met à jour tout de suite",
+    ],
+    highlightTitle: "Quelques minutes suffisent",
+    highlightBody:
+      "Les marchands qui publient un premier produit la première semaine ont bien plus de chances d'obtenir une commande. Le COD est déjà prêt.",
+    footerNote:
+      "Vous recevez cet e-mail car vous avez créé une boutique sur Ettajer sans y ajouter de produit.",
+  },
+  shareStore: {
+    subject: (storeName) => `Partagez ${storeName} et obtenez votre première commande`,
+    previewText: (storeName) =>
+      `${storeName} a des produits — partagez le lien pour vendre.`,
+    title: "Votre catalogue est prêt",
+    badge: "Première vente",
+    greeting: (name) => `Bonjour ${name},`,
+    body: (storeName, storeUrl) =>
+      `<strong>${storeName}</strong> a déjà des produits en ligne. Les marchands qui partagent leur boutique la première semaine vendent plus vite. Envoyez ce lien sur WhatsApp : <a href="${storeUrl}" style="color:#3b82f6;">${storeUrl}</a>`,
+    cta: "Ouvrir ma boutique",
+    steps: [
+      "Copiez le lien de votre boutique",
+      "Partagez-le avec 10 contacts sur WhatsApp",
+      "Le paiement à la livraison est déjà activé",
+    ],
+    highlightTitle: "Astuce rapide",
+    highlightBody:
+      "Un court message + votre lien suffit. Demandez à des proches de passer une petite commande COD pour tester la livraison.",
+    footerNote:
+      "Vous recevez cet e-mail car votre boutique Ettajer a des produits mais pas encore de commandes réelles.",
+  },
   orderConfirmed: {
     subject: (orderNumber) => `Commande confirmée — ${orderNumber}`,
     previewText: (orderNumber) => `Votre commande ${orderNumber} est confirmée.`,
@@ -954,7 +1064,7 @@ const AR: EmailCopy = {
     buttonNotWorking: "الزر لا يعمل؟ انسخ هذا الرابط:",
     needHelp: "تحتاج مساعدة؟",
     visitHelpCenter: "مركز المساعدة",
-    tagline: "مُصمَّم للتجار المغاربة",
+    tagline: "منصة تجارة إلكترونية لإطلاق متجرك",
   },
   magicLink: {
     subject: "تسجيل الدخول إلى Ettajer",
@@ -1167,6 +1277,48 @@ const AR: EmailCopy = {
     highlightBody:
       "التجار الذين يشاركون الرابط مع 10 جهات اتصال في الأسبوع الأول يحصلون على أول طلب أسرع. COD مفعّل مسبقاً.",
     footerNote: "تصلك هذه الرسالة لأنك نشرت متجراً على Ettajer.",
+  },
+  firstProduct: {
+    subject: (storeName) => `أضف أول منتج إلى ${storeName}`,
+    previewText: (storeName) =>
+      `${storeName} جاهز — أضف منتجاً لتبدأ البيع.`,
+    title: "متجرك يحتاج منتجاً",
+    badge: "الخطوة التالية",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (storeName) =>
+      `أنشأت <strong>${storeName}</strong> على Ettajer — بداية جيدة. المتاجر التي لديها منتج واحد على الأقل يمكنها استقبال طلبات COD. أضف أول منتج الآن (صورة وسعر ومخزون يكفي).`,
+    cta: "إضافة أول منتج",
+    steps: [
+      "ارفع صورة واضحة للمنتج",
+      "حدد السعر بالدرهم والمخزون",
+      "انشر — تتحدث واجهة متجرك فوراً",
+    ],
+    highlightTitle: "دقائق فقط",
+    highlightBody:
+      "التجار الذين يضيفون أول منتج في الأسبوع الأول أقرب بكثير لأول طلب. الدفع عند الاستلام مفعّل مسبقاً.",
+    footerNote:
+      "تصلك هذه الرسالة لأنك أنشأت متجراً على Ettajer ولم تضف منتجاً بعد.",
+  },
+  shareStore: {
+    subject: (storeName) => `شارك ${storeName} واحصل على أول طلب`,
+    previewText: (storeName) =>
+      `${storeName} فيه منتجات — شارك الرابط لتبدأ البيع.`,
+    title: "كتالوجك جاهز",
+    badge: "أول بيع",
+    greeting: (name) => `مرحباً ${name}،`,
+    body: (storeName, storeUrl) =>
+      `<strong>${storeName}</strong> فيه منتجات منشورة. التجار الذين يشاركون رابط المتجر في الأسبوع الأول يحصلون على طلبات أسرع. أرسل هذا الرابط على واتساب: <a href="${storeUrl}" style="color:#3b82f6;">${storeUrl}</a>`,
+    cta: "فتح متجري",
+    steps: [
+      "انسخ رابط متجرك",
+      "شاركه مع 10 جهات اتصال على واتساب",
+      "الدفع عند الاستلام مفعّل مسبقاً",
+    ],
+    highlightTitle: "نصيحة سريعة",
+    highlightBody:
+      "رسالة قصيرة + رابط المتجر تكفي. اطلب من معارفك تجربة طلب COD صغير لتتدرب على التنفيذ.",
+    footerNote:
+      "تصلك هذه الرسالة لأن متجرك على Ettajer فيه منتجات دون طلبات حقيقية بعد.",
   },
   orderConfirmed: {
     subject: (orderNumber) => `تم تأكيد الطلب — ${orderNumber}`,

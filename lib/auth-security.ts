@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { normalizeEmail } from "@/lib/password-reset";
+import { securityFailedLoginWhere } from "@/lib/auth/login-failure-reasons";
 
 export const AUTH_SECURITY = {
   maxFailedLoginAttempts: 10,
@@ -131,12 +132,11 @@ export async function isLoginIpRateLimited(
 
   const since = new Date(Date.now() - 60 * 60 * 1000);
   const count = await prisma.loginAttempt.count({
-    where: {
+    where: securityFailedLoginWhere({
       action: "login",
-      success: false,
       ipAddress: ip,
       createdAt: { gte: since },
-    },
+    }),
   });
 
   return count >= AUTH_SECURITY.loginMaxFailuresPerIpPerHour;

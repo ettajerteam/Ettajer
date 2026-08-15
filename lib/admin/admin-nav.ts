@@ -9,6 +9,7 @@ import {
   CreditCard,
   History,
   Mail,
+  Rocket,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -40,6 +41,13 @@ export const adminNavItems: AdminNavItem[] = [
     href: "/admin/stores",
     icon: Store,
     description: "All merchant stores",
+  },
+  {
+    id: "activation",
+    label: "Activation",
+    href: "/admin/activation",
+    icon: Rocket,
+    description: "Empty stores & first sale",
   },
   {
     id: "messages",

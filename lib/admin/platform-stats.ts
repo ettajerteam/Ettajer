@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { securityFailedLoginWhere } from "@/lib/auth/login-failure-reasons";
 import { USER_STATUS } from "@/lib/founder/constants";
 import {
   SUPPORT_MESSAGE_DIRECTION,
@@ -123,7 +124,7 @@ export async function getPlatformOverview() {
       },
     }),
     prisma.loginAttempt.count({
-      where: { success: false, createdAt: { gte: dayAgo } },
+      where: securityFailedLoginWhere({ createdAt: { gte: dayAgo } }),
     }),
     prisma.user.findMany({
       where: realUserWhere,
@@ -846,7 +847,7 @@ export async function getPlatformAnalytics() {
 export async function getPlatformErrors() {
   const [loginErrors, appErrors] = await Promise.all([
     prisma.loginAttempt.findMany({
-      where: { success: false },
+      where: securityFailedLoginWhere(),
       orderBy: { createdAt: "desc" },
       take: 100,
       select: {

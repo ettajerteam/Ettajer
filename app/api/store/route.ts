@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth-session";
 import { prisma } from "@/lib/db";
-import { slugify } from "@/lib/utils";
+import { makeStoreSlug } from "@/lib/store-slug";
 import { serializeStoreWithSettings } from "@/lib/store-settings";
 import { updateStoreSchema } from "@/lib/validations/store";
 import { DEFAULT_SHIPPING_ZONES, DEFAULT_PAYMENT_GATEWAYS, DEFAULT_TICKET_PRINTERS, DEFAULT_MARKETING_INTEGRATIONS } from "@/lib/store-settings";
@@ -90,10 +90,10 @@ export async function POST(request: Request) {
       );
     }
 
-    let slug = slugify(name);
+    let slug = makeStoreSlug(name) || `store-${Date.now().toString(36)}`;
     const slugExists = await prisma.store.findUnique({ where: { slug } });
     if (slugExists) {
-      slug = `${slug}-${Date.now().toString(36)}`;
+      slug = `${slug.slice(0, 50)}-${Date.now().toString(36)}`.slice(0, 60);
     }
 
     const descriptionValue =

@@ -8,6 +8,8 @@ export {
   sendVerifyEmailReminderEmail,
   sendMerchantNewOrderEmail,
   sendStoreLiveEmail,
+  sendFirstProductEmail,
+  sendShareStoreEmail,
   sendSupportConfirmationEmail,
   sendSupportTicketEmail,
   sendNameChangeInviteEmail,

@@ -28,6 +28,8 @@ import {
   buildVerifyEmailReminderEmailHtml,
   buildMerchantNewOrderEmailHtml,
   buildStoreLiveEmailHtml,
+  buildFirstProductEmailHtml,
+  buildShareStoreEmailHtml,
   buildActivationCodeEmailHtml,
   buildNameChangeInviteEmailHtml,
   buildNameChangeConfirmedEmailHtml,
@@ -53,6 +55,8 @@ export const EMAIL_AUTOMATIONS = {
   FOUNDER_VERIFY_REMINDER: "founder.verify_reminder",
   MERCHANT_NEW_ORDER: "merchant.new_order",
   MERCHANT_STORE_LIVE: "merchant.store_live",
+  MERCHANT_FIRST_PRODUCT: "merchant.first_product",
+  MERCHANT_SHARE_STORE: "merchant.share_store",
   SUPPORT_RECEIVED: "support.received",
   SUPPORT_TICKET: "support.ticket",
   NAME_CHANGE_INVITE: "account.name_change_invite",
@@ -391,6 +395,49 @@ export async function sendMerchantNewOrderEmail(params: {
         currency: params.currency,
         orderId: params.orderId,
       },
+      loc,
+    ),
+  });
+  return result.success;
+}
+
+
+export async function sendShareStoreEmail(params: {
+  to: string;
+  merchantName: string;
+  storeName: string;
+  storeSlug: string;
+  locale?: string | null;
+}): Promise<boolean> {
+  const loc = emailLocale(params.locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.MERCHANT_SHARE_STORE, {
+    to: params.to,
+    subject: copy.shareStore.subject(params.storeName),
+    html: buildShareStoreEmailHtml(
+      params.merchantName,
+      params.storeName,
+      params.storeSlug,
+      loc,
+    ),
+  });
+  return result.success;
+}
+
+export async function sendFirstProductEmail(params: {
+  to: string;
+  merchantName: string;
+  storeName: string;
+  locale?: string | null;
+}): Promise<boolean> {
+  const loc = emailLocale(params.locale);
+  const copy = getEmailCopy(loc);
+  const result = await dispatch(EMAIL_AUTOMATIONS.MERCHANT_FIRST_PRODUCT, {
+    to: params.to,
+    subject: copy.firstProduct.subject(params.storeName),
+    html: buildFirstProductEmailHtml(
+      params.merchantName,
+      params.storeName,
       loc,
     ),
   });
