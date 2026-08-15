@@ -12,7 +12,7 @@ import {
   adminThead,
   adminTr,
 } from "@/components/admin/admin-ui";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { homeStatCell, homeKicker, homeSubtitle } from "@/components/dashboard/home/home-ui";
 
 export const metadata = { title: "Analytics — Platform Admin" };
@@ -43,7 +43,7 @@ export default async function AdminAnalyticsPage() {
           />
           <AdminStatCard
             label="Revenue (30d, real)"
-            value={`${revenue30.toLocaleString()} MAD`}
+            value={`${formatNumber(revenue30)} MAD`}
             accent="emerald"
             hint={`${data.customerCount} customers`}
           />
@@ -53,21 +53,21 @@ export default async function AdminAnalyticsPage() {
           <div className={homeStatCell}>
             <p className={homeKicker}>Orders (30d)</p>
             <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-              {orders30.toLocaleString()}
+              {formatNumber(orders30)}
             </p>
             <p className={cn("mt-0.5", homeSubtitle)}>Real only</p>
           </div>
           <div className={homeStatCell}>
             <p className={homeKicker}>Avg order (30d)</p>
             <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-              {avg30.toLocaleString()} MAD
+              {formatNumber(avg30)} MAD
             </p>
             <p className={cn("mt-0.5", homeSubtitle)}>Real checkouts</p>
           </div>
           <div className={homeStatCell}>
             <p className={homeKicker}>Customers</p>
             <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-              {data.customerCount.toLocaleString()}
+              {formatNumber(data.customerCount)}
             </p>
             <p className={cn("mt-0.5", homeSubtitle)}>Across all stores</p>
           </div>
@@ -110,7 +110,7 @@ export default async function AdminAnalyticsPage() {
                       <td className={cn(adminTd, "capitalize")}>{row.status}</td>
                       <td className={cn(adminTd, "tabular-nums")}>{row._count}</td>
                       <td className={cn(adminTd, "tabular-nums")}>
-                        {(row._sum.total ?? 0).toLocaleString()} MAD
+                        {formatNumber(row._sum.total ?? 0)} MAD
                       </td>
                     </tr>
                   ))

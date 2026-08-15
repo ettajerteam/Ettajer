@@ -12,7 +12,7 @@ import {
   adminPage,
 } from "@/components/admin/admin-ui";
 import { formatFounderNumber } from "@/lib/founder/constants";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import {
   dashboardCard,
   dashboardCardPad,
@@ -37,7 +37,7 @@ function formatDate(value: Date | string | null | undefined, withTime = false) {
 }
 
 function money(amount: number, currency: string) {
-  return `${amount.toLocaleString()} ${currency}`;
+  return `${formatNumber(amount)} ${currency}`;
 }
 
 function DetailRow({
