@@ -10,8 +10,31 @@ export async function getPlatformMessages(): Promise<SupportMessageRow[]> {
     orderBy: { createdAt: "asc" },
   });
 
-  return rows.map((row) => ({
-    ...row,
-    direction: row.direction || SUPPORT_MESSAGE_DIRECTION.INBOUND,
-  }));
+  const emails = Array.from(
+    new Set(rows.map((row) => row.email.trim().toLowerCase()).filter(Boolean))
+  );
+
+  const users =
+    emails.length === 0
+      ? []
+      : await prisma.user.findMany({
+          where: { email: { in: emails } },
+          select: { email: true, name: true },
+        });
+
+  const nameByEmail = new Map(
+    users.map((user) => [
+      user.email.trim().toLowerCase(),
+      user.name?.trim() || null,
+    ])
+  );
+
+  return rows.map((row) => {
+    const emailKey = row.email.trim().toLowerCase();
+    return {
+      ...row,
+      direction: row.direction || SUPPORT_MESSAGE_DIRECTION.INBOUND,
+      customerName: nameByEmail.get(emailKey) ?? null,
+    };
+  });
 }
