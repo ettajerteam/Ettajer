@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";

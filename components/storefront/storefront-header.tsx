@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Menu, Search, ShoppingBag, X } from "lucide-react";

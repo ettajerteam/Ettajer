@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { formatCurrency } from "@/lib/utils";
 import { getStoreProductUrl } from "@/lib/storefront-urls";
 import { getProductImage } from "@/lib/storefront-assets";

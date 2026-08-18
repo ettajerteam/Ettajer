@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { getProductImage } from "@/lib/storefront-assets";
 import { ProductSectionShell } from "@/components/storefront/product-section-shell";

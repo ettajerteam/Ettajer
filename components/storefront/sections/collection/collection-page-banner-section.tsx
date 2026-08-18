@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { StorefrontBreadcrumb } from "@/components/storefront/storefront-breadcrumb";
 import { getThemeAssets } from "@/lib/storefront-assets";
 import { getStoreUrl } from "@/lib/storefront-urls";

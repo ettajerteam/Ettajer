@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
 import { StorefrontHeader } from "@/components/storefront/storefront-header";
 import { StorefrontBreadcrumb } from "@/components/storefront/storefront-breadcrumb";

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import Link from "next/link";
 import { parseSectionVisualSettings } from "@/lib/builder/section-styles";
 import type { DeviceMode } from "@/lib/builder/types";

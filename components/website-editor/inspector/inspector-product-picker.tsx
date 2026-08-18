@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { Check, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { EditorPanelListSkeleton } from "@/components/website-editor/editor-skeleton";

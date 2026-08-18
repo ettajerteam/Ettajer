@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { useCallback, useEffect, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseSectionVisualSettings, getDeviceStyles } from "@/lib/builder/section-styles";

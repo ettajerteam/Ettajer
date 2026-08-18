@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { ProductSectionShell } from "@/components/storefront/product-section-shell";
 import { useProductVariantSelection } from "@/components/storefront/product-variant-context";
 import type { ProductVariantsSectionSettings } from "@/lib/sections/types";

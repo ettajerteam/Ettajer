@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { parseSectionVisualSettings, getDeviceStyles } from "@/lib/builder/section-styles";
