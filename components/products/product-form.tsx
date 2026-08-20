@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { productSchema, type ProductFormValues } from "@/lib/validations/product";
+import { normalizeProductVariants } from "@/lib/product-variants";
 import { PRODUCT_TYPE_OPTIONS, productTracksInventory } from "@/lib/product-types";
 import {
   DEFAULT_COMMERCE,
@@ -1726,11 +1727,16 @@ export function ProductForm({
               setValue(
                 "variants",
                 Array.isArray(imported.variants)
-                  ? imported.variants.map((v) => ({
-                      id: v.id || crypto.randomUUID(),
-                      name: v.name,
-                      options: v.options?.length ? v.options : [""],
-                      optionImages: v.optionImages,
+                  ? normalizeProductVariants(
+                      imported.variants.map((v) => ({
+                        id: v.id || crypto.randomUUID(),
+                        name: v.name,
+                        options: v.options?.length ? v.options : [""],
+                        optionImages: v.optionImages,
+                      }))
+                    ).map((v) => ({
+                      ...v,
+                      options: v.options.length ? v.options : [""],
                     }))
                   : [],
                 { shouldDirty: true }

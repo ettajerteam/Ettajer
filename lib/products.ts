@@ -9,7 +9,7 @@ import { isProductStatus, isProductType } from "@/lib/product-types";
 import type { Product } from "@/types";
 
 export { parseProductImages, parseProductImageAssets } from "@/lib/product-images";
-export { parseProductVariants } from "@/lib/product-variants";
+export { parseProductVariants, normalizeProductVariants, expandVariantOptionValues } from "@/lib/product-variants";
 export { parseProductReviews } from "@/lib/product-reviews";
 export { parseProductDetails } from "@/lib/product-details";
 

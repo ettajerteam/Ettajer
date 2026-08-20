@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ProductForm } from "@/components/products/product-form";
 import type { ProductFormValues } from "@/lib/validations/product";
+import { normalizeProductVariants } from "@/lib/product-variants";
 import type { Product } from "@/types";
 import type { TicketPrinter } from "@/lib/ticket-printers";
 
@@ -43,13 +44,7 @@ export function ProductSheet({
   const formId = "product-form";
 
   const handleSubmit = async (data: ProductFormValues) => {
-    const cleanedVariants = data.variants
-      .filter((v) => v.name.trim())
-      .map((v) => ({
-        ...v,
-        options: v.options.filter((o) => o.trim()),
-      }))
-      .filter((v) => v.options.length > 0);
+    const cleanedVariants = normalizeProductVariants(data.variants);
 
     const cleanedDetails = data.details
       .filter((d) => d.label.trim() && d.value.trim())
