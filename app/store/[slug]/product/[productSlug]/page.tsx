@@ -139,7 +139,11 @@ export default async function ProductPage({ params, searchParams }: PageProps) {
   }
   const product = serializePublicProduct(data.product);
   const relatedRows = await prisma.product.findMany({
-    where: { storeId: data.store.id, id: { not: data.product.id } },
+    where: {
+      storeId: data.store.id,
+      id: { not: data.product.id },
+      status: "active",
+    },
     take: 8,
     orderBy: { createdAt: "desc" },
   });
