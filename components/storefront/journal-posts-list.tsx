@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import Link from "next/link";
 import { getStoreBlogPostUrl, getStoreProductsUrl } from "@/lib/storefront-urls";
 import { cn } from "@/lib/utils";

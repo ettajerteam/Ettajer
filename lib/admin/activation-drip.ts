@@ -70,7 +70,7 @@ export async function runMerchantActivationDrip(options?: {
       byEmailEmpty.set(row.ownerEmail, row);
     }
   }
-  const emptyTargets = [...byEmailEmpty.values()].slice(0, maxFirstProduct);
+  const emptyTargets = Array.from(byEmailEmpty.values()).slice(0, maxFirstProduct);
   summary.firstProduct.considered = emptyTargets.length;
 
   for (const t of emptyTargets) {

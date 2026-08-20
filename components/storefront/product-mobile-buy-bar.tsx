@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import { AddToCartButton } from "@/components/storefront/cart/add-to-cart-button";
 import { useProductVariantSelection } from "@/components/storefront/product-variant-context";
 import { resolveBuyNowLabel } from "@/lib/storefront/buy-labels";

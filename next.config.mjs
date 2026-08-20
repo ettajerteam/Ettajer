@@ -2,6 +2,11 @@
 const nextConfig = {
   transpilePackages: ["three", "react-globe.gl"],
   images: {
+    // Remote merchant images (Vercel Blob) must not go through `/_next/image` on
+    // Vercel: quota exhaustion returns HTTP 402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED
+    // and the storefront shows broken icons with alt text still visible.
+    // Local placeholders still use the optimizer unless VERCEL=1 at build time.
+    unoptimized: process.env.VERCEL === "1",
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
@@ -9,9 +14,9 @@ const nextConfig = {
       { protocol: "https", hostname: "ufs.sh" },
       { protocol: "https", hostname: "uploadthing.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
-      { protocol: "https", hostname: "*.blob.vercel-storage.com" },
-      { protocol: "https", hostname: "public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com", pathname: "/**" },
+      { protocol: "https", hostname: "*.blob.vercel-storage.com", pathname: "/**" },
+      { protocol: "https", hostname: "public.blob.vercel-storage.com", pathname: "/**" },
       // AliExpress / Taobao CDN (dropshipping imports)
       { protocol: "https", hostname: "**.alicdn.com" },
       { protocol: "https", hostname: "ae01.alicdn.com" },

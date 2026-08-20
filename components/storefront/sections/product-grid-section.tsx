@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import type { CSSProperties } from "react";
 import { formatCurrency, cn } from "@/lib/utils";
 import { getStoreProductUrl, getStoreProductsUrl, getStoreCollectionsUrl } from "@/lib/storefront-urls";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import {
   MoreHorizontal,
   Pencil,

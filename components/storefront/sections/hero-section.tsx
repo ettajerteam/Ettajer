@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { AppImage as Image } from "@/components/shared/app-image";
 import Link from "next/link";
 import { getThemeAssets } from "@/lib/storefront-assets";
 import { FadeInSection } from "@/components/storefront/motion-wrapper";
