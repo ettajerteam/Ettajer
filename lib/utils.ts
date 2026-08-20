@@ -14,6 +14,19 @@ export function formatCurrency(amount: number, currency = "MAD"): string {
   }).format(amount);
 }
 
+/**
+ * Stable number for SSR + client (avoids hydration mismatches from locale defaults).
+ * Bare `toLocaleString()` uses Node’s locale on the server and the browser locale
+ * on the client — e.g. "7,193.86" vs "7 193,86".
+ */
+export function formatNumber(
+  value: number,
+  options?: Intl.NumberFormatOptions,
+): string {
+  const n = Number.isFinite(value) ? value : 0;
+  return new Intl.NumberFormat("en-US", options).format(n);
+}
+
 /** Stable date for SSR + client (avoids hydration mismatches from locale defaults). */
 export function formatDate(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value);

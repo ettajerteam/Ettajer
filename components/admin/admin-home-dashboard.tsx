@@ -24,7 +24,7 @@ import {
   homeSubtitle,
   homeTitle,
 } from "@/components/dashboard/home/home-ui";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 export type AdminHomeData = {
   totalUsers: number;
@@ -300,15 +300,15 @@ export function AdminHomeDashboard({
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           <KpiCard
             label="Real GMV"
-            value={`${data.totalRevenue.toLocaleString()} MAD`}
-            hint={`7d ${data.realRevenue7d.toLocaleString()} MAD`}
+            value={`${formatNumber(data.totalRevenue)} MAD`}
+            hint={`7d ${formatNumber(data.realRevenue7d)} MAD`}
             href="/admin/payments"
             icon={CreditCard}
             change={data.changes.revenue7d}
           />
           <KpiCard
             label="Real orders"
-            value={data.realOrders.toLocaleString()}
+            value={formatNumber(data.realOrders)}
             hint={`${data.testOrders} test · ${data.realOrders7d} in 7d`}
             href="/admin/payments"
             icon={ShoppingBag}
@@ -316,7 +316,7 @@ export function AdminHomeDashboard({
           />
           <KpiCard
             label="Users"
-            value={data.totalUsers.toLocaleString()}
+            value={formatNumber(data.totalUsers)}
             hint={`${data.activeUsers} active · +${data.newUsers24h} today`}
             href="/admin/users"
             icon={Users}
@@ -324,7 +324,7 @@ export function AdminHomeDashboard({
           />
           <KpiCard
             label="Live stores"
-            value={data.liveStores.toLocaleString()}
+            value={formatNumber(data.liveStores)}
             hint={`${data.totalStores} total · +${data.newStores7d} this week`}
             href="/admin/stores"
             icon={Store}
@@ -336,7 +336,7 @@ export function AdminHomeDashboard({
         <div className={homeStatCell}>
           <p className={homeKicker}>Products</p>
           <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.totalProducts.toLocaleString()}
+            {formatNumber(data.totalProducts)}
           </p>
           <p className={cn("mt-0.5", homeSubtitle)}>
             {data.activeProducts} live
@@ -375,7 +375,7 @@ export function AdminHomeDashboard({
         <div className={homeStatCell}>
           <p className={homeKicker}>Test GMV</p>
           <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.testRevenue.toLocaleString()}
+            {formatNumber(data.testRevenue)}
           </p>
           <p className={cn("mt-0.5", homeSubtitle)}>Excluded from real</p>
         </div>
@@ -437,7 +437,7 @@ export function AdminHomeDashboard({
                             {order.orderNumber}
                           </p>
                           <span className="shrink-0 text-[11px] tabular-nums text-neutral-700 dark:text-neutral-300">
-                            {order.total.toLocaleString()} {order.store.currency}
+                            {formatNumber(order.total)} {order.store.currency}
                           </span>
                         </div>
                         <p className="truncate text-[10px] text-neutral-400">
@@ -517,7 +517,7 @@ export function AdminHomeDashboard({
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-[12px] font-semibold tabular-nums text-neutral-900 dark:text-white">
-                          {store.realGmv.toLocaleString()} {store.currency}
+                          {formatNumber(store.realGmv)} {store.currency}
                         </p>
                         <p className="text-[10px] text-neutral-400">
                           {store.realOrders} real orders
