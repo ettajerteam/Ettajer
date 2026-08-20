@@ -20,6 +20,7 @@ import {
 import type { PublishIssue } from "@/lib/product-publish-checklist";
 import { setProductPublishedFlash } from "@/lib/product-published-flash";
 import type { ProductFormValues } from "@/lib/validations/product";
+import { normalizeProductVariants } from "@/lib/product-variants";
 import type { Product, ProductStatus } from "@/types";
 import type { TicketPrinter } from "@/lib/ticket-printers";
 import { cn } from "@/lib/utils";
@@ -91,14 +92,7 @@ export function ProductEditorClient({
   };
 
   const saveProduct = async (data: ProductFormValues, status: ProductStatus) => {
-    const cleanedVariants = data.variants
-      .filter((v) => v.name.trim())
-      .map((v) => ({
-        ...v,
-        name: v.name.trim(),
-        options: v.options.filter((o) => o.trim()),
-      }))
-      .filter((v) => v.options.length > 0);
+    const cleanedVariants = normalizeProductVariants(data.variants);
 
     const cleanedDetails = data.details
       .filter((d) => d.label.trim() && d.value.trim())

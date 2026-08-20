@@ -15,10 +15,10 @@ interface VariantEditorProps {
 }
 
 const PRESETS = [
-  { name: "Color", icon: Palette, placeholder: "e.g. Red, Blue, Black" },
-  { name: "Size", icon: Ruler, placeholder: "e.g. S, M, L, XL" },
-  { name: "Material", icon: Tag, placeholder: "e.g. Cotton, Leather" },
-  { name: "Style", icon: Tag, placeholder: "e.g. Classic, Sport" },
+  { name: "Color", icon: Palette, placeholder: "e.g. Red" },
+  { name: "Size", icon: Ruler, placeholder: "e.g. S" },
+  { name: "Material", icon: Tag, placeholder: "e.g. Cotton" },
+  { name: "Style", icon: Tag, placeholder: "e.g. Classic" },
 ] as const;
 
 export function VariantEditor({ variants, onChange }: VariantEditorProps) {
@@ -69,6 +69,31 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
           delete optionImages[prev];
         }
         return { ...v, options, optionImages };
+      })
+    );
+  };
+
+  /** If merchant pastes "S, M, L, XL" into one field, expand into separate chips. */
+  const splitOptionIfList = (variantId: string, index: number, value: string) => {
+    const parts = value
+      .split(/,|\s\/\s/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length < 2) return;
+
+    onChange(
+      variants.map((v) => {
+        if (v.id !== variantId) return v;
+        const next = [...v.options];
+        next.splice(index, 1, ...parts);
+        const seen = new Set<string>();
+        const options = next.filter((o) => {
+          const key = o.trim();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        return { ...v, options: options.length ? options : [""] };
       })
     );
   };
@@ -212,7 +237,7 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
 
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">
-                Values · each can have its own image
+                Values · one per row (e.g. S then Add value for M) · optional image each
               </Label>
               {variant.options.map((option, index) => {
                 const img = option.trim()
@@ -241,6 +266,7 @@ export function VariantEditor({ variants, onChange }: VariantEditorProps) {
                       placeholder={preset?.placeholder ?? "e.g. Value"}
                       value={option}
                       onChange={(e) => updateOption(variant.id, index, e.target.value)}
+                      onBlur={(e) => splitOptionIfList(variant.id, index, e.target.value)}
                     />
                     {img ? (
                       <Button
