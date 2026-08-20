@@ -8,12 +8,13 @@ import { shouldBypassImageOptimizer } from "@/lib/image-optimization";
  * Production Vercel Hobby/quota exhaustion otherwise yields broken storefront images
  * (402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED) while alt text still renders.
  */
-export function AppImage({ unoptimized, src, ...props }: ImageProps) {
+export function AppImage({ unoptimized, src, alt, ...props }: ImageProps) {
   return (
     <Image
-      src={src}
-      unoptimized={unoptimized ?? shouldBypassImageOptimizer(src)}
       {...props}
+      src={src}
+      alt={alt}
+      unoptimized={unoptimized ?? shouldBypassImageOptimizer(src)}
     />
   );
 }

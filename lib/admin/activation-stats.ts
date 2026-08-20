@@ -274,7 +274,7 @@ export async function listShareStoreNudgeTargets(): Promise<
     }
   }
 
-  return [...byEmail.values()].map(
+  return Array.from(byEmail.values()).map(
     ({ storeId, storeName, slug, ownerEmail, ownerName, activeProducts }) => ({
       storeId,
       storeName,
