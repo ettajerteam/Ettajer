@@ -3,10 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { USER_STATUS } from "@/lib/founder";
+import { USER_ROLE } from "@/lib/admin/constants";
+import { ensureBootstrapAdminRole } from "@/lib/admin/roles";
 
 /**
  * After sign-in, send merchants straight to dashboard or onboarding.
- * Nobody waits — waiting accounts are activated automatically.
+ * Platform admins without a merchant store go to /admin (not onboarding).
  */
 export async function getPostAuthRedirect(fallback = "/dashboard") {
   const session = await getServerSession(authOptions);
@@ -19,6 +21,7 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
       status: true,
       email: true,
       emailVerified: true,
+      role: true,
     },
   });
 
@@ -35,12 +38,20 @@ export async function getPostAuthRedirect(fallback = "/dashboard") {
       .catch(() => null);
   }
 
+  const role = user
+    ? await ensureBootstrapAdminRole(user.id, user.email, user.role)
+    : USER_ROLE.MERCHANT;
+
   const store = await prisma.store.findFirst({
     where: { userId: session.user.id },
     select: { id: true },
   });
 
-  return store ? fallback : "/onboarding";
+  if (store) return fallback;
+
+  if (role === USER_ROLE.ADMIN) return "/admin";
+
+  return "/onboarding";
 }
 
 export async function redirectAfterAuth(fallback = "/dashboard") {

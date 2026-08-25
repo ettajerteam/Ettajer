@@ -133,7 +133,7 @@ export function SignupForm({ providers }: SignupFormProps) {
     setGoogleLoading(true);
     try {
       setOAuthSignupCookies(true, marketingEmails);
-      await signIn("google", { callbackUrl: "/onboarding" });
+      await signIn("google", { callbackUrl: "/auth/continue" });
     } catch {
       setError(err.unableGoogle);
       setGoogleLoading(false);
