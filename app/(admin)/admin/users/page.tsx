@@ -1,8 +1,14 @@
+import Link from "next/link";
 import { requireAdminPage } from "@/lib/admin/auth";
 import { getPlatformUsers } from "@/lib/admin/platform-stats";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminUsersTable } from "@/components/admin/admin-users-table";
-import { AdminPageHeader, adminPage } from "@/components/admin/admin-ui";
+import {
+  AdminPageHeader,
+  adminLink,
+  adminPage,
+} from "@/components/admin/admin-ui";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Users — Platform Admin" };
 
@@ -32,10 +38,18 @@ export default async function AdminUsersPage() {
   return (
     <AdminLayout>
       <div className={adminPage}>
-        <AdminPageHeader
-          title="Users"
-          description="Every platform account — filter by status or role, then open a profile for stores, logins, and support."
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <AdminPageHeader
+            title="Users"
+            description="Every platform account — filter by status or role, then open a profile for stores, logins, and support."
+          />
+          <Link
+            href="/admin/users/stats"
+            className={cn(adminLink, "shrink-0 text-[12px] font-medium")}
+          >
+            User statistics →
+          </Link>
+        </div>
         <AdminUsersTable users={rows} />
       </div>
     </AdminLayout>
