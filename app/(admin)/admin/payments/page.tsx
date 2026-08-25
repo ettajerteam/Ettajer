@@ -14,7 +14,7 @@ import {
   adminThead,
   adminTr,
 } from "@/components/admin/admin-ui";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 export const metadata = { title: "Payments — Platform Admin" };
 
@@ -28,7 +28,7 @@ function formatDate(value: Date) {
 }
 
 function formatMoney(amount: number, currency = "MAD") {
-  return `${amount.toLocaleString()} ${currency}`;
+  return `${formatNumber(amount)} ${currency}`;
 }
 
 export default async function AdminPaymentsPage() {
@@ -57,15 +57,15 @@ export default async function AdminPaymentsPage() {
           />
           <AdminStatCard
             label="Real GMV"
-            value={`${(data.totalRevenue._sum.total ?? 0).toLocaleString()} MAD`}
+            value={`${formatNumber(data.totalRevenue._sum.total ?? 0)} MAD`}
             accent="emerald"
           />
           <AdminStatCard
             label="Avg real order"
-            value={`${Math.round(data.totalRevenue._avg.total ?? 0).toLocaleString()} MAD`}
+            value={`${formatNumber(Math.round(data.totalRevenue._avg.total ?? 0))} MAD`}
             hint={
               data.testRevenue._count > 0
-                ? `Test GMV ${(data.testRevenue._sum.total ?? 0).toLocaleString()} MAD`
+                ? `Test GMV ${formatNumber(data.testRevenue._sum.total ?? 0)} MAD`
                 : undefined
             }
           />
@@ -168,7 +168,7 @@ export default async function AdminPaymentsPage() {
                         <td className={cn(adminTd, "capitalize")}>{row.status}</td>
                         <td className={cn(adminTd, "tabular-nums")}>{row._count}</td>
                         <td className={cn(adminTd, "tabular-nums")}>
-                          {(row._sum.total ?? 0).toLocaleString()} MAD
+                          {formatNumber(row._sum.total ?? 0)} MAD
                         </td>
                       </tr>
                     ))
@@ -196,7 +196,7 @@ export default async function AdminPaymentsPage() {
                         <td className={cn(adminTd, "capitalize")}>{row.status}</td>
                         <td className={cn(adminTd, "tabular-nums")}>{row._count}</td>
                         <td className={cn(adminTd, "tabular-nums")}>
-                          {(row._sum.total ?? 0).toLocaleString()} MAD
+                          {formatNumber(row._sum.total ?? 0)} MAD
                         </td>
                       </tr>
                     ))}
@@ -284,7 +284,7 @@ export default async function AdminPaymentsPage() {
                         href={`/admin/orders/${order.id}`}
                         className="block tabular-nums"
                       >
-                        {order.total.toLocaleString()} {order.store.currency}
+                        {formatNumber(order.total)} {order.store.currency}
                       </Link>
                     </td>
                     <td className={cn(adminTd, "text-[11px] text-neutral-400")}>

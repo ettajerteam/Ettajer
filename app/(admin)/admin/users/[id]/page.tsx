@@ -13,7 +13,7 @@ import {
   adminPage,
 } from "@/components/admin/admin-ui";
 import { formatFounderNumber } from "@/lib/founder/constants";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import {
   dashboardCard,
   dashboardCardPad,
@@ -137,7 +137,7 @@ export default async function AdminUserDetailPage({
           <AdminStatCard
             label="Orders"
             value={user.stats.orderCount}
-            hint={`${user.stats.orderRevenue.toLocaleString()} MAD real · ${user.stats.testOrderCount} test`}
+            hint={`${formatNumber(user.stats.orderRevenue)} MAD real · ${user.stats.testOrderCount} test`}
             accent="emerald"
           />
         </div>

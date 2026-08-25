@@ -12,7 +12,7 @@ import {
   adminPage,
 } from "@/components/admin/admin-ui";
 import { formatFounderNumber } from "@/lib/founder/constants";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import {
   dashboardCard,
   dashboardCardPad,
@@ -133,13 +133,13 @@ export default async function AdminStoreDetailPage({
             label="Real orders"
             value={store.stats.realOrders}
             accent="emerald"
-            hint={`${store.stats.realGmv.toLocaleString()} ${store.currency} GMV`}
+            hint={`${formatNumber(store.stats.realGmv)} ${store.currency} GMV`}
           />
           <AdminStatCard
             label="Test orders"
             value={store.stats.testOrders}
             accent="amber"
-            hint={`${store.stats.testGmv.toLocaleString()} ${store.currency}`}
+            hint={`${formatNumber(store.stats.testGmv)} ${store.currency}`}
           />
           <AdminStatCard
             label="Products"
@@ -148,7 +148,7 @@ export default async function AdminStoreDetailPage({
           />
           <AdminStatCard
             label="Avg real order"
-            value={`${Math.round(store.stats.avgRealOrder).toLocaleString()} ${store.currency}`}
+            value={`${formatNumber(Math.round(store.stats.avgRealOrder))} ${store.currency}`}
           />
         </div>
 
@@ -275,7 +275,7 @@ export default async function AdminStoreDetailPage({
                       <td className="px-4 py-3 capitalize">{row.status}</td>
                       <td className="px-4 py-3">{row._count}</td>
                       <td className="px-4 py-3">
-                        {(row._sum.total ?? 0).toLocaleString()} {store.currency}
+                        {formatNumber(row._sum.total ?? 0)} {store.currency}
                       </td>
                     </tr>
                   ))}
@@ -363,7 +363,7 @@ export default async function AdminStoreDetailPage({
                       </td>
                       <td className="px-4 py-3 tabular-nums">
                         <Link href={`/admin/orders/${order.id}`} className="block">
-                          {order.total.toLocaleString()} {store.currency}
+                          {formatNumber(order.total)} {store.currency}
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-xs">

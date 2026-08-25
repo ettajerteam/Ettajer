@@ -16,7 +16,7 @@ import {
   adminThead,
   adminTr,
 } from "@/components/admin/admin-ui";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 export interface AdminStoreRow {
   id: string;
@@ -192,7 +192,7 @@ export function AdminStoresTable({ stores }: { stores: AdminStoreRow[] }) {
       <AdminMeta>
         Showing {filtered.length} of {stores.length} stores · {totals.products}{" "}
         products · {totals.realOrders} real / {totals.testOrders} test orders ·{" "}
-        {totals.realGmv.toLocaleString()} real GMV
+        {formatNumber(totals.realGmv)} real GMV
       </AdminMeta>
 
       <AdminTableShell>
@@ -303,11 +303,11 @@ export function AdminStoresTable({ stores }: { stores: AdminStoreRow[] }) {
                   </td>
                   <td className={adminTd}>
                     <p className="tabular-nums font-medium">
-                      {store.realGmv.toLocaleString()} {store.currency}
+                      {formatNumber(store.realGmv)} {store.currency}
                     </p>
                     {store.testGmv > 0 ? (
                       <p className="text-[10px] tabular-nums text-neutral-400">
-                        test {store.testGmv.toLocaleString()}
+                        test {formatNumber(store.testGmv)}
                       </p>
                     ) : null}
                   </td>

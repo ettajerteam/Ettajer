@@ -16,7 +16,7 @@ import { parseProductImages } from "@/lib/product-images";
 import { parseProductDetails } from "@/lib/product-details";
 import { parseProductCommerce } from "@/lib/product-commerce";
 import { getStoreProductUrl } from "@/lib/storefront-urls";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import {
   dashboardCard,
   dashboardCardPad,
@@ -36,7 +36,7 @@ function formatDate(value: Date | string | null | undefined, withTime = false) {
 }
 
 function money(amount: number, currency: string) {
-  return `${amount.toLocaleString()} ${currency}`;
+  return `${formatNumber(amount)} ${currency}`;
 }
 
 function DetailRow({
