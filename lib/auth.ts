@@ -450,6 +450,9 @@ export const authOptions: NextAuthOptions = {
 
   providers,
 
+  /** Link Google sign-in to an existing email/password account (same email). */
+  allowDangerousEmailAccountLinking: true,
+
   pages: {
 
     signIn: "/login",
@@ -458,7 +461,7 @@ export const authOptions: NextAuthOptions = {
 
     error: "/login",
 
-    newUser: "/onboarding",
+    newUser: "/auth/continue",
 
   },
 

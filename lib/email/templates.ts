@@ -396,7 +396,7 @@ export function buildFounderAccessUnlockedEmailHtml(
     locale === "ar" ? "مؤسس" : locale === "fr" ? "Fondateur" : "Founder",
   );
   const founderLabel = escapeHtml(formatFounderNumber(founderNumber));
-  const dashboardUrl = `${getAppUrl()}/onboarding`;
+  const dashboardUrl = `${getAppUrl()}/dashboard`;
 
   return buildModernEmailHtml({
     locale: loc,

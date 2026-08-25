@@ -163,7 +163,9 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const isLogin = mode === "login";
 
-  const postAuthUrl = mode === "signup" ? "/onboarding" : callbackUrl;
+const AUTH_CONTINUE = "/auth/continue";
+
+  const postAuthUrl = AUTH_CONTINUE;
   const errorMessage = authError
     ? (authErrors[authError] ?? err.default)
     : null;
@@ -247,7 +249,7 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
     }
     setGoogleLoading(true);
     try {
-      await signIn("google", { callbackUrl: postAuthUrl });
+      await signIn("google", { callbackUrl: AUTH_CONTINUE });
     } catch {
       toast.error(err.unableGoogle);
       setGoogleLoading(false);
