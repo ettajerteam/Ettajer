@@ -56,4 +56,11 @@ Already set: `NEXT_PUBLIC_GA_MEASUREMENT_ID=G-GL29JG3VQC` (tag live on www).
    - `https://www.ettajer.com/api/auth/callback/google`
    - `http://localhost:3000/api/auth/callback/google`
 
+Local dev: copy `secrets/youtube-oauth.json.example` → `secrets/youtube-oauth.json`, paste the web client id/secret, then run:
+
+```bash
+npm run vercel:env:google
+npm run dev
+```
+
 Then tell Cursor: **"Google UI steps done"** → run `npm run gcp:verify` + wire measurement ID into the app.

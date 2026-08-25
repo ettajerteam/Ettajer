@@ -29,6 +29,7 @@
     "users:repair-slugs": "npx tsx scripts/repair-bad-store-slugs.ts",
     "vercel:env": "node scripts/sync-vercel-env.mjs production --url https://www.ettajer.com",
     "vercel:env:preview": "node scripts/sync-vercel-env.mjs preview",
+    "vercel:env:google": "node scripts/ops/sync-google-oauth-env.mjs",
     "vercel:setup": "node scripts/vercel-setup.mjs",
     "gcp:bootstrap": "node scripts/ops/gcp-bootstrap.mjs --project ettajer-501512",
     "gcp:env": "node scripts/ops/append-gcp-env.mjs",
