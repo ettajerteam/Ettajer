@@ -18,5 +18,12 @@ export const SUPPORT_MESSAGE_DIRECTION = {
   OUTBOUND: "outbound",
 } as const;
 
+/** Display name stored on outbound Ettajer replies / welcome messages. */
+export const SUPPORT_TEAM_NAME = "Ettajer team";
+
+export function isSupportTeamName(name: string | null | undefined): boolean {
+  return (name ?? "").trim().toLowerCase() === SUPPORT_TEAM_NAME.toLowerCase();
+}
+
 /** Default platform owner — also set via ADMIN_EMAILS env */
 export const DEFAULT_ADMIN_EMAIL = "ettajerteam@gmail.com";

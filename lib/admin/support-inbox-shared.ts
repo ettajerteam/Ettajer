@@ -1,6 +1,7 @@
 import {
   SUPPORT_MESSAGE_DIRECTION,
   SUPPORT_MESSAGE_STATUS,
+  isSupportTeamName,
 } from "@/lib/admin/constants";
 
 export type SupportMessageRow = {
@@ -14,6 +15,8 @@ export type SupportMessageRow = {
   status: string;
   createdAt: Date | string;
   updatedAt: Date | string;
+  /** Merchant / person name from User lookup — never "Ettajer team". */
+  customerName?: string | null;
 };
 
 export type SupportConversation = {
@@ -54,6 +57,13 @@ export function groupSupportConversations(
     const customerMessage =
       [...sorted]
         .reverse()
+        .find(
+          (m) =>
+            m.direction !== SUPPORT_MESSAGE_DIRECTION.OUTBOUND &&
+            !isSupportTeamName(m.name)
+        ) ??
+      [...sorted]
+        .reverse()
         .find((m) => m.direction !== SUPPORT_MESSAGE_DIRECTION.OUTBOUND) ??
       sorted[0]!;
     const unreadCount = sorted.filter(
@@ -63,9 +73,17 @@ export function groupSupportConversations(
           m.status === SUPPORT_MESSAGE_STATUS.REVIEWING)
     ).length;
 
+    const emailKey = (customerMessage.email || last.email).trim();
+    const lookedUp = sorted.find((m) => m.customerName?.trim())?.customerName?.trim();
+    const personName =
+      (!isSupportTeamName(customerMessage.name) && customerMessage.name.trim()) ||
+      lookedUp ||
+      emailKey.split("@")[0] ||
+      emailKey;
+
     conversations.push({
-      email: customerMessage.email,
-      name: customerMessage.name,
+      email: emailKey,
+      name: personName,
       lastMessageAt: asDate(last.createdAt),
       lastDirection: last.direction || SUPPORT_MESSAGE_DIRECTION.INBOUND,
       unreadCount,
