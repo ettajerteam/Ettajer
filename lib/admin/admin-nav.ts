@@ -10,6 +10,7 @@ import {
   History,
   Mail,
   Rocket,
+  PieChart,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -34,6 +35,13 @@ export const adminNavItems: AdminNavItem[] = [
     href: "/admin/users",
     icon: Users,
     description: "Accounts & founders",
+  },
+  {
+    id: "user-stats",
+    label: "User stats",
+    href: "/admin/users/stats",
+    icon: PieChart,
+    description: "Trial ended & cards",
   },
   {
     id: "stores",
@@ -95,5 +103,14 @@ export const adminNavItems: AdminNavItem[] = [
 
 export function isAdminNavActive(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  // Prefer a more specific nav item (e.g. /admin/users/stats over /admin/users)
+  const moreSpecific = adminNavItems.some(
+    (item) =>
+      item.href !== href &&
+      item.href.startsWith(`${href}/`) &&
+      (pathname === item.href || pathname.startsWith(`${item.href}/`)),
+  );
+  return !moreSpecific;
 }

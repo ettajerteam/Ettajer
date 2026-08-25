@@ -113,6 +113,22 @@ function StatusBadge({ user }: { user: AdminUserRow }) {
   );
 }
 
+function CardBadge({ hasCard }: { hasCard: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex min-w-[2.5rem] justify-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
+        hasCard
+          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+          : "bg-neutral-100 text-neutral-500 dark:bg-white/10 dark:text-neutral-400",
+      )}
+      title={hasCard ? "Founder card assigned" : "No founder card"}
+    >
+      {hasCard ? "Yes" : "No"}
+    </span>
+  );
+}
+
 export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -295,6 +311,7 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
         <table className="w-full min-w-[1080px] text-left text-[12px]">
           <thead className={adminThead}>
             <tr>
+              <th className={adminTh}>Card</th>
               <th className={adminTh}>User</th>
               <th className={adminTh}>Founder</th>
               <th className={adminTh}>Status</th>
@@ -310,7 +327,7 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   className="px-4 py-8 text-center text-neutral-400"
                 >
                   No users match your filters
@@ -334,6 +351,9 @@ export function AdminUsersTable({ users }: { users: AdminUserRow[] }) {
                     "group cursor-pointer align-top outline-none focus-visible:bg-[#007AFF]/5"
                   )}
                 >
+                  <td className={adminTd}>
+                    <CardBadge hasCard={user.founderNumber != null} />
+                  </td>
                   <td className={adminTd}>
                     <div className="flex items-start gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#007AFF] text-[10px] font-semibold text-white">
