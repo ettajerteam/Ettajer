@@ -33,6 +33,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 interface AuthProviders {
   google: boolean;
   email: boolean;
+  credentials?: boolean;
 }
 
 interface AuthFormProps {
@@ -382,7 +383,11 @@ export function AuthForm({ mode, providers }: AuthFormProps) {
 
   const showGoogle = liveProviders.google;
   const showEmailLink = liveProviders.email;
-  const noProviders = !liveProviders.google && !liveProviders.email;
+  // Password credentials are always registered in lib/auth.ts. Do not treat
+  // "no Google / no magic-link email" as zero providers — that false alarm
+  // showed "No sign-in providers configured" on local/dev without OAuth env.
+  const noProviders =
+    !liveProviders.google && !liveProviders.email && !liveProviders.credentials;
 
   return (
     <div>
