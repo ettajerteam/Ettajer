@@ -107,6 +107,11 @@ import {
   setCachedScenarios,
 } from "@/lib/intelligence/cache/scenario-cache";
 import type { DecisionMemoryEntry } from "@/lib/intelligence/stability/decision";
+import { INTELLIGENCE_ASSUMPTIONS } from "@/lib/intelligence/assumptions/registry";
+import { compareScenarios } from "@/lib/intelligence/scenarios/compare";
+import { SCENARIO_REGISTRY } from "@/lib/intelligence/scenarios/registry";
+import { toDigitalTwinState } from "@/lib/intelligence/twin/state-contract";
+import { simulateCounterfactual } from "@/lib/intelligence/counterfactual/simulate";
 
 export type BuildSnapshotOptions = {
   memory?: IntelligenceMemory;
@@ -751,6 +756,85 @@ export function buildDrSaraSnapshotFromState(
     ],
   });
 
+  const scenarioComparison = compareScenarios(scenarioOutcomes);
+  const twinStateContract = toDigitalTwinState(digitalTwin);
+  const registryAssumptions = INTELLIGENCE_ASSUMPTIONS.map((a) => ({
+    id: a.id,
+    description: a.description,
+    confidence: a.confidence,
+    status: a.status,
+    category: a.category,
+  }));
+  const scenarioDataQuality = {
+    status: gate.insufficientEvidence
+      ? ("DEGRADED" as const)
+      : gate.confidencePenalty >= 0.25
+        ? ("DEGRADED" as const)
+        : ("OK" as const),
+    warnings: [
+      ...gate.warnings.map((w) => w.message),
+      ...(gate.insufficientEvidence
+        ? ["INSUFFICIENT EVIDENCE — scenario confidence capped"]
+        : []),
+      ...(digitalTwin.dataQuality.sampleSize <= 0
+        ? ["Zero sample size — twin confidence degraded"]
+        : []),
+    ],
+    confidencePenalty: gate.confidencePenalty,
+  };
+  const simulationTrace = {
+    kind: "SIMULATED" as const,
+    stages: [
+      { stage: "INPUT", detail: `platformState now=${state.now.toISOString()}` },
+      {
+        stage: "TWIN_STATE",
+        detail: `twinHash=${digitalTwin.twinHash} confidence=${digitalTwin.confidence}`,
+      },
+      {
+        stage: "SCENARIO",
+        detail: `evaluated=${scenarioOutcomes.length} registry=${SCENARIO_REGISTRY.length}`,
+      },
+      {
+        stage: "ASSUMPTIONS",
+        detail: `active=${registryAssumptions.filter((a) => a.status === "ACTIVE" || a.status === "WEAK").length}`,
+      },
+      {
+        stage: "SIMULATION_RULES",
+        detail: "historical deterministic clearance bands (no ML)",
+      },
+      {
+        stage: "PROJECTED_STATE",
+        detail: topScenario
+          ? `top=${topScenario.scenario.label} score=${topScenario.score}`
+          : "no top scenario",
+      },
+      {
+        stage: "IMPACT",
+        detail: interventionAdvantage
+          ? `advantage=${interventionAdvantage.advantage}`
+          : "n/a",
+      },
+      {
+        stage: "COMPARISON",
+        detail: `rows=${scenarioComparison.rows.length}`,
+      },
+      {
+        stage: "DECISION",
+        detail: `TOP_SCENARIO=${topScenario?.scenario.label ?? "none"}; TOP_ACTION=${top?.action.label ?? "none"}; autoExecute=false`,
+      },
+    ],
+  };
+
+  // Optional formal counterfactual sample (COD) — clearly COUNTERFACTUAL
+  const formalCounterfactual =
+    state.pendingRealOrders > 0
+      ? simulateCounterfactual({
+          state,
+          scenarioId: "COD_VERIFICATION_CLEARANCE",
+          memory,
+        })
+      : null;
+
   // V5: never auto-execute
   void C.twin;
   const autonomyV5 = { ...autonomy, autoExecute: false as const };
@@ -1017,6 +1101,21 @@ export function buildDrSaraSnapshotFromState(
       metrics: { ...digitalTwin.metrics },
       constraints: { ...digitalTwin.constraints },
       dependencyCount: digitalTwin.dependencies.length,
+      version: digitalTwin.version,
+      provenanced: {
+        pendingCOD: digitalTwin.provenanced.pendingCOD.value,
+        pendingGMV: digitalTwin.provenanced.pendingGMV.value,
+        domainFailures: digitalTwin.provenanced.domainFailures.value,
+        supportBacklog: digitalTwin.provenanced.supportBacklog.value,
+        realRevenue7d: digitalTwin.provenanced.realRevenue7d.value,
+        freshness: digitalTwin.provenanced.pendingCOD.freshness,
+        source: digitalTwin.provenanced.pendingCOD.source,
+      },
+      contract: {
+        version: twinStateContract.version,
+        risks: twinStateContract.risks,
+        opportunities: twinStateContract.opportunities,
+      },
     },
     scenarios: scenarioOutcomes.map((s) => ({
       scenarioId: s.scenarioId,
@@ -1050,6 +1149,49 @@ export function buildDrSaraSnapshotFromState(
       evidenceStrength: c.evidenceStrength,
       confidence: c.confidence,
     })),
+    scenarioComparisons: scenarioComparison.rows.slice(0, 10).map((r) => ({
+      scenarioId: r.scenarioId,
+      label: r.label,
+      score: r.score,
+      horizon: r.horizon,
+      timeToImpact: r.timeToImpact,
+      confidence: r.confidence,
+      whySelected: r.whySelected,
+      whyNot: r.whyNot,
+    })),
+    tradeoffs: scenarioComparison.tradeoffs,
+    assumptions: registryAssumptions,
+    scenarioForecasts: scenarioOutcomes.slice(0, 8).map((s) => ({
+      scenarioId: s.scenarioId,
+      label: s.label,
+      kind: "SIMULATED" as const,
+      metrics: Object.fromEntries(
+        Object.entries(s.metrics).map(([k, v]) => [
+          k,
+          { before: v.before, expectedAfter: v.expectedAfter },
+        ])
+      ),
+      confidence: s.confidence,
+    })),
+    scenarioRisks: scenarioOutcomes
+      .filter((s) => s.expectedRisk >= 0.5)
+      .slice(0, 6)
+      .map((s) => ({
+        scenarioId: s.scenarioId,
+        expectedRisk: s.expectedRisk,
+        blockedFactors: s.blockedFactors,
+      })),
+    simulationTrace,
+    scenarioDataQuality,
+    formalCounterfactual: formalCounterfactual
+      ? {
+          kind: formalCounterfactual.kind,
+          statement: formalCounterfactual.statement,
+          confidence: formalCounterfactual.confidence,
+          evidenceStrength: formalCounterfactual.evidenceStrength,
+          uncertainty: formalCounterfactual.uncertainty,
+        }
+      : null,
     stateTrajectory: stateTrajectory.map((t) => ({
       dimension: t.dimension,
       now: t.now,

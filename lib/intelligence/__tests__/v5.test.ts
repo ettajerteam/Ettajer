@@ -42,7 +42,16 @@ import {
 } from "@/lib/intelligence/trajectory/forecast";
 import { buildPlatformDigitalTwin } from "@/lib/intelligence/twin/build";
 import { buildStateGraph } from "@/lib/intelligence/twin/state-graph";
+import { toDigitalTwinState } from "@/lib/intelligence/twin/state-contract";
 import { INTELLIGENCE_SCORING_CONFIG as C } from "@/lib/intelligence/config/scoring";
+import {
+  SCENARIO_REGISTRY,
+  listScenariosForTwin,
+} from "@/lib/intelligence/scenarios/registry";
+import { compareScenarios } from "@/lib/intelligence/scenarios/compare";
+import { comparePredictedVsObserved } from "@/lib/intelligence/scenarios/outcome";
+import { simulateCounterfactual } from "@/lib/intelligence/counterfactual/simulate";
+import { assumptionsForScenario } from "@/lib/intelligence/assumptions/registry";
 
 function state(partial: Partial<PlatformState> = {}): PlatformState {
   const base = emptyPlatformState(new Date("2026-08-26T12:00:00Z"));
@@ -697,5 +706,249 @@ describe("V5 cascading + recovery scenario + uncertainty", () => {
     if (ranked.ranked.length > 1) {
       expect(ranked.ranked[1]!.whyNotChosen).toBeTruthy();
     }
+  });
+});
+
+describe("V5 registry + compare + assumptions + outcomes", () => {
+  it("SCENARIO_REGISTRY has core scenarios", () => {
+    const ids = SCENARIO_REGISTRY.map((s) => s.scenarioId);
+    expect(ids).toContain("COD_VERIFICATION_CLEARANCE");
+    expect(ids).toContain("DNS_FAILURE_REMEDIATION");
+    expect(ids).toContain("FIRST_SALE_ACTIVATION");
+    expect(ids).toContain("MERCHANT_ONBOARDING");
+  });
+
+  it("compareScenarios ranks and explains tradeoffs", () => {
+    const twin = buildPlatformDigitalTwin({
+      state: state({
+        pendingRealOrders: 12,
+        openSupport: 3,
+        domainFailing: 2,
+        totalStores: 40,
+      }),
+      sourceSnapshotId: "s",
+    });
+    const outcomes = generateScenarios({
+      twin,
+      candidateInterventions: [
+        "COD_VERIFICATION",
+        "DNS_DIAGNOSIS",
+        "FIRST_SALE_ASSIST",
+      ],
+      performance: [],
+      domainFailing: 2,
+      recoveringCOD: false,
+      velocity: { pendingCOD: 1, support: 0, dns: 1 },
+    });
+    const cmp = compareScenarios(outcomes);
+    expect(cmp.kind).toBe("SIMULATED");
+    expect(cmp.top).toBeTruthy();
+    expect(cmp.tradeoffs.shortTerm.length).toBeGreaterThan(0);
+    expect(cmp.top?.whySelected).toMatch(/score/i);
+  });
+
+  it("simulateCounterfactual is labeled COUNTERFACTUAL", () => {
+    const cf = simulateCounterfactual({
+      state: state({ pendingRealOrders: 12, totalStores: 20 }),
+      scenarioId: "COD_VERIFICATION_CLEARANCE",
+    });
+    expect(cf.kind).toBe("COUNTERFACTUAL");
+    expect(cf.baseline.label).toBe("OBSERVED_REALITY");
+    expect(cf.assumptions.some((a) => /COUNTERFACTUAL|SIMULATED/i.test(a))).toBe(
+      true
+    );
+  });
+
+  it("comparePredictedVsObserved SUCCESS within range", () => {
+    const r = comparePredictedVsObserved({
+      scenarioId: "COD_VERIFICATION_CLEARANCE",
+      predicted: { pendingCOD: [2, 5] },
+      observed: { pendingCOD: 3 },
+      sufficientData: true,
+    });
+    expect(r.result).toBe("SUCCESS");
+    expect(r.kind).toBe("SCENARIO_OUTCOME");
+  });
+
+  it("assumptions registry ACTIVE/WEAK only for simulations", () => {
+    const a = assumptionsForScenario("COD_VERIFICATION_CLEARANCE");
+    expect(a.some((x) => x.id === "A-COD-001")).toBe(true);
+    expect(a.every((x) => x.status !== "INVALIDATED")).toBe(true);
+  });
+
+  it("twin provenance + DigitalTwinState contract", () => {
+    const twin = buildPlatformDigitalTwin({
+      state: state({ pendingRealOrders: 7, totalStores: 15 }),
+      sourceSnapshotId: "s",
+    });
+    expect(twin.version).toBe("5.0.0");
+    expect(twin.provenanced.pendingCOD.value).toBe(7);
+    expect(twin.provenanced.pendingCOD.source).toContain("pendingRealOrders");
+    const contract = toDigitalTwinState(twin);
+    expect(contract.version).toBe("5.0.0");
+    expect(contract.commerce.pendingCOD.value).toBe(7);
+  });
+
+  it("dependency edges carry relationship + strength", () => {
+    const edges = buildStateGraph(state({ domainFailing: 1, totalStores: 5 }));
+    expect(edges.every((e) => e.relationship && e.ruleId && e.evidence)).toBe(
+      true
+    );
+    expect(edges.some((e) => e.relationship === "correlation")).toBe(true);
+  });
+
+  it("snapshot exposes comparisons, assumptions, simulationTrace", () => {
+    const snap = buildDrSaraSnapshotFromState(
+      state({ pendingRealOrders: 12, totalStores: 40 })
+    );
+    expect(snap.scenarioComparisons.length).toBeGreaterThan(0);
+    expect(snap.assumptions.some((a) => a.id === "A-ISO-001")).toBe(true);
+    expect(snap.simulationTrace?.kind).toBe("SIMULATED");
+    expect(snap.scenarioDataQuality).toBeTruthy();
+    expect(snap.autonomy.autoExecute).toBe(false);
+    expect(snap.formalCounterfactual?.kind).toBe("COUNTERFACTUAL");
+  });
+
+  it("merchant onboarding simulation is opportunity-only", () => {
+    const twin = buildPlatformDigitalTwin({
+      state: state({ totalStores: 50 }),
+      sourceSnapshotId: "s",
+    });
+    const sc = simulateIntervention({
+      twin,
+      type: "MERCHANT_ONBOARDING",
+      performance: [],
+    });
+    expect(sc.assumptions.some((a) => /INSUFFICIENT EVIDENCE/i.test(a))).toBe(
+      true
+    );
+    expect(sc.metrics.totalStores?.direction).toBe("up");
+  });
+
+  it("scenario isolation — twin metrics unchanged after simulate", () => {
+    const twin = buildPlatformDigitalTwin({
+      state: state({ pendingRealOrders: 12, totalStores: 20 }),
+      sourceSnapshotId: "s",
+    });
+    const before = twin.metrics.pendingCOD;
+    simulateIntervention({ twin, type: "COD_VERIFICATION", performance: [] });
+    expect(twin.metrics.pendingCOD).toBe(before);
+  });
+});
+
+describe("V5 adversarial fail-safe", () => {
+  it("zero merchants / orders / GMV", () => {
+    const snap = buildDrSaraSnapshotFromState(
+      state({
+        totalStores: 0,
+        liveStores: 0,
+        realOrders: 0,
+        realOrders7d: 0,
+        totalRevenue: 0,
+        realRevenue7d: 0,
+        pendingRealOrders: 0,
+      })
+    );
+    expect(snap.metadata.version).toBe("5.0.0");
+    expect(snap.digitalTwin).toBeTruthy();
+    expect(snap.scenarioDataQuality?.status).toBe("DEGRADED");
+  });
+
+  it("no COD / no domains", () => {
+    const twin = buildPlatformDigitalTwin({
+      state: state({
+        pendingRealOrders: 0,
+        domainFailing: 0,
+        domainsConnected: 0,
+        totalStores: 10,
+      }),
+      sourceSnapshotId: "s",
+    });
+    const listed = listScenariosForTwin(twin);
+    expect(listed.some((s) => s.scenarioId === "COD_VERIFICATION_CLEARANCE")).toBe(
+      false
+    );
+    expect(listed.some((s) => s.scenarioId === "DNS_FAILURE_REMEDIATION")).toBe(
+      false
+    );
+  });
+
+  it("all domains failing", () => {
+    const twin = buildPlatformDigitalTwin({
+      state: state({
+        domainFailing: 10,
+        domainsConnected: 10,
+        totalStores: 10,
+      }),
+      sourceSnapshotId: "s",
+    });
+    expect(twin.riskState).toContain("DNS_SPIKE");
+    const sc = simulateIntervention({
+      twin,
+      type: "ACTIVATION_OUTREACH",
+      performance: [],
+      blockedFactors: ["DOMAIN_FAILURE prerequisite"],
+    });
+    expect(sc.blockedFactors.length).toBeGreaterThan(0);
+    expect(sc.expectedImpact).toBeLessThan(0.2);
+  });
+
+  it("negative deltas and huge GMV spike", () => {
+    const snap = buildDrSaraSnapshotFromState(
+      state({
+        revenueChange7d: -80,
+        ordersChange7d: -90,
+        realRevenue7d: 1_000_000,
+        totalStores: 20,
+        pendingRealOrders: 1,
+      })
+    );
+    expect(snap.digitalTwin?.metrics.revenueChange7d).toBe(-80);
+    expect(Number.isFinite(snap.topScenario?.score ?? 0)).toBe(true);
+  });
+
+  it("huge concentration", () => {
+    const twin = buildPlatformDigitalTwin({
+      state: state({ top2SharePct: 95, totalStores: 30 }),
+      sourceSnapshotId: "s",
+    });
+    expect(twin.riskState).toContain("REVENUE_CONCENTRATION");
+    expect(
+      listScenariosForTwin(twin).some(
+        (s) => s.scenarioId === "REVENUE_CONCENTRATION_REDUCTION"
+      )
+    ).toBe(true);
+  });
+
+  it("empty cohorts / conflicting metrics fail safely", () => {
+    const snap = buildDrSaraSnapshotFromState(
+      state({
+        firstSaleCount: 0,
+        firstSaleHighIntent: 0,
+        hotEmptyCount: 0,
+        loggedInEmpty7d: 0,
+        totalStores: 5,
+        realOrders7d: 100,
+        funnel: {
+          totalStores: 5,
+          noProducts: 0,
+          draftOnly: 0,
+          activeNoOrders: 0,
+          hasOrders: 0,
+        },
+      })
+    );
+    expect(snap.scenarios.some((s) => s.kind === "NO_ACTION")).toBe(true);
+    expect(snap.autonomy.autoExecute).toBe(false);
+  });
+
+  it("outcome inconclusive without sufficient data", () => {
+    const r = comparePredictedVsObserved({
+      scenarioId: "X",
+      predicted: { pendingCOD: 3 },
+      observed: { pendingCOD: 2 },
+      sufficientData: false,
+    });
+    expect(r.result).toBe("INCONCLUSIVE");
   });
 });

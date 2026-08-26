@@ -214,6 +214,32 @@ export function simulateIntervention(input: {
       "Activation interventions improve opportunity — they do not guarantee orders."
     );
     cascading.push("EXPECTED_OPPORTUNITY: merchant engagement may rise");
+  } else if (type === "MERCHANT_ONBOARDING") {
+    const before = twin.metrics.totalStores;
+    const cap = twin.constraints.dailyActivationCapacity;
+    const addLo = Math.min(100, cap * 2);
+    const addHi = Math.min(500, Math.max(addLo, cap * 10));
+    metrics.totalStores = {
+      before,
+      expectedAfter: [before + addLo, before + addHi],
+      direction: "up",
+    };
+    metrics.operationalLoad = {
+      before: 0,
+      expectedAfter: [addLo, addHi],
+      direction: "up",
+    };
+    expectedImpact = 0.25;
+    expectedRisk = 0.65;
+    assumptions.push(
+      "Onboarding increases merchant pool — INSUFFICIENT EVIDENCE for precise GMV without cohort history."
+    );
+    assumptions.push(
+      "Operational load rises with cohort size (capacity-aware, not AI)."
+    );
+    cascading.push(
+      "EXPECTED_OPPORTUNITY: long-term growth; short-term ops load ↑"
+    );
   } else {
     expectedImpact = 0.35;
     assumptions.push(`Generic intervention model for ${type}.`);
@@ -372,6 +398,20 @@ export function generateScenarios(input: {
     };
     combo.expectedImpact = Math.min(0.95, combo.expectedImpact + 0.1);
     out.push(combo);
+  }
+
+  // Merchant onboarding — opportunity only, capacity-aware (SIMULATED)
+  {
+    const onboard = simulateIntervention({
+      twin: input.twin,
+      type: "MERCHANT_ONBOARDING",
+      kind: "ALTERNATIVE_INTERVENTION",
+      performance: input.performance,
+    });
+    onboard.scenarioId = "sc-merchant-onboarding";
+    onboard.label = "MERCHANT_ONBOARDING";
+    onboard.timeToEffect = "14–30 days";
+    out.push(onboard);
   }
 
   return out;

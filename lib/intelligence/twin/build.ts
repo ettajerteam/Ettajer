@@ -6,6 +6,7 @@ import type { PlatformState } from "@/lib/intelligence/engine-types";
 import { captureDimensionSnapshot } from "@/lib/intelligence/platform/transitions";
 import { calculatePlatformHealth } from "@/lib/intelligence/scoring/health";
 import { buildStateGraph } from "@/lib/intelligence/twin/state-graph";
+import { prove } from "@/lib/intelligence/twin/provenance";
 import type {
   PlatformDigitalTwin,
   TwinHealthVector,
@@ -88,6 +89,9 @@ export function buildPlatformDigitalTwin(input: {
   const twinHash = hashTwinInputs(state, input.sourceSnapshotId);
   const penalty = input.confidencePenalty ?? 0;
   const confidence = Math.max(0.2, Math.round((1 - penalty) * 100) / 100);
+  const freshness =
+    penalty >= 0.35 ? ("stale" as const) : ("fresh" as const);
+  const metricConfidence = Math.max(0.25, confidence);
 
   const riskState = input.risks ?? [];
   if (state.pendingRealOrders >= 10) riskState.push("COD_CRITICAL");
@@ -137,5 +141,43 @@ export function buildPlatformDigitalTwin(input: {
     },
     confidence,
     twinHash,
+    provenanced: {
+      pendingCOD: prove(
+        metrics.pendingCOD,
+        "PlatformState.pendingRealOrders",
+        state.now,
+        metricConfidence,
+        freshness
+      ),
+      pendingGMV: prove(
+        metrics.pendingGMV,
+        "PlatformState.pendingRealGmv",
+        state.now,
+        metricConfidence,
+        freshness
+      ),
+      domainFailures: prove(
+        metrics.domainFailures,
+        "PlatformState.domainFailing",
+        state.now,
+        metricConfidence,
+        freshness
+      ),
+      supportBacklog: prove(
+        metrics.supportBacklog,
+        "PlatformState.openSupport",
+        state.now,
+        metricConfidence,
+        freshness
+      ),
+      realRevenue7d: prove(
+        metrics.realRevenue7d,
+        "PlatformState.realRevenue7d",
+        state.now,
+        metricConfidence,
+        freshness
+      ),
+    },
+    version: "5.0.0",
   };
 }

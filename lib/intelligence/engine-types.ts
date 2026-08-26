@@ -480,6 +480,21 @@ export type DrSaraSnapshot = {
     metrics: Record<string, number>;
     constraints: Record<string, number>;
     dependencyCount: number;
+    version?: string;
+    provenanced?: {
+      pendingCOD: number;
+      pendingGMV: number;
+      domainFailures: number;
+      supportBacklog: number;
+      realRevenue7d: number;
+      freshness: string;
+      source: string;
+    };
+    contract?: {
+      version: string;
+      risks: string[];
+      opportunities: string[];
+    };
   } | null;
   scenarios: {
     scenarioId: string;
@@ -516,6 +531,56 @@ export type DrSaraSnapshot = {
     evidenceStrength: string;
     confidence: number;
   }[];
+  scenarioComparisons: {
+    scenarioId: string;
+    label: string;
+    score: number;
+    horizon: string;
+    timeToImpact: string;
+    confidence: number;
+    whySelected: string | null;
+    whyNot: string | null;
+  }[];
+  tradeoffs: {
+    shortTerm: string[];
+    mediumTerm: string[];
+    longTerm: string[];
+  };
+  assumptions: {
+    id: string;
+    description: string;
+    confidence: number;
+    status: string;
+    category: string;
+  }[];
+  scenarioForecasts: {
+    scenarioId: string;
+    label: string;
+    kind: "SIMULATED";
+    metrics: Record<string, { before: number; expectedAfter: [number, number] }>;
+    confidence: number;
+  }[];
+  scenarioRisks: {
+    scenarioId: string;
+    expectedRisk: number;
+    blockedFactors: string[];
+  }[];
+  simulationTrace: {
+    kind: "SIMULATED";
+    stages: { stage: string; detail: string }[];
+  } | null;
+  scenarioDataQuality: {
+    status: "OK" | "DEGRADED";
+    warnings: string[];
+    confidencePenalty: number;
+  } | null;
+  formalCounterfactual: {
+    kind: "COUNTERFACTUAL";
+    statement: string;
+    confidence: number;
+    evidenceStrength: string;
+    uncertainty: string;
+  } | null;
   stateTrajectory: {
     dimension: string;
     now: number;

@@ -17,6 +17,7 @@ export { INTELLIGENCE_SCORING_CONFIG } from "@/lib/intelligence/config/scoring";
 export { emptyIntelligenceMemory } from "@/lib/intelligence/memory/types";
 export { buildPlatformDigitalTwin } from "@/lib/intelligence/twin/build";
 export { buildStateGraph } from "@/lib/intelligence/twin/state-graph";
+export { toDigitalTwinState } from "@/lib/intelligence/twin/state-contract";
 export {
   generateScenarios,
   simulateNoAction,
@@ -30,7 +31,19 @@ export {
   simulateDrSaraScenario,
   simulateFromPartial,
 } from "@/lib/intelligence/scenarios/api";
+export {
+  SCENARIO_REGISTRY,
+  getScenarioDefinition,
+  listScenariosForTwin,
+} from "@/lib/intelligence/scenarios/registry";
+export { compareScenarios } from "@/lib/intelligence/scenarios/compare";
+export { comparePredictedVsObserved } from "@/lib/intelligence/scenarios/outcome";
 export { buildCounterfactuals } from "@/lib/intelligence/counterfactual/engine";
+export { simulateCounterfactual } from "@/lib/intelligence/counterfactual/simulate";
+export {
+  INTELLIGENCE_ASSUMPTIONS,
+  assumptionsForScenario,
+} from "@/lib/intelligence/assumptions/registry";
 export {
   buildMerchantTwin,
   generateMerchantScenarios,
@@ -60,5 +73,8 @@ export type {
   DrSaraSnapshot,
   PlatformState,
 } from "@/lib/intelligence/engine-types";
-export type { PlatformDigitalTwin } from "@/lib/intelligence/twin/types";
+export type {
+  PlatformDigitalTwin,
+  DigitalTwinState,
+} from "@/lib/intelligence/twin/types";
 export type { IntelligenceMemory } from "@/lib/intelligence/memory/types";

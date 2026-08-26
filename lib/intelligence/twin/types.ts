@@ -1,18 +1,29 @@
 /**
  * Platform Digital Twin — computed model, rebuildable from PlatformState.
  */
-import type { PlatformState } from "@/lib/intelligence/engine-types";
 import type { PlatformDimensionSnapshot } from "@/lib/intelligence/memory/types";
+import type { ProvenancedValue } from "@/lib/intelligence/twin/provenance";
 
 export type TwinRelationKind =
   | "CAUSAL_SUPPORTED"
   | "CORRELATION_ONLY"
   | "UNKNOWN";
 
+/** Explicit relationship labels — never claim causality from correlation alone. */
+export type TwinRelationshipLabel =
+  | "dependency"
+  | "correlation"
+  | "inferred causal relationship"
+  | "observed relationship";
+
 export type TwinEdge = {
   from: string;
   to: string;
+  /** @deprecated prefer `relationship` for V5 consumers */
   kind: TwinRelationKind;
+  relationship: TwinRelationshipLabel;
+  strength: number;
+  evidence: string;
   ruleId: string;
   explanation: string;
 };
@@ -80,6 +91,49 @@ export type PlatformDigitalTwin = {
   confidence: number;
   /** Opaque hash of relevant twin inputs for cache keys */
   twinHash: string;
+  /** Provenance-bearing core metrics (deterministic confidence rules) */
+  provenanced: {
+    pendingCOD: ProvenancedValue;
+    pendingGMV: ProvenancedValue;
+    domainFailures: ProvenancedValue;
+    supportBacklog: ProvenancedValue;
+    realRevenue7d: ProvenancedValue;
+  };
+  version: "5.0.0";
+};
+
+/**
+ * Strongly typed twin state contract for consumers (additive to PlatformDigitalTwin).
+ */
+export type DigitalTwinState = {
+  version: "5.0.0";
+  generatedAt: Date;
+  platform: {
+    totalStores: number;
+    liveStores: number;
+    activeMerchants: number;
+  };
+  merchants: { emptyStores: number; firstSaleCount: number };
+  commerce: {
+    pendingCOD: ProvenancedValue;
+    pendingGMV: ProvenancedValue;
+    realOrders7d: number;
+  };
+  activation: { highIntent: number; emptyStores: number };
+  operations: { pendingCOD: number };
+  technical: { domainFailing: ProvenancedValue };
+  support: { openSupport: ProvenancedValue };
+  revenue: {
+    realRevenue7d: ProvenancedValue;
+    concentrationPct: number;
+  };
+  risks: string[];
+  opportunities: string[];
+  temporal: PlatformDimensionSnapshot;
+  dependencies: TwinEdge[];
+  dataQuality: PlatformDigitalTwin["dataQuality"];
+  twinHash: string;
+  confidence: number;
 };
 
 export type MerchantTwin = {

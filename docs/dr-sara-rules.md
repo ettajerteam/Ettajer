@@ -129,9 +129,14 @@ Warnings surface on the snapshot as `dataQualityWarnings`.
 
 | ruleId | Notes |
 |--------|-------|
-| TWIN_EDGE_* | State graph edges (CAUSAL_SUPPORTED / CORRELATION_ONLY) |
-| SCENARIO_SIM_V5 | Deterministic historical-range simulation |
+| TWIN_EDGE_* | State graph edges with relationship labels + strength + evidence |
+| SCENARIO_REGISTRY | Explicit scenario definitions (COD/DNS/activation/support/onboarding/…) |
+| INTELLIGENCE_ASSUMPTIONS | A-COD-001 … A-ISO-001 (ACTIVE/WEAK/…) |
+| SCENARIO_SIM_V5 | Deterministic historical-range simulation (read-only) |
 | NO_ACTION baseline | Required every cycle |
 | CHAIN_DOMAIN_TO_ACTIVATION | Multi-step scenario |
 | OVERLAPPING_EFFECT | Prevents double-counting |
 | EXPECTED_OPPORTUNITY | Cascade language — never guaranteed orders |
+| compareScenarios | Trade-off + transparent ranking |
+| simulateCounterfactual | COUNTERFACTUAL labeled; evidence-gated |
+| comparePredictedVsObserved | Scenario outcome feedback (no ML) |

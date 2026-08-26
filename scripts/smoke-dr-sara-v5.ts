@@ -33,47 +33,86 @@ async function main() {
 
   const snapshot = await getDrSaraSnapshot();
   const briefing = snapshotToBriefing(snapshot);
+  const top = snapshot.topScenario;
+  const codForecast = snapshot.scenarioForecasts.find(
+    (s) =>
+      s.label.includes("COD") || s.scenarioId.includes("cod")
+  );
+  const pendingBefore =
+    codForecast?.metrics.pendingCOD?.before ??
+    snapshot.digitalTwin?.metrics.pendingCOD ??
+    null;
+  const pendingAfter =
+    codForecast?.metrics.pendingCOD?.expectedAfter ?? null;
 
   console.log("========================================");
-  console.log("DR SARA V5 DIGITAL TWIN REPORT");
+  console.log("DR SARA V5 EXECUTION REPORT");
+  console.log("========================================");
+  console.log(`Version: ${snapshot.metadata.version}`);
+  console.log(
+    `Twin status: hash=${snapshot.digitalTwin?.twinHash} confidence=${snapshot.digitalTwin?.confidence}`
+  );
+  console.log(
+    `Data quality: ${snapshot.scenarioDataQuality?.status} warnings=${snapshot.scenarioDataQuality?.warnings.length ?? 0}`
+  );
+  console.log(
+    `Rules evaluated: signals=${snapshot.signals.length} diagnoses=${snapshot.diagnoses.filter((d) => d.diagnosisId !== "NONE").length}`
+  );
+  console.log(`Scenarios evaluated: ${snapshot.scenarios.length}`);
+  console.log(`Top scenario: ${top?.label ?? "none"}`);
+  console.log(`Top scenario score: ${top?.score ?? "n/a"}`);
+  console.log(`Baseline pendingCOD: ${pendingBefore}`);
+  console.log(
+    `Projected pendingCOD: ${pendingAfter ? `[${pendingAfter[0]}, ${pendingAfter[1]}]` : "n/a"} (SIMULATED range)`
+  );
+  console.log(
+    `Expected impact: ${top ? `score-driven; intervention=${top.intervention}` : "n/a"}`
+  );
+  console.log(`Confidence: ${snapshot.uncertainty.confidence}`);
+  console.log(
+    `Uncertainty: evidenceQuality=${snapshot.uncertainty.evidenceQuality} assumptionCount=${snapshot.uncertainty.assumptionCount} dqPenalty=${snapshot.uncertainty.dataQualityPenalty}`
+  );
+  console.log(
+    `Assumptions: ${snapshot.assumptions
+      .slice(0, 6)
+      .map((a) => a.id)
+      .join(", ")}`
+  );
+  console.log(
+    `Trade-offs SHORT: ${snapshot.tradeoffs.shortTerm.slice(0, 3).join(" | ") || "none"}`
+  );
+  console.log(
+    `Trade-offs MEDIUM: ${snapshot.tradeoffs.mediumTerm.slice(0, 3).join(" | ") || "none"}`
+  );
+  console.log(
+    `Trade-offs LONG: ${snapshot.tradeoffs.longTerm.slice(0, 3).join(" | ") || "none"}`
+  );
+  console.log(
+    `Counterfactuals: ${snapshot.counterfactuals.map((c) => `${c.id}:${c.evidenceStrength}`).join(", ") || "none"}`
+  );
+  if (snapshot.formalCounterfactual) {
+    console.log(
+      `Formal CF: ${snapshot.formalCounterfactual.kind} strength=${snapshot.formalCounterfactual.evidenceStrength}`
+    );
+  }
+  console.log(
+    `Execution trace: ${snapshot.simulationTrace?.stages.map((s) => s.stage).join("→")}`
+  );
+  console.log(`TOP_ACTION: ${snapshot.topAction?.label ?? "none"}`);
+  console.log(`autoExecute: ${snapshot.autonomy.autoExecute}`);
+  console.log(`UI briefing score: ${briefing.pulse.score}`);
   console.log("========================================");
   console.log(
     JSON.stringify(
       {
         version: snapshot.metadata.version,
-        platformState: {
-          health: snapshot.health.score,
-          status: snapshot.health.status,
-        },
-        digitalTwin: snapshot.digitalTwin,
-        signals: snapshot.signals.length,
-        diagnoses: snapshot.diagnoses
-          .filter((d) => d.diagnosisId !== "NONE")
-          .map((d) => d.diagnosisId),
-        earlyWarnings: snapshot.earlyWarnings,
-        recovery: snapshot.recovery,
-        scenarioCandidates: snapshot.scenarios.map((s) => ({
-          id: s.scenarioId,
-          kind: s.kind,
-          label: s.label,
-        })),
-        noActionScenario: snapshot.scenarios.find((s) => s.kind === "NO_ACTION"),
         topScenario: snapshot.topScenario,
-        topAction: snapshot.topAction?.label ?? null,
         interventionAdvantage: snapshot.interventionAdvantage,
-        counterfactuals: snapshot.counterfactuals,
-        merchantTwins: snapshot.merchantTwins.slice(0, 5),
-        portfolioScenarios: snapshot.portfolioScenarios,
-        stateTrajectory: snapshot.stateTrajectory,
+        scenarioComparisons: snapshot.scenarioComparisons.slice(0, 5),
+        scenarioDataQuality: snapshot.scenarioDataQuality,
+        simulationTrace: snapshot.simulationTrace,
         uncertainty: snapshot.uncertainty,
-        dataQuality: snapshot.dataQualityV2,
-        decisionChanges: snapshot.decisionChanges,
-        escalationRisk: snapshot.escalationRisk,
-        recoverySimulation: snapshot.recoverySimulation,
-        executionTrace: snapshot.executionTraceV4,
-        autoExecute: snapshot.autonomy.autoExecute,
-        uiBriefingScore: briefing.pulse.score,
-        uiTopAction: briefing.actions[0]?.label ?? null,
+        assumptions: snapshot.assumptions.map((a) => a.id),
       },
       null,
       2
