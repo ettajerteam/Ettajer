@@ -437,7 +437,7 @@ describe("V5 snapshot contract", () => {
         totalStores: 50,
       })
     );
-    expect(snap.metadata.version).toBe("6.0.0");
+    expect(snap.metadata.version).toBe("7.0.0");
     expect(snap.digitalTwin?.metrics.pendingCOD).toBe(12);
     expect(snap.scenarios.some((s) => s.kind === "NO_ACTION")).toBe(true);
     expect(snap.topScenario).toBeTruthy();
@@ -849,7 +849,7 @@ describe("V5 adversarial fail-safe", () => {
         pendingRealOrders: 0,
       })
     );
-    expect(snap.metadata.version).toBe("6.0.0");
+    expect(snap.metadata.version).toBe("7.0.0");
     expect(snap.digitalTwin).toBeTruthy();
     expect(snap.scenarioDataQuality?.status).toBe("DEGRADED");
   });

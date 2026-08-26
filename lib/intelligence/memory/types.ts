@@ -111,3 +111,12 @@ export function emptyIntelligenceMemory(): IntelligenceMemory {
     lastCycleId: null,
   };
 }
+
+/** V7 types live in v7-types.ts — re-exported for discoverability. */
+export type {
+  DecisionMemoryRecord,
+  OutcomeMemoryRecord,
+  MemoryEngineResult,
+  CompareOutcomeResult,
+} from "@/lib/intelligence/memory/v7-types";
+

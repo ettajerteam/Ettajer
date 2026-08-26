@@ -113,14 +113,27 @@ import { SCENARIO_REGISTRY } from "@/lib/intelligence/scenarios/registry";
 import { toDigitalTwinState } from "@/lib/intelligence/twin/state-contract";
 import { simulateCounterfactual } from "@/lib/intelligence/counterfactual/simulate";
 import { runDecisionEngine } from "@/lib/intelligence/decisions/engine";
+import {
+  runMemoryEngine,
+  applyMemoryToCandidates,
+} from "@/lib/intelligence/memory/memory-engine";
+import type {
+  DecisionMemoryRecord,
+  OutcomeMemoryRecord,
+} from "@/lib/intelligence/memory/v7-types";
+import { selectTopDecisionCandidate } from "@/lib/intelligence/decisions/scoring";
+import { buildDecisionRationale } from "@/lib/intelligence/decisions/rationale";
 
 export type BuildSnapshotOptions = {
   memory?: IntelligenceMemory;
   /** Prior cycle decision memory for stability (optional) */
   decisionHistory?: DecisionMemoryEntry[];
+  /** V7 measured decision/outcome history (fixtures only — never invented) */
+  v7DecisionHistory?: DecisionMemoryRecord[];
+  v7OutcomeHistory?: OutcomeMemoryRecord[];
 };
 
-const ENGINE_VERSION = "6.0.0";
+const ENGINE_VERSION = "7.0.0";
 
 const DIMENSION_LABELS: Record<
   keyof DrSaraSnapshot["health"]["dimensions"],
@@ -855,7 +868,100 @@ export function buildDrSaraSnapshotFromState(
     cycleId,
   });
 
-  // V5/V6: never auto-execute
+  // V7 Memory & Outcome Intelligence (additive; no Prisma writes)
+  const memoryResult = runMemoryEngine({
+    state,
+    twinHash: digitalTwin.twinHash,
+    intelligenceMemory: memory,
+    decisionHistory: options.v7DecisionHistory,
+    outcomeHistory: options.v7OutcomeHistory,
+    topDecision: decisionResult.topDecision,
+    candidates: decisionResult.candidates,
+  });
+
+  const memoryAdjustedCandidates = applyMemoryToCandidates(
+    decisionResult.candidates,
+    memoryResult.scoreAdjustments
+  );
+  // Re-rank with memory bonuses — BLOCK still wins (blocked scores unchanged / low)
+  const memoryRanked = [...memoryAdjustedCandidates].sort((a, b) => {
+    if (a.blocked !== b.blocked) return a.blocked ? 1 : -1;
+    return b.score - a.score;
+  });
+  const memorySelected = selectTopDecisionCandidate(
+    memoryRanked,
+    gate.insufficientEvidence || dqStatus === "INSUFFICIENT"
+  );
+
+  // Prefer V6 selection unless memory clearly improves a non-blocked alternative
+  let enrichedTop = decisionResult.topDecision;
+  if (
+    enrichedTop &&
+    memorySelected &&
+    !memorySelected.blocked &&
+    memorySelected.id !== enrichedTop.selectedAction.id &&
+    memorySelected.score > enrichedTop.score + 1
+  ) {
+    const rationale = buildDecisionRationale({
+      selected: memorySelected,
+      alternatives: memoryRanked,
+    });
+    enrichedTop = {
+      ...enrichedTop,
+      id: `decision-${cycleId}-${memorySelected.id}`,
+      selectedAction: {
+        id: memorySelected.id,
+        type: memorySelected.type,
+        title: memorySelected.title,
+        route: memorySelected.route,
+        mode: "RECOMMENDED",
+      },
+      score: memorySelected.score,
+      confidence: memorySelected.confidence,
+      evidence: memorySelected.evidence,
+      rationale,
+      alternatives: memoryRanked
+        .filter((c) => c.id !== memorySelected.id)
+        .slice(0, 8)
+        .map((c) => ({
+          id: c.id,
+          title: c.title,
+          score: c.score,
+          blocked: c.blocked,
+        })),
+      constraints: memorySelected.constraints,
+      scenarioSupport: memorySelected.scenarioSupport,
+      expectedOutcome: {
+        kind:
+          Object.keys(memorySelected.scenarioSupport.expectedAfter).length > 0
+            ? "SIMULATED"
+            : "NONE",
+        baseline: memorySelected.scenarioSupport.baseline,
+        expectedAfter: memorySelected.scenarioSupport.expectedAfter,
+        note: memorySelected.scenarioSupport.note,
+      },
+    };
+  }
+
+  if (enrichedTop && memoryResult.topDecisionMemory) {
+    enrichedTop = {
+      ...enrichedTop,
+      confidence: memoryResult.topDecisionMemory.confidenceAfterMemory,
+      version: "6.0.0", // decision object schema remains V6; snapshot metadata is 7.0.0
+    };
+  }
+
+  // Align memory topDecisionMemory decisionType with final selection
+  const finalMemoryTop = memoryResult.topDecisionMemory
+    ? {
+        ...memoryResult.topDecisionMemory,
+        decisionType:
+          enrichedTop?.selectedAction.id ??
+          memoryResult.topDecisionMemory.decisionType,
+      }
+    : null;
+
+  // V5/V6/V7: never auto-execute
   void C.twin;
   const autonomyV5 = { ...autonomy, autoExecute: false as const };
 
@@ -1061,6 +1167,9 @@ export function buildDrSaraSnapshotFromState(
         note: r.note,
       })),
       update: learningUpdate,
+      topDecisionMemory: finalMemoryTop,
+      learningTrace: memoryResult.learningTrace,
+      scoreAdjustments: memoryResult.scoreAdjustments,
     },
     decisionV4: {
       scoreComponents: topComponents,
@@ -1240,49 +1349,58 @@ export function buildDrSaraSnapshotFromState(
       onTrack: recoverySimulation.onTrack,
       note: recoverySimulation.note,
     },
-    /** V6 — Decision Intelligence (additive; does not replace TOP_ACTION / TOP_SCENARIO) */
+    /** V6/V7 — Decision Intelligence (additive; does not replace TOP_ACTION / TOP_SCENARIO) */
     decision: {
-      topDecision: decisionResult.topDecision
+      topDecision: enrichedTop
         ? {
-            id: decisionResult.topDecision.id,
-            version: decisionResult.topDecision.version,
-            selectedAction: decisionResult.topDecision.selectedAction,
-            score: decisionResult.topDecision.score,
-            confidence: decisionResult.topDecision.confidence,
-            whyThis: decisionResult.topDecision.rationale.whyThis,
-            whyNot: decisionResult.topDecision.rationale.whyNotAlternatives.map(
-              (w) => ({
-                actionId: w.actionId,
-                title: w.title,
-                reasons: w.reasons,
-              })
-            ),
-            expectedOutcome: decisionResult.topDecision.expectedOutcome,
-            uncertainty: decisionResult.topDecision.uncertainty,
+            id: enrichedTop.id,
+            version: enrichedTop.version,
+            selectedAction: enrichedTop.selectedAction,
+            score: enrichedTop.score,
+            confidence: enrichedTop.confidence,
+            confidenceBeforeMemory:
+              finalMemoryTop?.confidenceBeforeMemory ?? enrichedTop.confidence,
+            confidenceAfterMemory:
+              finalMemoryTop?.confidenceAfterMemory ?? enrichedTop.confidence,
+            historicalReliability:
+              finalMemoryTop?.historicalReliability ?? "INSUFFICIENT",
+            evidenceStrength:
+              finalMemoryTop?.evidenceStrength ?? "INSUFFICIENT",
+            memoryImpact: finalMemoryTop?.memoryImpact ?? "NONE",
+            whyThis: enrichedTop.rationale.whyThis,
+            whyNot: enrichedTop.rationale.whyNotAlternatives.map((w) => ({
+              actionId: w.actionId,
+              title: w.title,
+              reasons: w.reasons,
+            })),
+            expectedOutcome: enrichedTop.expectedOutcome,
+            uncertainty: enrichedTop.uncertainty,
             scenarioSupport: {
-              strength: decisionResult.topDecision.scenarioSupport.strength,
-              scenarioId: decisionResult.topDecision.scenarioSupport.scenarioId,
-              baseline: decisionResult.topDecision.scenarioSupport.baseline,
-              expectedAfter:
-                decisionResult.topDecision.scenarioSupport.expectedAfter,
+              strength: enrichedTop.scenarioSupport.strength,
+              scenarioId: enrichedTop.scenarioSupport.scenarioId,
+              baseline: enrichedTop.scenarioSupport.baseline,
+              expectedAfter: enrichedTop.scenarioSupport.expectedAfter,
             },
-            constraints: decisionResult.topDecision.constraints.map((c) => ({
+            constraints: enrichedTop.constraints.map((c) => ({
               constraintId: c.constraintId,
               status: c.status,
               reason: c.reason,
             })),
-            alternatives: decisionResult.topDecision.alternatives,
+            alternatives: enrichedTop.alternatives,
             mode: "RECOMMENDED" as const,
           }
         : null,
-      alternatives: decisionResult.alternatives.slice(0, 8).map((a) => ({
-        id: a.id,
-        title: a.title,
-        score: a.score,
-        blocked: a.blocked,
-        domain: a.domain,
-      })),
-      candidates: decisionResult.candidates.map((c) => ({
+      alternatives: memoryRanked
+        .filter((a) => a.id !== enrichedTop?.selectedAction.id)
+        .slice(0, 8)
+        .map((a) => ({
+          id: a.id,
+          title: a.title,
+          score: a.score,
+          blocked: a.blocked,
+          domain: a.domain,
+        })),
+      candidates: memoryRanked.map((c) => ({
         id: c.id,
         title: c.title,
         score: c.score,
@@ -1292,6 +1410,25 @@ export function buildDrSaraSnapshotFromState(
         confidence: c.confidence,
       })),
       trace: decisionResult.trace,
+    },
+    memory: {
+      fingerprints: memoryResult.fingerprints,
+      primaryFingerprint: memoryResult.primaryFingerprint,
+      decisionHistorySummary: memoryResult.decisionHistorySummary,
+      successRates: memoryResult.successRates.map((s) => ({
+        decisionType: s.decisionType,
+        totalMeasured: s.totalMeasured,
+        successRate: s.successRate,
+        evidenceStrength: s.evidenceStrength,
+        sampleQuality: s.sampleQuality,
+      })),
+      reliability: memoryResult.reliability.map((r) => ({
+        decisionType: r.decisionType,
+        band: r.band,
+        evidenceStrength: r.evidenceStrength,
+        sampleSize: r.sampleSize,
+        note: r.note,
+      })),
     },
     metadata: {
       engine: "deterministic",

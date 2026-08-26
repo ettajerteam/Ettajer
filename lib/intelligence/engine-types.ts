@@ -425,6 +425,33 @@ export type DrSaraSnapshot = {
       note: string;
     }[];
     update: string | null;
+    /** V7 additive */
+    topDecisionMemory?: {
+      decisionType: string;
+      confidenceBeforeMemory: number;
+      confidenceAfterMemory: number;
+      historicalReliability: string;
+      evidenceStrength: string;
+      memoryImpact: string;
+      adjustment: {
+        before: number;
+        after: number;
+        delta: number;
+        reason: string;
+        applied: boolean;
+      };
+      note: string;
+    } | null;
+    learningTrace?: { stage: string; detail: string }[];
+    scoreAdjustments?: {
+      decisionType: string;
+      historicalReliabilityBonus: number;
+      predictionAccuracyBonus: number;
+      recentFailurePenalty: number;
+      evidencePenalty: number;
+      net: number;
+      blockedPreserved: boolean;
+    }[];
   };
   decisionV4: {
     scoreComponents: Record<string, number> | null;
@@ -634,6 +661,12 @@ export type DrSaraSnapshot = {
       };
       score: number;
       confidence: number;
+      /** V7 memory enrichment */
+      confidenceBeforeMemory?: number;
+      confidenceAfterMemory?: number;
+      historicalReliability?: string;
+      evidenceStrength?: string;
+      memoryImpact?: string;
       whyThis: string[];
       whyNot: { actionId: string; title: string; reasons: string[] }[];
       expectedOutcome: {
@@ -683,6 +716,29 @@ export type DrSaraSnapshot = {
       confidence: number;
     }[];
     trace: { stage: string; detail: string; count?: number }[];
+  } | null;
+  /** V7 — Memory & learning (additive) */
+  memory: {
+    fingerprints: string[];
+    primaryFingerprint: string;
+    decisionHistorySummary: {
+      totalRecords: number;
+      byType: Record<string, number>;
+    };
+    successRates: {
+      decisionType: string;
+      totalMeasured: number;
+      successRate: number | null;
+      evidenceStrength: string;
+      sampleQuality: string;
+    }[];
+    reliability: {
+      decisionType: string;
+      band: string;
+      evidenceStrength: string;
+      sampleSize: number;
+      note: string;
+    }[];
   } | null;
   metadata: {
     engine: "deterministic";

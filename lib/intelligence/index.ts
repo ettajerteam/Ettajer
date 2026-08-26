@@ -1,5 +1,5 @@
 /**
- * Dr Sara — Intelligence OS V6 exports (Decision Intelligence on V5 twin).
+ * Dr Sara — Intelligence OS V7 exports (Memory & Outcome on V6 decisions).
  */
 export {
   getDrSaraSnapshot,
@@ -15,6 +15,14 @@ export {
 export { INTELLIGENCE_THRESHOLDS } from "@/lib/intelligence/thresholds";
 export { INTELLIGENCE_SCORING_CONFIG } from "@/lib/intelligence/config/scoring";
 export { emptyIntelligenceMemory } from "@/lib/intelligence/memory/types";
+export {
+  runMemoryEngine,
+  compareOutcome,
+  buildStateFingerprints,
+  primaryStateFingerprint,
+  adjustConfidence,
+  MEMORY_THRESHOLDS,
+} from "@/lib/intelligence/memory/index";
 export { buildPlatformDigitalTwin } from "@/lib/intelligence/twin/build";
 export { buildStateGraph } from "@/lib/intelligence/twin/state-graph";
 export { toDigitalTwinState } from "@/lib/intelligence/twin/state-contract";
@@ -91,3 +99,8 @@ export type {
   DecisionCandidate,
   DecisionEngineResult,
 } from "@/lib/intelligence/decisions/types";
+export type {
+  DecisionMemoryRecord,
+  OutcomeMemoryRecord,
+  MemoryEngineResult,
+} from "@/lib/intelligence/memory/v7-types";
