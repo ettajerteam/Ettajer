@@ -292,6 +292,91 @@ export type DrSaraSnapshot = {
     evidenceCount: number;
     notes: string[];
   };
+  /** V3 */
+  causalHypotheses: {
+    id: string;
+    ruleId: string;
+    hypothesis: string;
+    confidence: number;
+    affectedCount: number;
+    evidenceLines: string[];
+  }[];
+  anomalies: {
+    id: string;
+    ruleId: string;
+    title: string;
+    baseline: number;
+    observed: number;
+    deltaPct: number;
+    confidence: number;
+  }[];
+  merchantIntelligence: {
+    merchantId: string;
+    storeName?: string;
+    lifecycleStage: string;
+    bottleneck: string;
+    intentScore: number;
+    interventionScore: number;
+    opportunity: string | null;
+  }[];
+  interventions: {
+    id: string;
+    type: string;
+    merchantId: string | null;
+    priority: number;
+    reason: string;
+    recommendedRoute: string;
+    expectedOutcome: string;
+  }[];
+  topIntervention: {
+    type: string;
+    merchantId: string | null;
+    reason: string;
+    recommendedRoute: string;
+    priority: number;
+    whyThisFirst: string;
+  } | null;
+  whyFirst: {
+    decision: string;
+    whyThis: string;
+    whyNow: string;
+    whyNotAlternative: string;
+    evidence: string[];
+  } | null;
+  actionHistory: {
+    actionId: string;
+    type: string;
+    status: string;
+    timestamp: Date;
+  }[];
+  interventionMemory: {
+    type: string;
+    totalAttempts: number;
+    successRate: number | null;
+    note: string;
+  }[];
+  richSegments: {
+    id: string;
+    label: string;
+    count: number;
+    ruleId: string;
+    priority: number;
+  }[];
+  graph: {
+    nodeCount: number;
+    edgeCount: number;
+  };
+  executionTrace: {
+    snapshotId: string;
+    rulesEvaluated: number;
+    rulesFired: number;
+    signalsGenerated: number;
+    diagnoses: number;
+    interventions: number;
+    topAction: string | null;
+    warnings: number;
+    executionTimeMs: number;
+  };
   metadata: {
     engine: "deterministic";
     version: string;

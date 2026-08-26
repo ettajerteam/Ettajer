@@ -4,28 +4,40 @@ import {
   summarizeOutcomes,
 } from "@/lib/intelligence/actions/outcomes";
 import { snapshotToBriefing } from "@/lib/intelligence/adapt-briefing";
+import { detectAnomalies } from "@/lib/intelligence/anomalies/detect";
 import { detectPlatformBottlenecks } from "@/lib/intelligence/bottlenecks/platform";
+import { buildCausalHypotheses } from "@/lib/intelligence/causal/hypotheses";
 import { correlateSignals } from "@/lib/intelligence/correlation";
-import { assessDataQuality } from "@/lib/intelligence/data-quality";
 import { diagnosePlatform } from "@/lib/intelligence/diagnosis";
 import type { DrSaraSnapshot } from "@/lib/intelligence/engine-types";
 import {
   normalizeLiveFeedEvents,
   synthesizeStateEvents,
 } from "@/lib/intelligence/events/normalize";
+import { explainTopDecision } from "@/lib/intelligence/explainability/why-first";
+import { buildTemporalTrends } from "@/lib/intelligence/forecasting";
+import { buildForecastsV2 } from "@/lib/intelligence/forecasts/v2";
+import { buildIntelligenceGraph } from "@/lib/intelligence/graph/model";
 import {
-  buildForecasts,
-  buildTemporalTrends,
-} from "@/lib/intelligence/forecasting";
+  buildMerchantInterventions,
+  buildPlatformInterventions,
+  getTopIntervention,
+  rankInterventions,
+} from "@/lib/intelligence/interventions/engine";
 import { buildMerchantJourney } from "@/lib/intelligence/merchants/journey";
+import { buildMerchantIntelligenceProfile } from "@/lib/intelligence/merchants/profile";
 import { getOpportunities } from "@/lib/intelligence/opportunities";
+import { createRecommendedEvent } from "@/lib/intelligence/outcomes/lifecycle";
+import { emptyInterventionMemory } from "@/lib/intelligence/outcomes/memory";
 import { toPlatformState } from "@/lib/intelligence/platform-state";
 import {
   getTopAction,
   rankTopActions,
 } from "@/lib/intelligence/prioritization/top-action";
+import { runQualityFirewall } from "@/lib/intelligence/quality/firewall";
 import { getRecommendedActions } from "@/lib/intelligence/recommendations/actions";
 import { evaluateRegistry } from "@/lib/intelligence/registry/rules";
+import { evaluateRulesV3 } from "@/lib/intelligence/registry/v3";
 import { detectProactiveRisks } from "@/lib/intelligence/risks/proactive";
 import {
   calculatePlatformHealth,
@@ -39,11 +51,12 @@ import {
   getMerchantSegments,
   getMerchantSegmentSummary,
 } from "@/lib/intelligence/segments/merchants";
+import { buildRichSegments } from "@/lib/intelligence/segments/rich";
 import { collectAllSignals } from "@/lib/intelligence/signals/collect";
 import { INTELLIGENCE_THRESHOLDS } from "@/lib/intelligence/thresholds";
 import type { SaraBriefing } from "@/lib/intelligence/types";
 
-const ENGINE_VERSION = "2.0.0";
+const ENGINE_VERSION = "3.0.0";
 
 const DIMENSION_LABELS: Record<
   keyof DrSaraSnapshot["health"]["dimensions"],
@@ -89,12 +102,13 @@ function statusLabelFor(
   return score >= 85 ? "Operational" : `Score ${score}`;
 }
 
-/**
- * Pure snapshot builder V2 — testable without DB.
- */
 export function buildDrSaraSnapshotFromState(
   state: ReturnType<typeof toPlatformState>
 ): DrSaraSnapshot {
+  const t0 = Date.now();
+  const snapshotId = `sara-${state.now.getTime()}`;
+
+  const gate = runQualityFirewall(state);
   const signals = collectAllSignals(state);
   const correlations = correlateSignals(signals, state);
   const diagnoses = diagnosePlatform(state, signals, correlations);
@@ -102,38 +116,25 @@ export function buildDrSaraSnapshotFromState(
   const priorities = prioritizeSignals(signals, 5);
   const opportunities = getOpportunities(state);
   const temporalTrends = buildTemporalTrends(state);
-  const forecasts = buildForecasts(state);
+  const forecastsV2 = buildForecastsV2(state, gate);
   const risks = detectProactiveRisks(state, signals, temporalTrends);
   const recommendedActions = getRecommendedActions(state, signals);
   const topActionsRanked = rankTopActions(signals, recommendedActions);
   const top = getTopAction(signals, recommendedActions);
   const bottlenecks = detectPlatformBottlenecks(state);
+  const causal = gate.blockedOperations.includes("causal")
+    ? []
+    : buildCausalHypotheses(state);
+  const anomalies = detectAnomalies(state, temporalTrends);
   const summary = getMerchantSegmentSummary(state);
   const merchants = getMerchantSegments(state);
-  const dq = assessDataQuality({
-    totalRevenue: state.totalRevenue,
-    realRevenue7d: state.realRevenue7d,
-    pendingRealOrders: state.pendingRealOrders,
-    pendingRealGmv: state.pendingRealGmv,
-    top2SharePct: state.top2SharePct,
-    domainsConnected: state.domainsConnected,
-    domainsConnectedSuccess: state.domainsConnectedSuccess,
-    sparklines: state.sparklines,
-  });
+  const richSegments = buildRichSegments(state);
+  const registryV2 = evaluateRegistry(state);
+  const registryV3 = evaluateRulesV3(state);
 
-  const events = [
-    ...normalizeLiveFeedEvents(state.liveFeed),
-    ...synthesizeStateEvents({
-      pendingRealOrders: state.pendingRealOrders,
-      domainFailing: state.domainFailing,
-      openSupport: state.openSupport,
-      now: state.now,
-    }),
-  ];
-
-  const merchantJourneys = [
+  const profiles = [
     ...state.helpToday.map((h) =>
-      buildMerchantJourney({
+      buildMerchantIntelligenceProfile({
         merchantId: h.ownerId || h.storeId,
         storeId: h.storeId,
         storeName: h.storeName,
@@ -147,7 +148,7 @@ export function buildDrSaraSnapshotFromState(
       })
     ),
     ...state.concentration.map((c) =>
-      buildMerchantJourney({
+      buildMerchantIntelligenceProfile({
         merchantId: c.id,
         storeId: c.id,
         storeName: c.name,
@@ -162,6 +163,48 @@ export function buildDrSaraSnapshotFromState(
     ),
   ].slice(0, 16);
 
+  const memory = emptyInterventionMemory();
+  const interventions = rankInterventions(
+    [
+      ...buildPlatformInterventions(state, state.now),
+      ...buildMerchantInterventions(profiles, state.now),
+    ],
+    memory
+  );
+  const topIntervention = getTopIntervention(interventions);
+
+  const merchantJourneys = profiles.map((p) => {
+    const j = buildMerchantJourney({
+      merchantId: p.merchantId,
+      storeId: p.storeId,
+      storeName: p.storeName,
+      hasStore: true,
+      productCount: p.lifecycleStage === "EMPTY" ? 0 : 1,
+      activeProductCount:
+        p.lifecycleStage === "EMPTY" || p.lifecycleStage === "CREATED" ? 0 : 1,
+      realOrders: p.commerceState === "none" ? 0 : 1,
+      recentLogin: p.activityState === "hot",
+    });
+    return {
+      merchantId: p.merchantId,
+      storeName: p.storeName,
+      stage: j.stage,
+      bottleneck: p.currentBottleneck,
+      healthScore: p.intentScore.score,
+      recommendedAction: p.recommendedActions[0]?.label ?? j.recommendedAction,
+    };
+  });
+
+  const events = [
+    ...normalizeLiveFeedEvents(state.liveFeed),
+    ...synthesizeStateEvents({
+      pendingRealOrders: state.pendingRealOrders,
+      domainFailing: state.domainFailing,
+      openSupport: state.openSupport,
+      now: state.now,
+    }),
+  ];
+
   const tracked = recommendationsToTrackedActions(
     recommendedActions,
     state.now,
@@ -173,8 +216,58 @@ export function buildDrSaraSnapshotFromState(
   );
   const actionOutcomes = summarizeOutcomes(tracked);
 
-  const registry = evaluateRegistry(state);
-  const registryFired = registry.filter((r) => r.fired).map((r) => r.id);
+  const actionHistory = interventions.slice(0, 8).map((i) => {
+    const ev = createRecommendedEvent({
+      actionId: i.id,
+      merchantId: i.merchantId,
+      type: i.type,
+      ruleId: i.type,
+      targetMetric: i.targetMetric,
+      baselineValue:
+        i.type === "COD_VERIFICATION"
+          ? state.pendingRealOrders
+          : i.type === "DNS_DIAGNOSIS"
+            ? state.domainFailing
+            : i.type === "SUPPORT_ESCALATION"
+              ? state.openSupport
+              : 0,
+      now: state.now,
+      evidence: i.evidence.map((e) => `${e.label}=${String(e.value)}`),
+    });
+    return {
+      actionId: ev.actionId,
+      type: ev.type,
+      status: ev.status,
+      timestamp: ev.timestamp,
+    };
+  });
+
+  const alt = topActionsRanked[1];
+  const whyFirst = top
+    ? explainTopDecision({
+        topLabel: top.action.label,
+        topHref: top.action.href,
+        topScore: top.priorityScore,
+        topReason: top.whyThisFirst,
+        pendingRealOrders: state.pendingRealOrders,
+        firstSaleCount: state.firstSaleCount,
+        domainFailing: state.domainFailing,
+        openSupport: state.openSupport,
+        alternativeLabel: alt?.action.label,
+        calculation: top.calculation,
+        ruleIds: [top.relatedSignalId ?? top.action.id],
+        confidence: 0.95,
+      })
+    : null;
+
+  const graph = buildIntelligenceGraph({
+    signalIds: signals.map((s) => s.id),
+    diagnosisIds: diagnoses.map((d) => d.diagnosisId),
+    bottleneckCodes: bottlenecks.map((b) => b.code),
+    interventionIds: interventions.slice(0, 10).map((i) => i.id),
+    causalIds: causal.map((c) => c.id),
+    merchantIds: profiles.map((p) => p.merchantId),
+  });
 
   const evidenceCount =
     signals.reduce((n, s) => n + s.evidence.length, 0) +
@@ -201,10 +294,10 @@ export function buildDrSaraSnapshotFromState(
 
   const headlineParts = [
     state.attentionSentence,
-    top
-      ? `Top action: ${top.action.label}`
-      : null,
+    top ? `Top action: ${top.action.label}` : null,
   ].filter(Boolean);
+
+  const executionTimeMs = Date.now() - t0;
 
   return {
     generatedAt: state.now,
@@ -251,7 +344,7 @@ export function buildDrSaraSnapshotFromState(
       anomaly: t.anomaly,
       basis: t.basis,
     })),
-    forecasts: forecasts.map((f) => ({
+    forecasts: forecastsV2.map((f) => ({
       id: f.id,
       metric: f.metric,
       forecastDirection: f.forecastDirection,
@@ -268,24 +361,13 @@ export function buildDrSaraSnapshotFromState(
       confidence: b.confidence,
       ruleIds: b.ruleIds,
     })),
-    merchantJourneys: merchantJourneys.map((j) => ({
-      merchantId: j.merchantId,
-      storeName: j.storeName,
-      stage: j.stage,
-      bottleneck: j.bottleneck,
-      healthScore: j.healthScore,
-      recommendedAction: j.recommendedAction,
-    })),
+    merchantJourneys,
     events: events.map((e) => ({
       type: e.type,
       timestamp: e.timestamp,
       metadata: e.metadata,
     })),
-    dataQualityWarnings: dq.map((w) => ({
-      id: w.id,
-      severity: w.severity,
-      message: w.message,
-    })),
+    dataQualityWarnings: gate.warnings,
     actionOutcomes: {
       totalTracked: actionOutcomes.totalTracked,
       successCount: actionOutcomes.successCount,
@@ -293,16 +375,101 @@ export function buildDrSaraSnapshotFromState(
       actionSuccessRate: actionOutcomes.actionSuccessRate,
       notes: actionOutcomes.notes,
     },
-    registryFired,
+    registryFired: [
+      ...new Set([...registryV2.filter((r) => r.fired).map((r) => r.id), ...registryV3.fired]),
+    ],
     confidence: {
       overall: overallConfidence,
       evidenceCount,
       notes: [
         "Deterministic engine — not LLM-generated.",
-        dq.length > 0
-          ? `${dq.length} data-quality warning(s) present.`
+        gate.warnings.length > 0
+          ? `${gate.warnings.length} data-quality warning(s) present.`
           : "No data-quality warnings.",
       ],
+    },
+    causalHypotheses: causal.map((c) => ({
+      id: c.id,
+      ruleId: c.ruleId,
+      hypothesis: c.hypothesis,
+      confidence: c.confidence,
+      affectedCount: c.affectedCount,
+      evidenceLines: c.evidenceLines,
+    })),
+    anomalies: anomalies.map((a) => ({
+      id: a.id,
+      ruleId: a.ruleId,
+      title: a.title,
+      baseline: a.baseline,
+      observed: a.observed,
+      deltaPct: a.deltaPct,
+      confidence: a.confidence,
+    })),
+    merchantIntelligence: profiles.map((p) => ({
+      merchantId: p.merchantId,
+      storeName: p.storeName,
+      lifecycleStage: p.lifecycleStage,
+      bottleneck: p.currentBottleneck,
+      intentScore: p.intentScore.score,
+      interventionScore: p.interventionScore,
+      opportunity: p.opportunity,
+    })),
+    interventions: interventions.slice(0, 12).map((i) => ({
+      id: i.id,
+      type: i.type,
+      merchantId: i.merchantId,
+      priority: i.priority,
+      reason: i.reason,
+      recommendedRoute: i.recommendedRoute,
+      expectedOutcome: i.expectedOutcome,
+    })),
+    topIntervention: topIntervention
+      ? {
+          type: topIntervention.type,
+          merchantId: topIntervention.merchantId,
+          reason: topIntervention.reason,
+          recommendedRoute: topIntervention.recommendedRoute,
+          priority: topIntervention.priority,
+          whyThisFirst: `${topIntervention.type}: ${topIntervention.reason}`,
+        }
+      : null,
+    whyFirst: whyFirst
+      ? {
+          decision: whyFirst.decision,
+          whyThis: whyFirst.whyThis,
+          whyNow: whyFirst.whyNow,
+          whyNotAlternative: whyFirst.whyNotAlternative,
+          evidence: whyFirst.evidence,
+        }
+      : null,
+    actionHistory,
+    interventionMemory: memory.map((m) => ({
+      type: m.type,
+      totalAttempts: m.totalAttempts,
+      successRate: m.successRate,
+      note: m.note,
+    })),
+    richSegments: richSegments.map((s) => ({
+      id: s.id,
+      label: s.label,
+      count: s.count,
+      ruleId: s.ruleId,
+      priority: s.priority,
+    })),
+    graph: {
+      nodeCount: graph.nodes.length,
+      edgeCount: graph.edges.length,
+    },
+    executionTrace: {
+      snapshotId,
+      rulesEvaluated: registryV3.evaluated,
+      rulesFired: registryV3.fired.length,
+      signalsGenerated: signals.length,
+      diagnoses: diagnoses.filter((d) => d.diagnosisId !== "NONE").length,
+      interventions: interventions.length,
+      topAction: top?.action.label ?? null,
+      warnings: gate.warnings.length,
+      executionTimeMs,
     },
     metadata: {
       engine: "deterministic",

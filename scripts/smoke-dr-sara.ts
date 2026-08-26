@@ -1,5 +1,5 @@
 /**
- * Smoke: Dr Sara intelligence engine V2 against live platform overview.
+ * Smoke: Dr Sara Intelligence OS V3 against live platform overview.
  * Run: npx tsx scripts/smoke-dr-sara.ts
  */
 import fs from "fs";
@@ -26,12 +26,19 @@ function loadEnv(path: string) {
 async function main() {
   loadEnv(".env.local");
   loadEnv(".env");
+  // Prefer real DATABASE_URL from env files over empty shell overrides
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL missing");
+    process.exit(1);
+  }
 
   const start = Date.now();
   const snapshot = await getDrSaraSnapshot();
   const briefing = snapshotToBriefing(snapshot);
   const ms = Date.now() - start;
+  const trace = snapshot.executionTrace;
 
+  console.log("======== Dr Sara V3 Intelligence Execution Report ========");
   console.log(
     JSON.stringify(
       {
@@ -39,28 +46,49 @@ async function main() {
         version: snapshot.metadata.version,
         health: snapshot.health.score,
         status: snapshot.health.status,
+        executionTrace: trace,
+        rulesEvaluated: trace.rulesEvaluated,
+        rulesFired: trace.rulesFired,
+        signals: snapshot.signals.length,
+        diagnoses: snapshot.diagnoses
+          .filter((d) => d.diagnosisId !== "NONE")
+          .map((d) => d.diagnosisId),
         topAction: snapshot.topAction,
-        topActions: snapshot.topActions.slice(0, 4),
-        bottlenecks: snapshot.bottlenecks.slice(0, 4),
-        temporalTrends: snapshot.temporalTrends.map((t) => ({
-          id: t.id,
-          deltaPct: t.deltaPct,
-          direction: t.direction,
-          acceleration: t.acceleration,
+        topIntervention: snapshot.topIntervention,
+        merchantTargets: snapshot.merchantIntelligence.slice(0, 8).map((m) => ({
+          id: m.merchantId,
+          name: m.storeName,
+          stage: m.lifecycleStage,
+          bottleneck: m.bottleneck,
+          interventionScore: m.interventionScore,
+        })),
+        interventions: snapshot.interventions.slice(0, 6).map((i) => ({
+          type: i.type,
+          merchantId: i.merchantId,
+          priority: i.priority,
+          route: i.recommendedRoute,
+        })),
+        causalHypotheses: snapshot.causalHypotheses.map((c) => ({
+          ruleId: c.ruleId,
+          confidence: c.confidence,
+          hypothesis: c.hypothesis.slice(0, 100),
+        })),
+        anomalies: snapshot.anomalies.map((a) => ({
+          ruleId: a.ruleId,
+          title: a.title,
+          deltaPct: a.deltaPct,
         })),
         forecasts: snapshot.forecasts.map((f) => ({
           id: f.id,
           direction: f.forecastDirection,
+          confidence: f.confidence,
           statement: f.statement.slice(0, 80),
         })),
-        correlations: snapshot.correlations.map((c) => c.id),
-        diagnoses: snapshot.diagnoses.map((d) => d.diagnosisId),
-        registryFired: snapshot.registryFired,
-        events: snapshot.events.length,
-        journeys: snapshot.merchantJourneys.length,
+        bottlenecks: snapshot.bottlenecks.slice(0, 4),
+        richSegments: snapshot.richSegments.slice(0, 8),
         dataQualityWarnings: snapshot.dataQualityWarnings,
-        actionOutcomes: snapshot.actionOutcomes,
-        confidence: snapshot.confidence,
+        whyFirst: snapshot.whyFirst,
+        graph: snapshot.graph,
         uiBriefingScore: briefing.pulse.score,
         uiTopAction: briefing.actions[0]?.label,
       },
