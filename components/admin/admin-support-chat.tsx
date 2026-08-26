@@ -15,6 +15,7 @@ import {
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatAdminInt } from "@/lib/admin/format";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
 import {
   SUPPORT_MESSAGE_DIRECTION,
@@ -107,9 +108,28 @@ function statusTone(status: string) {
 
 interface AdminSupportChatProps {
   initialMessages: SupportMessageRow[];
+  merchantContexts?: Record<
+    string,
+    {
+      email: string;
+      userId: string | null;
+      storeId: string | null;
+      storeName: string | null;
+      storeSlug: string | null;
+      healthScore: number | null;
+      healthBand: string | null;
+      realOrders: number;
+      realGmv: number;
+      lastActivity: string | null;
+      storeStatus: string | null;
+    }
+  >;
 }
 
-export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
+export function AdminSupportChat({
+  initialMessages,
+  merchantContexts = {},
+}: AdminSupportChatProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [messages, setMessages] = useState(initialMessages);
@@ -530,6 +550,45 @@ export function AdminSupportChat({ initialMessages }: AdminSupportChatProps) {
                   </button>
                 </div>
               </header>
+
+              {(() => {
+                const ctx =
+                  merchantContexts[active.email.trim().toLowerCase()] ?? null;
+                if (!ctx) return null;
+                return (
+                  <div className="border-b border-neutral-200/80 bg-[#F5F5F7]/80 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+                      Merchant context
+                    </p>
+                    <div className="mt-1.5 grid gap-1 text-[12px] text-neutral-700 dark:text-neutral-200 sm:grid-cols-2">
+                      <p>
+                        Store:{" "}
+                        {ctx.storeId ? (
+                          <a
+                            href={`/admin/stores/${ctx.storeId}`}
+                            className="font-medium text-[#007AFF] hover:underline"
+                          >
+                            {ctx.storeName ?? "—"}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </p>
+                      <p>
+                        Health:{" "}
+                        {ctx.healthScore != null
+                          ? `${ctx.healthScore} / 100`
+                          : "—"}
+                        {ctx.healthBand ? ` · ${ctx.healthBand}` : ""}
+                      </p>
+                      <p>Real orders: {ctx.realOrders}</p>
+                      <p>GMV: {formatAdminInt(ctx.realGmv)}</p>
+                      <p>Last activity: {ctx.lastActivity ?? "—"}</p>
+                      <p>Store status: {ctx.storeStatus ?? "—"}</p>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex-1 space-y-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_rgba(124,58,237,0.06),_transparent_55%),linear-gradient(180deg,#f7f7f8_0%,#f3f3f5_100%)] px-4 py-5 dark:bg-[radial-gradient(ellipse_at_top,_rgba(139,92,246,0.12),_transparent_50%),linear-gradient(180deg,#0d0d0d_0%,#121212_100%)]">
                 {active.messages.map((msg, index) => {

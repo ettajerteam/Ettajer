@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Menu, RefreshCw, Shield } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminCommandPalette } from "@/components/admin/admin-command-palette";
 import { useSidebarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -61,26 +62,29 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 </button>
                 <div className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-neutral-600 dark:text-neutral-300">
                   <Shield className="h-3.5 w-3.5 shrink-0 text-[#007AFF]" />
-                  <span className="truncate">Platform admin</span>
+                  <span className="truncate">Ettajer Console</span>
                   <span className="hidden text-neutral-300 sm:inline dark:text-neutral-600">
                     ·
                   </span>
                   <span className="hidden truncate text-neutral-400 sm:inline">
-                    Private control panel
+                    Platform control center
                   </span>
                 </div>
               </div>
-              <button
-                type="button"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                aria-label="Refresh"
-              >
-                <RefreshCw
-                  className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
-                />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <AdminCommandPalette />
+                <button
+                  type="button"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  aria-label="Refresh"
+                >
+                  <RefreshCw
+                    className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+                  />
+                </button>
+              </div>
             </div>
           </header>
           <div className="flex-1 overflow-auto bg-[#F5F5F7] dark:bg-[#0a0a0a]">

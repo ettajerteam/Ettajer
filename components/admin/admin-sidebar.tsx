@@ -22,7 +22,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSidebarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { adminNavItems, isAdminNavActive } from "@/lib/admin/admin-nav";
+import { adminNavGroups, isAdminNavActive } from "@/lib/admin/admin-nav";
 import { PlatformSwitch } from "@/components/admin/platform-switch";
 
 const BRAND_ICON = "/brand/App-Logo.png";
@@ -63,10 +63,10 @@ export function AdminSidebar() {
             {!isCollapsed && (
               <div className="min-w-0">
                 <p className="truncate text-[12px] font-semibold tracking-[-0.01em] text-neutral-900 dark:text-white">
-                  Ettajer Admin
+                  Ettajer Console
                 </p>
                 <p className="truncate text-[10px] text-neutral-400">
-                  Platform
+                  Control center
                 </p>
               </div>
             )}
@@ -109,50 +109,56 @@ export function AdminSidebar() {
         <PlatformSwitch mode="admin" collapsed={isCollapsed} />
       </div>
 
-      <nav className="flex-1 space-y-px overflow-x-hidden overflow-y-auto px-2 pb-2">
-        {!isCollapsed && (
-          <p className="px-2.5 pb-1 pt-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-            Control
-          </p>
-        )}
-        {adminNavItems.map((item) => {
-          const active = isAdminNavActive(pathname, item.href);
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              title={isCollapsed ? item.label : undefined}
-              className={cn(
-                "group/item relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-200",
-                isCollapsed && "justify-center px-0",
-                active
-                  ? "font-medium text-neutral-900 dark:text-white"
-                  : "font-normal text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
-              )}
-            >
-              {active && (
-                <motion.span
-                  layoutId="admin-sidebar-active-pill"
-                  className="absolute inset-0 rounded-md bg-black/[0.05] dark:bg-white/[0.08]"
-                  transition={panelSpring}
-                />
-              )}
-              <item.icon
-                className={cn(
-                  "relative z-10 h-3.5 w-3.5 shrink-0 transition-colors duration-200",
-                  active
-                    ? "text-[#007AFF]"
-                    : "text-neutral-400 group-hover/item:text-neutral-500"
-                )}
-                strokeWidth={active ? 2.25 : 1.75}
-              />
-              {!isCollapsed && (
-                <span className="relative z-10 truncate">{item.label}</span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-3 overflow-x-hidden overflow-y-auto px-2 pb-2">
+        {adminNavGroups.map((group) => (
+          <div key={group.id}>
+            {!isCollapsed && (
+              <p className="px-2.5 pb-1 pt-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+                {group.label}
+              </p>
+            )}
+            <div className="space-y-px">
+              {group.items.map((item) => {
+                const active = isAdminNavActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    title={isCollapsed ? item.label : undefined}
+                    className={cn(
+                      "group/item relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] transition-colors duration-200",
+                      isCollapsed && "justify-center px-0",
+                      active
+                        ? "font-medium text-neutral-900 dark:text-white"
+                        : "font-normal text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+                    )}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="admin-sidebar-active-pill"
+                        className="absolute inset-0 rounded-md bg-black/[0.05] dark:bg-white/[0.08]"
+                        transition={panelSpring}
+                      />
+                    )}
+                    <item.icon
+                      className={cn(
+                        "relative z-10 h-3.5 w-3.5 shrink-0 transition-colors duration-200",
+                        active
+                          ? "text-[#007AFF]"
+                          : "text-neutral-400 group-hover/item:text-neutral-500"
+                      )}
+                      strokeWidth={active ? 2.25 : 1.75}
+                    />
+                    {!isCollapsed && (
+                      <span className="relative z-10 truncate">{item.label}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="shrink-0 border-t border-black/[0.06] p-2 dark:border-white/10">

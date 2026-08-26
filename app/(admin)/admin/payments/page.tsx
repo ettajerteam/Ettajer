@@ -31,16 +31,37 @@ function formatMoney(amount: number, currency = "MAD") {
   return `${amount.toLocaleString()} ${currency}`;
 }
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams?: { focus?: string | string[] };
+}) {
   await requireAdminPage();
   const data = await getPlatformPayments();
+  const focus = Array.isArray(searchParams?.focus)
+    ? searchParams?.focus[0]
+    : searchParams?.focus;
+
+  const statusCount = (status: string) =>
+    data.ordersByStatus.find((r) => r.status === status)?._count ?? 0;
+
+  const pending = statusCount("pending");
+  const processing = statusCount("processing");
+  const shipped = statusCount("shipped");
+  const delivered = statusCount("delivered");
+  const cancelled = statusCount("cancelled");
+  const refunded = statusCount("refunded");
+
+  const pendingOrders = data.recentOrders.filter(
+    (o) => !o.isTest && o.status === "pending"
+  );
 
   return (
     <AdminLayout>
       <div className={adminPage}>
         <AdminPageHeader
-          title="Payments & orders"
-          description="Real customer orders vs sandbox / test checkouts, broken down by store."
+          title="Payments & COD control"
+          description="Identify order bottlenecks immediately. Statuses shown are real order statuses from the database."
         />
 
         <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
@@ -50,11 +71,29 @@ export default async function AdminPaymentsPage() {
             hint="Live / COD customer orders"
           />
           <AdminStatCard
-            label="Test orders"
-            value={data.testRevenue._count}
-            hint="Sandbox · Stripe test · @example.com"
-            accent="amber"
+            label="Pending"
+            value={pending}
+            accent={pending > 0 ? "amber" : "default"}
+            hint="Awaiting verification / merchant"
           />
+          <AdminStatCard
+            label="Confirmed"
+            value={processing}
+            hint={`${shipped} shipped`}
+          />
+          <AdminStatCard
+            label="Delivered"
+            value={delivered}
+            accent="emerald"
+            hint={
+              cancelled + refunded > 0
+                ? `${cancelled} cancelled · ${refunded} refunded`
+                : undefined
+            }
+          />
+        </div>
+
+        <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
           <AdminStatCard
             label="Real GMV"
             value={`${(data.totalRevenue._sum.total ?? 0).toLocaleString()} MAD`}
@@ -63,13 +102,67 @@ export default async function AdminPaymentsPage() {
           <AdminStatCard
             label="Avg real order"
             value={`${Math.round(data.totalRevenue._avg.total ?? 0).toLocaleString()} MAD`}
-            hint={
-              data.testRevenue._count > 0
-                ? `Test GMV ${(data.testRevenue._sum.total ?? 0).toLocaleString()} MAD`
-                : undefined
-            }
+          />
+          <AdminStatCard
+            label="Test orders"
+            value={data.testRevenue._count}
+            accent="amber"
+            hint="Sandbox · Stripe test · @example.com"
+          />
+          <AdminStatCard
+            label="Cancelled / refunded"
+            value={cancelled + refunded}
+            hint={`${cancelled} cancelled · ${refunded} refunded`}
           />
         </div>
+
+        {(focus === "pending" || pending > 0) && pendingOrders.length > 0 ? (
+          <div>
+            <AdminSectionTitle
+              title={`Pending COD (${pending})`}
+              action={
+                <span className="text-[11px] text-neutral-400">
+                  Status from DB: pending — typically awaiting merchant verification
+                </span>
+              }
+            />
+            <AdminTableShell>
+              <table className="w-full min-w-[720px] text-left text-[12px]">
+                <thead className={adminThead}>
+                  <tr>
+                    <th className={adminTh}>Order</th>
+                    <th className={adminTh}>Store</th>
+                    <th className={adminTh}>Customer</th>
+                    <th className={adminTh}>Total</th>
+                    <th className={adminTh}>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingOrders.map((order) => (
+                    <tr key={order.id} className={adminTr}>
+                      <td className={adminTd}>
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className={adminHoverLink}
+                        >
+                          {order.orderNumber}
+                        </Link>
+                      </td>
+                      <td className={adminTd}>{order.store.name}</td>
+                      <td className={adminTd}>{order.customerName}</td>
+                      <td className={cn(adminTd, "tabular-nums")}>
+                        {order.total.toLocaleString()} {order.store.currency}
+                      </td>
+                      <td className={cn(adminTd, "text-neutral-400")}>
+                        {formatDate(order.createdAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </AdminTableShell>
+          </div>
+        ) : null}
 
         <div>
           <AdminSectionTitle title="Orders by store" />
