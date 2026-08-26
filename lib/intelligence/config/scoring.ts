@@ -80,6 +80,34 @@ export const INTELLIGENCE_SCORING_CONFIG = {
   outcome: {
     observationWindowDays: 7,
     partialSuccessRatio: 0.25,
+    /** Expected backlog clearance fraction for COD_VERIFICATION */
+    expectedCodClearanceRatio: 0.5,
+    /** Partial if realized ≥ this share of expected */
+    partialOfExpectedRatio: 0.5,
+  },
+  decisionV4: {
+    /** Weights for product factors (normalized 0–1 then geometric mean × 100) */
+    historicalEffectivenessDefault: 0.5,
+    minHistoryForEffectiveness: 3,
+    evidenceQualityFull: 1,
+    evidenceQualityWeak: 0.6,
+    evidenceQualityInsufficient: 0.3,
+  },
+  earlyWarning: {
+    risingDelta: 1,
+    escalatingSteps: 2,
+    recoveringDropRatio: 0.2,
+  },
+  cooldown: {
+    /** Default cooldown minutes after execution while recovering */
+    defaultMinutes: 30,
+    /** Retrigger if metric worsens by this absolute amount */
+    worsenAbsolute: 1,
+  },
+  autonomy: {
+    /** Default: recommend only */
+    defaultLevel: 1,
+    autoExecute: false,
   },
   thresholds: INTELLIGENCE_THRESHOLDS,
 } as const;

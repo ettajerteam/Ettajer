@@ -377,6 +377,101 @@ export type DrSaraSnapshot = {
     warnings: number;
     executionTimeMs: number;
   };
+  /** V4 — additive control-loop fields */
+  earlyWarnings: {
+    id: string;
+    metric: string;
+    state: string;
+    current: number;
+    velocity: number;
+    recoveryScore: number;
+    ruleId: string;
+  }[];
+  recovery: {
+    metric: string;
+    state: string;
+    recoveryScore: number;
+    recoveryVelocity: number;
+  }[];
+  stateTransitions: {
+    overall: string;
+    fromCycleId: string | null;
+    toCycleId: string;
+    dimensions: {
+      dimension: string;
+      from: number;
+      to: number;
+      label: string;
+      delta: number;
+    }[];
+    evidence: string[];
+  } | null;
+  blockedInterventions: {
+    id: string;
+    type: string;
+    blockedBy: string[];
+    reasons: string[];
+  }[];
+  interventionChains: {
+    chainId: string;
+    name: string;
+    nextStep: string | null;
+  }[];
+  learning: {
+    rulePerformance: {
+      type: string;
+      successRate: number | null;
+      adaptivePriority: number;
+      note: string;
+    }[];
+    update: string | null;
+  };
+  decisionV4: {
+    scoreComponents: Record<string, number> | null;
+    whyThisActionWon: string | null;
+    historicalEffectiveness: number | null;
+  };
+  explainabilityV4: {
+    decision: string;
+    whatHappened: string;
+    whyItMatters: string;
+    evidence: string[];
+    whatNext: string;
+    whyThisAction: string;
+    whatHappenedLastTime: string;
+    whatWeExpect: string;
+    whenWeMeasure: string;
+    ifFails: string;
+  } | null;
+  negativeSignals: {
+    id: string;
+    ruleId: string;
+    title: string;
+    confidence: number;
+  }[];
+  secondaryDiagnoses: {
+    primary: string;
+    deepestBottleneck: string;
+    explanation: string;
+  }[];
+  autonomy: {
+    level: number;
+    label: string;
+    autoExecute: boolean;
+  };
+  executionTraceV4: {
+    cycleId: string;
+    stages: { stage: string; detail: string; count?: number }[];
+    blockedInterventions: number;
+    learningUpdate: string | null;
+  } | null;
+  dataQualityV2: {
+    dataFreshness: string;
+    sampleSize: number;
+    missingDimensions: string[];
+    confidencePenalty: number;
+    insufficientEvidence: boolean;
+  };
   metadata: {
     engine: "deterministic";
     version: string;
