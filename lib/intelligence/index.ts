@@ -61,6 +61,12 @@ export {
   DECISION_THRESHOLDS,
 } from "@/lib/intelligence/decisions/engine";
 export {
+  planIntervention,
+  orchestrateIntervention,
+  INTERVENTION_REGISTRY,
+  buildIdempotencyKey,
+} from "@/lib/intelligence/interventions/index";
+export {
   buildMerchantTwin,
   generateMerchantScenarios,
 } from "@/lib/intelligence/merchants/twin";
@@ -104,3 +110,4 @@ export type {
   OutcomeMemoryRecord,
   MemoryEngineResult,
 } from "@/lib/intelligence/memory/v7-types";
+export type { InterventionPlan } from "@/lib/intelligence/interventions/types";

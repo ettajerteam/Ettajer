@@ -123,6 +123,7 @@ import type {
 } from "@/lib/intelligence/memory/v7-types";
 import { selectTopDecisionCandidate } from "@/lib/intelligence/decisions/scoring";
 import { buildDecisionRationale } from "@/lib/intelligence/decisions/rationale";
+import { orchestrateIntervention } from "@/lib/intelligence/interventions/orchestrator";
 
 export type BuildSnapshotOptions = {
   memory?: IntelligenceMemory;
@@ -133,7 +134,7 @@ export type BuildSnapshotOptions = {
   v7OutcomeHistory?: OutcomeMemoryRecord[];
 };
 
-const ENGINE_VERSION = "7.0.0";
+const ENGINE_VERSION = "8.0.0";
 
 const DIMENSION_LABELS: Record<
   keyof DrSaraSnapshot["health"]["dimensions"],
@@ -961,7 +962,30 @@ export function buildDrSaraSnapshotFromState(
       }
     : null;
 
-  // V5/V6/V7: never auto-execute
+  // V8 Intervention Orchestration (plan only — never execute)
+  const interventionPlan = orchestrateIntervention({
+    state,
+    stateFingerprint: memoryResult.primaryFingerprint,
+    twinHash: digitalTwin.twinHash,
+    topDecision: enrichedTop
+      ? {
+          id: enrichedTop.selectedAction.id,
+          title: enrichedTop.selectedAction.title,
+          score: enrichedTop.score,
+          confidence: enrichedTop.confidence,
+          route: enrichedTop.selectedAction.route,
+          whyThis: enrichedTop.rationale.whyThis,
+        }
+      : null,
+    dataQualityStatus: dqStatus,
+    insufficientEvidence: gate.insufficientEvidence,
+    historicalReliability: finalMemoryTop?.historicalReliability,
+    expectedAfter: enrichedTop?.expectedOutcome.expectedAfter,
+    baseline: enrichedTop?.expectedOutcome.baseline,
+    cycleId,
+  });
+
+  // V5/V6/V7/V8: never auto-execute
   void C.twin;
   const autonomyV5 = { ...autonomy, autoExecute: false as const };
 
@@ -1430,6 +1454,34 @@ export function buildDrSaraSnapshotFromState(
         note: r.note,
       })),
     },
+    intervention: interventionPlan
+      ? {
+          interventionId: interventionPlan.interventionId,
+          type: interventionPlan.type,
+          status: interventionPlan.status,
+          executionMode: interventionPlan.executionMode,
+          objective: interventionPlan.objective,
+          target: interventionPlan.target,
+          safetyLevel: interventionPlan.safetyLevel,
+          overallRisk: interventionPlan.risk.overallRisk,
+          approval: interventionPlan.approval.level,
+          blastRadius: interventionPlan.blastRadius.level,
+          idempotencyKey: interventionPlan.execution.idempotencyKey,
+          reviewHref: interventionPlan.reviewHref,
+          measurement: {
+            primaryMetric: interventionPlan.measurement.primaryMetric,
+            baseline: interventionPlan.measurement.baseline,
+            expectedAfter: interventionPlan.measurement.expectedAfter,
+            measurementWindow: interventionPlan.measurement.measurementWindow,
+          },
+          rollback: {
+            possible: interventionPlan.rollback.possible,
+            reversibility: interventionPlan.rollback.reversibility,
+          },
+          trace: interventionPlan.trace,
+          rationale: interventionPlan.rationale.slice(0, 6),
+        }
+      : null,
     metadata: {
       engine: "deterministic",
       version: ENGINE_VERSION,

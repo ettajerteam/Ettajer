@@ -383,7 +383,7 @@ describe("V6 engine + TOP_DECISION", () => {
 describe("V6 snapshot integration + V5 compatibility", () => {
   it("version 6.0.0 with TOP_ACTION, TOP_SCENARIO, TOP_DECISION", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
-    expect(snap.metadata.version).toBe("7.0.0");
+    expect(snap.metadata.version).toBe("8.0.0");
     expect(snap.topAction?.label).toBeTruthy();
     expect(snap.topScenario).toBeTruthy();
     expect(snap.decision?.topDecision?.selectedAction.id).toBeTruthy();

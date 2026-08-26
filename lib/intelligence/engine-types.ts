@@ -740,6 +740,30 @@ export type DrSaraSnapshot = {
       note: string;
     }[];
   } | null;
+  /** V8 — Intervention orchestration (plan only; never executes) */
+  intervention: {
+    interventionId: string;
+    type: string;
+    status: string;
+    executionMode: string;
+    objective: string;
+    target: { label: string; count: number; route: string };
+    safetyLevel: string;
+    overallRisk: string;
+    approval: string;
+    blastRadius: string;
+    idempotencyKey: string;
+    reviewHref: string;
+    measurement: {
+      primaryMetric: string;
+      baseline: Record<string, number>;
+      expectedAfter: Record<string, [number, number]>;
+      measurementWindow: string;
+    };
+    rollback: { possible: boolean; reversibility: string };
+    trace: { stage: string; detail: string }[];
+    rationale: string[];
+  } | null;
   metadata: {
     engine: "deterministic";
     version: string;
