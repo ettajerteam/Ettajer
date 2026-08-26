@@ -11,6 +11,106 @@ import { getPlatformMessages as loadSupportMessages } from "@/lib/admin/support-
 import { checkDomainDns } from "@/lib/domains/dns-check";
 import { normalizeCustomDomain } from "@/lib/storefront-urls";
 import { orderInclude, serializeOrderDetail } from "@/lib/orders";
+import { getActivationGap } from "@/lib/admin/activation-stats";
+import {
+  deriveAdminInsights,
+  pctChange,
+  type AdminAnalyticsRange,
+  type AdminIntelligenceInput,
+  type AdminTrendPoint,
+} from "@/lib/admin/platform-intelligence";
+import {
+  buildAttentionQueue,
+  buildAttentionSentence,
+} from "@/lib/admin/attention-queue";
+
+export type AdminOverviewBrief = {
+  subtitle: string;
+  tone: "positive" | "neutral" | "attention";
+};
+
+export function deriveAdminOverviewBrief(input: {
+  waitingUsers: number;
+  openSupport: number;
+  failedLogins24h: number;
+  revenueChange7d: number;
+  newUsers24h: number;
+  hotEmptyCount: number;
+  activatedPct: number;
+  pendingRealOrders?: number;
+}): AdminOverviewBrief {
+  if (input.waitingUsers > 0) {
+    return {
+      tone: "attention",
+      subtitle: `${input.waitingUsers} merchant${input.waitingUsers === 1 ? "" : "s"} waiting for activation — clear the queue before they go cold.`,
+    };
+  }
+  if (input.failedLogins24h >= 10) {
+    return {
+      tone: "attention",
+      subtitle: `${input.failedLogins24h} failed logins in the last 24h — check errors for auth or attack noise.`,
+    };
+  }
+  if ((input.pendingRealOrders ?? 0) >= 5) {
+    return {
+      tone: "attention",
+      subtitle: `${input.pendingRealOrders} real orders still pending verification — COD backlog slows courier handoff.`,
+    };
+  }
+  if (input.openSupport > 0) {
+    return {
+      tone: "attention",
+      subtitle: `${input.openSupport} open support thread${input.openSupport === 1 ? "" : "s"} need${input.openSupport === 1 ? "s" : ""} a reply.`,
+    };
+  }
+  if (input.hotEmptyCount > 0 && input.activatedPct < 20) {
+    return {
+      tone: "neutral",
+      subtitle: `${input.hotEmptyCount} empty stores are warm — nudge first product before they churn. Only ${input.activatedPct}% of stores have a real sale.`,
+    };
+  }
+  if (input.revenueChange7d >= 20) {
+    return {
+      tone: "positive",
+      subtitle: `Real GMV is up ${input.revenueChange7d}% vs last week${input.newUsers24h > 0 ? ` · +${input.newUsers24h} signup${input.newUsers24h === 1 ? "" : "s"} today` : ""}.`,
+    };
+  }
+  if (input.revenueChange7d <= -15) {
+    return {
+      tone: "attention",
+      subtitle: `Real GMV dipped ${Math.abs(input.revenueChange7d)}% vs last week — check payments and top stores.`,
+    };
+  }
+  return {
+    tone: "neutral",
+    subtitle:
+      "Platform pulse — real GMV, merchant growth, support, and storefront health in one place.",
+  };
+}
+
+function utcDayKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function emptyDaySeries(start: Date, end: Date): Map<string, AdminTrendPoint> {
+  const map = new Map<string, AdminTrendPoint>();
+  let cursor = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate()
+  );
+  const endUtc = Date.UTC(
+    end.getUTCFullYear(),
+    end.getUTCMonth(),
+    end.getUTCDate()
+  );
+  while (cursor <= endUtc) {
+    const key = new Date(cursor).toISOString().slice(0, 10);
+    map.set(key, { date: key, revenue: 0, orders: 0, signups: 0 });
+    cursor += 24 * 60 * 60 * 1000;
+  }
+  return map;
+}
 
 /** Domains saved on stores that resolve correctly (DNS points to Ettajer). */
 async function countDomainsConnectedSuccess(): Promise<{
@@ -52,6 +152,7 @@ export async function getPlatformOverview() {
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const prevWeekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const sparkStart = new Date(now.getTime() - 13 * 24 * 60 * 60 * 1000);
 
   const realUserWhere = {
     NOT: { email: { endsWith: "@example.com" as const } },
@@ -85,6 +186,9 @@ export async function getPlatformOverview() {
     domainStats,
     realByStore,
     stores,
+    sparkOrders,
+    sparkSignups,
+    activation,
   ] = await Promise.all([
     prisma.user.count({ where: realUserWhere }),
     prisma.user.count({ where: { status: USER_STATUS.ACTIVE, ...realUserWhere } }),
@@ -188,6 +292,17 @@ export async function getPlatformOverview() {
         user: { select: { name: true, email: true } },
       },
     }),
+    prisma.order.findMany({
+      where: { isTest: false, createdAt: { gte: sparkStart } },
+      select: { total: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { createdAt: { gte: sparkStart }, ...realUserWhere },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    getActivationGap(),
   ]);
 
   const storeMap = new Map(stores.map((s) => [s.id, s]));
@@ -210,10 +325,154 @@ export async function getPlatformOverview() {
     })
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
 
-  function pctChange(current: number, previous: number) {
-    if (previous <= 0) return current > 0 ? 100 : 0;
-    return Math.round(((current - previous) / previous) * 100);
+  const sparkMap = emptyDaySeries(sparkStart, now);
+  for (const order of sparkOrders) {
+    const key = utcDayKey(order.createdAt);
+    const point = sparkMap.get(key);
+    if (!point) continue;
+    point.orders += 1;
+    point.revenue += order.total;
   }
+  for (const user of sparkSignups) {
+    const key = utcDayKey(user.createdAt);
+    const point = sparkMap.get(key);
+    if (!point) continue;
+    point.signups += 1;
+  }
+  const sparkSeries = [...sparkMap.values()];
+
+  const startOfToday = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000);
+
+  const [
+    todayOrders,
+    yesterdayOrders,
+    todaySignups,
+    yesterdaySignups,
+    unverifiedEmails,
+    pendingRealOrders,
+    processingRealOrders,
+  ] = await Promise.all([
+    prisma.order.findMany({
+      where: { isTest: false, createdAt: { gte: startOfToday } },
+      select: { total: true },
+    }),
+    prisma.order.findMany({
+      where: {
+        isTest: false,
+        createdAt: { gte: startOfYesterday, lt: startOfToday },
+      },
+      select: { total: true },
+    }),
+    prisma.user.count({
+      where: { createdAt: { gte: startOfToday }, ...realUserWhere },
+    }),
+    prisma.user.count({
+      where: {
+        createdAt: { gte: startOfYesterday, lt: startOfToday },
+        ...realUserWhere,
+      },
+    }),
+    prisma.user.count({
+      where: { emailVerified: null, ...realUserWhere },
+    }),
+    prisma.order.count({
+      where: { isTest: false, status: "pending" },
+    }),
+    prisma.order.count({
+      where: { isTest: false, status: "processing" },
+    }),
+  ]);
+
+  const today = {
+    revenue: todayOrders.reduce((sum, o) => sum + o.total, 0),
+    orders: todayOrders.length,
+    signups: todaySignups,
+  };
+  const yesterday = {
+    revenue: yesterdayOrders.reduce((sum, o) => sum + o.total, 0),
+    orders: yesterdayOrders.length,
+    signups: yesterdaySignups,
+  };
+
+  const revenue7d = realRevenue7d._sum.total ?? 0;
+  const revenuePrev7d = realRevenuePrev7d._sum.total ?? 0;
+  const totalRevenue = realRevenueAgg._sum.total ?? 0;
+  const topStoreSharePct =
+    totalRevenue > 0 && topStores[0]
+      ? Math.round((topStores[0].realGmv / totalRevenue) * 100)
+      : 0;
+  const testSharePct =
+    realOrders + testOrders > 0
+      ? Math.round((testOrders / (realOrders + testOrders)) * 100)
+      : 0;
+  const aov7d = realOrders7d > 0 ? revenue7d / realOrders7d : 0;
+  const aovPrev7d =
+    realOrdersPrev7d > 0 ? revenuePrev7d / realOrdersPrev7d : 0;
+
+  const insights = deriveAdminInsights({
+    range: 7,
+    revenue: revenue7d,
+    revenuePrev: revenuePrev7d,
+    orders: realOrders7d,
+    ordersPrev: realOrdersPrev7d,
+    signups: newUsers7d,
+    signupsPrev: newUsersPrev7d,
+    aov: aov7d,
+    aovPrev: aovPrev7d,
+    testSharePct,
+    waitingUsers,
+    openSupport: newMessages,
+    failedLogins24h,
+    domainsConnected: domainStats.domainsConnected,
+    domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    topStoreSharePct,
+    topStoreName: topStores[0]?.name ?? null,
+    funnel: activation.funnel,
+    hotEmptyCount: activation.hotEmptyCount,
+    loggedInEmpty7d: activation.loggedInEmpty7d,
+  });
+
+  const brief = deriveAdminOverviewBrief({
+    waitingUsers,
+    openSupport: newMessages,
+    failedLogins24h,
+    revenueChange7d: pctChange(revenue7d, revenuePrev7d),
+    newUsers24h,
+    hotEmptyCount: activation.hotEmptyCount,
+    activatedPct:
+      activation.funnel.totalStores > 0
+        ? Math.round(
+            (activation.funnel.hasOrders / activation.funnel.totalStores) * 100
+          )
+        : 0,
+    pendingRealOrders,
+  });
+
+  const attentionItems = buildAttentionQueue({
+    pendingRealOrders,
+    waitingUsers,
+    hotEmptyCount: activation.hotEmptyCount,
+    loggedInEmpty7d: activation.loggedInEmpty7d,
+    activeNoOrders: activation.funnel.activeNoOrders,
+    domainsConnected: domainStats.domainsConnected,
+    domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    openSupport: newMessages,
+    failedLogins24h,
+    processingRealOrders,
+  });
+  const attentionSentence = buildAttentionSentence(attentionItems);
+
+  const top2SharePct =
+    totalRevenue > 0
+      ? Math.round(
+          (topStores.slice(0, 2).reduce((s, t) => s + t.realGmv, 0) /
+            totalRevenue) *
+            100
+        )
+      : 0;
 
   return {
     totalUsers,
@@ -223,20 +482,18 @@ export async function getPlatformOverview() {
     totalOrders: realOrders + testOrders,
     realOrders,
     testOrders,
-    totalRevenue: realRevenueAgg._sum.total ?? 0,
+    totalRevenue,
     testRevenue: testRevenueAgg._sum.total ?? 0,
     newUsers24h,
     newUsers7d,
+    newUsersPrev7d,
     newStores7d,
     realOrders7d,
-    realRevenue7d: realRevenue7d._sum.total ?? 0,
+    realRevenue7d: revenue7d,
     changes: {
       users7d: pctChange(newUsers7d, newUsersPrev7d),
       orders7d: pctChange(realOrders7d, realOrdersPrev7d),
-      revenue7d: pctChange(
-        realRevenue7d._sum.total ?? 0,
-        realRevenuePrev7d._sum.total ?? 0
-      ),
+      revenue7d: pctChange(revenue7d, revenuePrev7d),
     },
     newMessages,
     failedLogins24h,
@@ -249,8 +506,57 @@ export async function getPlatformOverview() {
     liveStores,
     domainsConnected: domainStats.domainsConnected,
     domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    sparklines: {
+      revenue: sparkSeries.map((p) => p.revenue),
+      orders: sparkSeries.map((p) => p.orders),
+      signups: sparkSeries.map((p) => p.signups),
+      liveStores: sparkSeries.map(() => liveStores),
+    },
+    funnel: activation.funnel,
+    hotEmptyCount: activation.hotEmptyCount,
+    loggedInEmpty7d: activation.loggedInEmpty7d,
+    insights: insights.slice(0, 6),
+    brief,
+    attentionItems,
+    attentionSentence,
+    testSharePct,
+    today,
+    yesterday,
+    unverifiedEmails,
+    pendingRealOrders,
+    processingRealOrders,
+    concentration: topStores.slice(0, 5).map((store) => ({
+      id: store.id,
+      name: store.name,
+      slug: store.slug,
+      gmv: store.realGmv,
+      sharePct:
+        totalRevenue > 0
+          ? Math.round((store.realGmv / totalRevenue) * 100)
+          : 0,
+      orders: store.realOrders,
+    })),
+    concentrationRisk: {
+      top2SharePct,
+      elevated: top2SharePct >= 50,
+      message:
+        top2SharePct >= 50
+          ? `Revenue concentration is high: the top 2 merchants generate ${top2SharePct}% of tracked GMV.`
+          : top2SharePct > 0
+            ? `Top 2 merchants generate ${top2SharePct}% of tracked GMV.`
+            : null,
+      why:
+        top2SharePct >= 50
+          ? "A large decline in one merchant could significantly impact total platform revenue."
+          : null,
+    },
   };
 }
+
+export type PlatformOverviewData = Awaited<
+  ReturnType<typeof getPlatformOverview>
+>;
+
 
 export async function getPlatformUsers() {
   return prisma.user.findMany({
@@ -580,7 +886,17 @@ export async function getPlatformStoreDetail(storeId: string) {
 
   if (!store) return null;
 
-  const [realAgg, testAgg, ordersByStatus, recentOrders] = await Promise.all([
+  const [
+    realAgg,
+    testAgg,
+    ordersByStatus,
+    recentOrders,
+    activeProducts,
+    draftProducts,
+    firstRealOrder,
+    firstProduct,
+    firstDelivery,
+  ] = await Promise.all([
     prisma.order.aggregate({
       where: { storeId, isTest: false },
       _count: true,
@@ -616,12 +932,33 @@ export async function getPlatformStoreDetail(storeId: string) {
         createdAt: true,
       },
     }),
+    prisma.product.count({ where: { storeId, status: "active" } }),
+    prisma.product.count({
+      where: { storeId, status: { not: "active" } },
+    }),
+    prisma.order.findFirst({
+      where: { storeId, isTest: false },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, createdAt: true, status: true },
+    }),
+    prisma.product.findFirst({
+      where: { storeId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, createdAt: true, status: true },
+    }),
+    prisma.order.findFirst({
+      where: { storeId, isTest: false, status: "delivered" },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+    }),
   ]);
 
   return {
     ...store,
     stats: {
       products: store._count.products,
+      activeProducts,
+      draftProducts,
       customers: store._count.customers,
       categories: store._count.categories,
       collections: store._count.collections,
@@ -631,6 +968,16 @@ export async function getPlatformStoreDetail(storeId: string) {
       testOrders: testAgg._count,
       testGmv: testAgg._sum.total ?? 0,
       totalOrders: realAgg._count + testAgg._count,
+    },
+    lifecycle: {
+      accountCreatedAt: store.user.createdAt,
+      storeCreatedAt: store.createdAt,
+      themeConfigured: Boolean(store.primaryColor || store.theme || store.websiteTemplateId),
+      firstProductAt: firstProduct?.createdAt ?? null,
+      firstProductPublished: firstProduct?.status === "active",
+      hasPublishedProducts: activeProducts > 0,
+      firstRealOrderAt: firstRealOrder?.createdAt ?? null,
+      firstDeliveryAt: firstDelivery?.createdAt ?? null,
     },
     ordersByStatus,
     orders: recentOrders,
@@ -794,55 +1141,226 @@ export async function getPlatformMessages() {
   return loadSupportMessages();
 }
 
-export async function getPlatformAnalytics() {
+export async function getPlatformAnalytics(range: AdminAnalyticsRange = 30) {
   const now = new Date();
-  const ranges = [7, 30, 90] as const;
+  const rangeMs = range * 24 * 60 * 60 * 1000;
+  const rangeStart = new Date(now.getTime() - rangeMs);
+  const prevStart = new Date(now.getTime() - 2 * rangeMs);
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  const signupsByDay = await prisma.user.groupBy({
-    by: ["createdAt"],
-    _count: true,
-    where: {
-      createdAt: { gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) },
-    },
-  });
+  const realUserWhere = {
+    NOT: { email: { endsWith: "@example.com" as const } },
+  };
 
-  const ordersByStatus = await prisma.order.groupBy({
-    by: ["status"],
-    where: { isTest: false },
-    _count: true,
-    _sum: { total: true },
-  });
-
-  const [realOrderCount, testOrderCount] = await Promise.all([
-    prisma.order.count({ where: { isTest: false } }),
-    prisma.order.count({ where: { isTest: true } }),
-  ]);
-
-  const storeCount = await prisma.store.count();
-  const productCount = await prisma.product.count();
-  const customerCount = await prisma.customer.count();
-
-  const ordersLast30 = await prisma.order.findMany({
-    where: {
-      isTest: false,
-      createdAt: { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) },
-    },
-    select: { total: true, createdAt: true },
-    orderBy: { createdAt: "asc" },
-  });
-
-  return {
-    ranges,
-    signupsByDay,
+  const [
+    ordersInRange,
+    ordersPrev,
+    signupsInRange,
+    signupsPrevCount,
     ordersByStatus,
+    realOrderCount,
+    testOrderCount,
     storeCount,
     productCount,
     customerCount,
-    ordersLast30,
-    realOrderCount,
-    testOrderCount,
+    waitingUsers,
+    openSupport,
+    failedLogins24h,
+    domainStats,
+    topStoreRows,
+    activation,
+  ] = await Promise.all([
+    prisma.order.findMany({
+      where: { isTest: false, createdAt: { gte: rangeStart } },
+      select: { total: true, createdAt: true, storeId: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.order.findMany({
+      where: {
+        isTest: false,
+        createdAt: { gte: prevStart, lt: rangeStart },
+      },
+      select: { total: true },
+    }),
+    prisma.user.findMany({
+      where: { createdAt: { gte: rangeStart }, ...realUserWhere },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.user.count({
+      where: {
+        createdAt: { gte: prevStart, lt: rangeStart },
+        ...realUserWhere,
+      },
+    }),
+    prisma.order.groupBy({
+      by: ["status"],
+      where: { isTest: false },
+      _count: true,
+      _sum: { total: true },
+    }),
+    prisma.order.count({ where: { isTest: false } }),
+    prisma.order.count({ where: { isTest: true } }),
+    prisma.store.count(),
+    prisma.product.count(),
+    prisma.customer.count(),
+    prisma.user.count({
+      where: { status: USER_STATUS.WAITING, ...realUserWhere },
+    }),
+    prisma.supportMessage.count({
+      where: {
+        status: {
+          in: [SUPPORT_MESSAGE_STATUS.NEW, SUPPORT_MESSAGE_STATUS.REVIEWING],
+        },
+        NOT: { direction: SUPPORT_MESSAGE_DIRECTION.OUTBOUND },
+      },
+    }),
+    prisma.loginAttempt.count({
+      where: securityFailedLoginWhere({ createdAt: { gte: dayAgo } }),
+    }),
+    countDomainsConnectedSuccess(),
+    prisma.order.groupBy({
+      by: ["storeId"],
+      where: { isTest: false, createdAt: { gte: rangeStart } },
+      _sum: { total: true },
+      _count: true,
+      orderBy: { _sum: { total: "desc" } },
+      take: 8,
+    }),
+    getActivationGap(),
+  ]);
+
+  const seriesMap = emptyDaySeries(rangeStart, now);
+  for (const order of ordersInRange) {
+    const key = utcDayKey(order.createdAt);
+    const point = seriesMap.get(key);
+    if (!point) continue;
+    point.orders += 1;
+    point.revenue += order.total;
+  }
+  for (const user of signupsInRange) {
+    const key = utcDayKey(user.createdAt);
+    const point = seriesMap.get(key);
+    if (!point) continue;
+    point.signups += 1;
+  }
+  const series = [...seriesMap.values()];
+
+  const revenue = ordersInRange.reduce((sum, o) => sum + o.total, 0);
+  const revenuePrev = ordersPrev.reduce((sum, o) => sum + o.total, 0);
+  const orders = ordersInRange.length;
+  const ordersPrevCount = ordersPrev.length;
+  const signups = signupsInRange.length;
+  const aov = orders > 0 ? revenue / orders : 0;
+  const aovPrev = ordersPrevCount > 0 ? revenuePrev / ordersPrevCount : 0;
+  const testSharePct =
+    realOrderCount + testOrderCount > 0
+      ? Math.round((testOrderCount / (realOrderCount + testOrderCount)) * 100)
+      : 0;
+
+  const topStoreIds = topStoreRows.map((row) => row.storeId);
+  const topStoreMeta = topStoreIds.length
+    ? await prisma.store.findMany({
+        where: { id: { in: topStoreIds } },
+        select: { id: true, name: true, slug: true, currency: true },
+      })
+    : [];
+  const topMetaMap = new Map(topStoreMeta.map((s) => [s.id, s]));
+  const topStoresInRange = topStoreRows
+    .map((row) => {
+      const store = topMetaMap.get(row.storeId);
+      if (!store) return null;
+      const gmv = row._sum.total ?? 0;
+      return {
+        id: store.id,
+        name: store.name,
+        slug: store.slug,
+        currency: store.currency,
+        gmv,
+        orders: row._count,
+        sharePct: revenue > 0 ? Math.round((gmv / revenue) * 100) : 0,
+      };
+    })
+    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+
+  const topStoreName = topStoresInRange[0]?.name ?? null;
+  const topStoreSharePct = topStoresInRange[0]?.sharePct ?? 0;
+
+  const insightInput: AdminIntelligenceInput = {
+    range,
+    revenue,
+    revenuePrev,
+    orders,
+    ordersPrev: ordersPrevCount,
+    signups,
+    signupsPrev: signupsPrevCount,
+    aov,
+    aovPrev,
+    testSharePct,
+    waitingUsers,
+    openSupport,
+    failedLogins24h,
+    domainsConnected: domainStats.domainsConnected,
+    domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    topStoreSharePct,
+    topStoreName,
+    funnel: activation.funnel,
+    hotEmptyCount: activation.hotEmptyCount,
+    loggedInEmpty7d: activation.loggedInEmpty7d,
+  };
+
+  return {
+    range,
+    ranges: [7, 30, 90] as const,
+    series,
+    totals: {
+      revenue,
+      revenuePrev,
+      revenueChange: pctChange(revenue, revenuePrev),
+      orders,
+      ordersPrev: ordersPrevCount,
+      ordersChange: pctChange(orders, ordersPrevCount),
+      signups,
+      signupsPrev: signupsPrevCount,
+      signupsChange: pctChange(signups, signupsPrevCount),
+      aov,
+      aovPrev,
+      aovChange: pctChange(aov, aovPrev),
+      customers: customerCount,
+      stores: storeCount,
+      products: productCount,
+      realOrders: realOrderCount,
+      testOrders: testOrderCount,
+      testSharePct,
+    },
+    ordersByStatus: ordersByStatus
+      .map((row) => ({
+        status: row.status,
+        count: row._count,
+        revenue: row._sum.total ?? 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue),
+    funnel: activation.funnel,
+    signals: {
+      waitingUsers,
+      openSupport,
+      failedLogins24h,
+      domainsConnected: domainStats.domainsConnected,
+      domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+      topStoreName,
+      topStoreSharePct,
+      hotEmptyCount: activation.hotEmptyCount,
+      loggedInEmpty7d: activation.loggedInEmpty7d,
+    },
+    topStoresInRange,
+    insights: deriveAdminInsights(insightInput),
   };
 }
+
+export type PlatformAnalyticsData = Awaited<
+  ReturnType<typeof getPlatformAnalytics>
+>;
+
 
 export async function getPlatformErrors() {
   const [loginErrors, appErrors] = await Promise.all([
@@ -986,4 +1504,236 @@ export async function getPlatformPayments() {
     testRevenue,
     ordersByStore,
   };
+}
+
+/** Domain health center — DNS verified via checkDomainDns only. */
+export async function getPlatformDomains() {
+  const rows = await prisma.storeSettings.findMany({
+    where: { customDomain: { not: null } },
+    select: {
+      customDomain: true,
+      domainPrimary: true,
+      store: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  const domains = await Promise.all(
+    rows.map(async (row) => {
+      const domain = normalizeCustomDomain(row.customDomain);
+      if (!domain) {
+        return null;
+      }
+      let dnsOk = false;
+      let dnsDetail = "DNS check unavailable";
+      try {
+        const result = await checkDomainDns(domain);
+        dnsOk = result.ok;
+        dnsDetail = result.detail;
+      } catch {
+        dnsOk = false;
+        dnsDetail = "DNS lookup failed";
+      }
+      return {
+        domain,
+        domainPrimary: row.domainPrimary,
+        dnsOk,
+        dnsDetail,
+        storeId: row.store.id,
+        storeName: row.store.name,
+        slug: row.store.slug,
+        ownerId: row.store.user.id,
+        ownerName: row.store.user.name,
+        ownerEmail: row.store.user.email,
+      };
+    })
+  );
+
+  const list = domains.filter((d): d is NonNullable<typeof d> => Boolean(d));
+  const failing = list.filter((d) => !d.dnsOk).length;
+  return {
+    domains: list.sort((a, b) => Number(a.dnsOk) - Number(b.dnsOk) || a.domain.localeCompare(b.domain)),
+    total: list.length,
+    ok: list.length - failing,
+    failing,
+  };
+}
+
+export type PlatformLiveEventCategory =
+  | "all"
+  | "commerce"
+  | "merchants"
+  | "stores"
+  | "support"
+  | "errors"
+  | "domains";
+
+export type PlatformLiveEvent = {
+  id: string;
+  category: Exclude<PlatformLiveEventCategory, "all">;
+  title: string;
+  detail: string;
+  href: string;
+  createdAt: Date;
+};
+
+/** Live platform stream from real recent entities (not fabricated). */
+export async function getPlatformLiveFeed(limit = 40): Promise<PlatformLiveEvent[]> {
+  const realUserWhere = {
+    NOT: { email: { endsWith: "@example.com" as const } },
+  };
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [orders, users, messages, loginFails] = await Promise.all([
+    prisma.order.findMany({
+      where: { isTest: false },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        orderNumber: true,
+        total: true,
+        createdAt: true,
+        store: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.user.findMany({
+      where: realUserWhere,
+      orderBy: { createdAt: "desc" },
+      take: 15,
+      select: { id: true, name: true, email: true, createdAt: true },
+    }),
+    prisma.supportMessage.findMany({
+      where: { NOT: { direction: SUPPORT_MESSAGE_DIRECTION.OUTBOUND } },
+      orderBy: { createdAt: "desc" },
+      take: 15,
+      select: {
+        id: true,
+        topic: true,
+        email: true,
+        createdAt: true,
+        status: true,
+      },
+    }),
+    prisma.loginAttempt.findMany({
+      where: securityFailedLoginWhere({ createdAt: { gte: dayAgo } }),
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { id: true, email: true, reason: true, createdAt: true },
+    }),
+  ]);
+
+  const events: PlatformLiveEvent[] = [];
+
+  for (const o of orders) {
+    events.push({
+      id: `order-${o.id}`,
+      category: "commerce",
+      title: `${o.store.name} received an order`,
+      detail: `${Math.round(o.total).toLocaleString()} MAD · #${o.orderNumber}`,
+      href: `/admin/orders/${o.id}`,
+      createdAt: o.createdAt,
+    });
+  }
+  for (const u of users) {
+    events.push({
+      id: `user-${u.id}`,
+      category: "merchants",
+      title: "New merchant joined",
+      detail: u.name || u.email,
+      href: `/admin/users/${u.id}`,
+      createdAt: u.createdAt,
+    });
+  }
+  for (const m of messages) {
+    events.push({
+      id: `support-${m.id}`,
+      category: "support",
+      title: m.topic || "Support message",
+      detail: `${m.email} · ${m.status}`,
+      href: "/admin/messages",
+      createdAt: m.createdAt,
+    });
+  }
+  for (const f of loginFails) {
+    events.push({
+      id: `login-${f.id}`,
+      category: "errors",
+      title: "Failed login",
+      detail: `${f.email}${f.reason ? ` · ${f.reason}` : ""}`,
+      href: "/admin/errors",
+      createdAt: f.createdAt,
+    });
+  }
+
+  return events
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, limit);
+}
+
+/** Lightweight admin search for the command palette. */
+export async function searchPlatformAdmin(query: string) {
+  const q = query.trim();
+  if (q.length < 2) {
+    return { users: [], stores: [], orders: [] };
+  }
+
+  const realUserWhere = {
+    NOT: { email: { endsWith: "@example.com" as const } },
+  };
+
+  const [users, stores, orders] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        AND: [
+          realUserWhere,
+          {
+            OR: [
+              { email: { contains: q, mode: "insensitive" } },
+              { name: { contains: q, mode: "insensitive" } },
+            ],
+          },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, email: true },
+    }),
+    prisma.store.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { slug: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, slug: true },
+    }),
+    prisma.order.findMany({
+      where: {
+        OR: [
+          { orderNumber: { contains: q, mode: "insensitive" } },
+          { customerEmail: { contains: q, mode: "insensitive" } },
+          { customerName: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        orderNumber: true,
+        total: true,
+        store: { select: { name: true } },
+      },
+    }),
+  ]);
+
+  return { users, stores, orders };
 }
