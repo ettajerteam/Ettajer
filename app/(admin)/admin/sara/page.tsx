@@ -3,6 +3,7 @@ import {
   getDrSaraSnapshot,
   snapshotToBriefing,
 } from "@/lib/intelligence";
+import { buildSaraExperienceViewModel } from "@/lib/intelligence/presentation";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { DrSaraPage } from "@/components/admin/dr-sara-page";
 
@@ -12,10 +13,11 @@ export default async function AdminSaraPage() {
   await requireAdminPage();
   const snapshot = await getDrSaraSnapshot();
   const briefing = snapshotToBriefing(snapshot);
+  const experience = buildSaraExperienceViewModel(snapshot);
 
   return (
     <AdminLayout>
-      <DrSaraPage briefing={briefing} />
+      <DrSaraPage briefing={briefing} experience={experience} />
     </AdminLayout>
   );
 }
