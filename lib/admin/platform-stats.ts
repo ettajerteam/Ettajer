@@ -30,6 +30,7 @@ import {
   temperatureLabel,
 } from "@/lib/admin/merchant-health";
 import { isResendConfigured } from "@/lib/resend";
+import { parsePaymentGateways } from "@/lib/store-settings";
 
 export type AdminOverviewBrief = {
   subtitle: string;
@@ -517,6 +518,31 @@ export async function getPlatformOverview() {
     const t = activationTemperature(r.lastLoginAt, r.createdAt);
     return t === "hot" || t === "warm";
   });
+
+  const listedIds = activation.activeNoOrders.map((r) => r.storeId);
+  const listedSettings =
+    listedIds.length > 0
+      ? await prisma.storeSettings.findMany({
+          where: { storeId: { in: listedIds } },
+          select: {
+            storeId: true,
+            customDomain: true,
+            paymentGateways: true,
+          },
+        })
+      : [];
+  const settingsByStore = new Map(
+    listedSettings.map((s) => [s.storeId, s] as const)
+  );
+  let noCustomDomain = 0;
+  let noCodConfigured = 0;
+  for (const row of activation.activeNoOrders) {
+    const settings = settingsByStore.get(row.storeId);
+    if (!settings?.customDomain) noCustomDomain += 1;
+    const gateways = parsePaymentGateways(settings?.paymentGateways);
+    if (!gateways.cashOnDelivery) noCodConfigured += 1;
+  }
+
   const firstSaleBottlenecks = {
     lowRecentActivity: activation.activeNoOrders.filter((r) => {
       const t = activationTemperature(r.lastLoginAt, r.createdAt);
@@ -528,7 +554,21 @@ export async function getPlatformOverview() {
     multiProductReady: activation.activeNoOrders.filter(
       (r) => r.activeProducts >= 3
     ).length,
+    noCustomDomain,
+    noCodConfigured,
   };
+
+  const recentStores = await prisma.store.findMany({
+    where: { user: realUserWhere },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      user: { select: { name: true, email: true } },
+    },
+  });
 
   const liveFeed: {
     id: string;
@@ -544,7 +584,7 @@ export async function getPlatformOverview() {
       id: `order-${o.id}`,
       category: "commerce",
       title: `${o.store.name} received an order`,
-      detail: `${Math.round(o.total).toLocaleString()} ${o.store.currency}`,
+      detail: `${Math.round(o.total).toLocaleString("en-US")} ${o.store.currency}`,
       href: `/admin/orders/${o.id}`,
       createdAt: o.createdAt,
     });
@@ -557,6 +597,16 @@ export async function getPlatformOverview() {
       detail: u.name || u.email,
       href: `/admin/users/${u.id}`,
       createdAt: u.createdAt,
+    });
+  }
+  for (const s of recentStores) {
+    liveFeed.push({
+      id: `store-${s.id}`,
+      category: "stores",
+      title: "Store created",
+      detail: `${s.name} · ${s.user.name || s.user.email}`,
+      href: `/admin/stores/${s.id}`,
+      createdAt: s.createdAt,
     });
   }
   for (const m of recentMessages.slice(0, 3)) {
@@ -1815,40 +1865,56 @@ export async function searchPlatformAdmin(query: string) {
     lower.includes("cod") ||
     (lower.includes("order") && lower.includes("pending"))
   ) {
+    const pending = await prisma.order.count({
+      where: { isTest: false, status: "pending" },
+    });
     shortcuts.push({
       id: "shortcut-pending",
-      label: "Pending COD orders",
+      label: `${pending} pending COD order${pending === 1 ? "" : "s"}`,
       hint: "Payments · verify backlog",
       href: "/admin/payments?focus=pending",
       group: "Payments",
     });
   }
-  if (
+
+  const wantsActivationShortcut =
     lower.includes("empty") ||
     lower.includes("activation") ||
-    lower.includes("hot empty")
-  ) {
-    shortcuts.push({
-      id: "shortcut-empty",
-      label: "Empty / hot stores",
-      hint: "Activation targets",
-      href: "/admin/activation?stage=empty",
-      group: "Activation",
-    });
-  }
-  if (
+    lower.includes("hot empty") ||
     lower.includes("first sale") ||
     lower.includes("listed") ||
     lower.includes("zero sale") ||
-    lower.includes("no sale")
-  ) {
-    shortcuts.push({
-      id: "shortcut-listed",
-      label: "First-sale targets",
-      hint: "Listed · zero real orders",
-      href: "/admin/activation?stage=listed",
-      group: "Activation",
-    });
+    lower.includes("no sale");
+
+  if (wantsActivationShortcut) {
+    const gap = await getActivationGap();
+    if (
+      lower.includes("empty") ||
+      lower.includes("activation") ||
+      lower.includes("hot empty")
+    ) {
+      shortcuts.push({
+        id: "shortcut-empty",
+        label: `${gap.hotEmptyCount} hot empty store${gap.hotEmptyCount === 1 ? "" : "s"}`,
+        hint: `${gap.funnel.noProducts} empty total · Activation`,
+        href: "/admin/activation?stage=empty",
+        group: "Activation",
+      });
+    }
+    if (
+      lower.includes("first sale") ||
+      lower.includes("listed") ||
+      lower.includes("zero sale") ||
+      lower.includes("no sale")
+    ) {
+      shortcuts.push({
+        id: "shortcut-listed",
+        label: `${gap.funnel.activeNoOrders} first-sale target${gap.funnel.activeNoOrders === 1 ? "" : "s"}`,
+        hint: "Listed · zero real orders",
+        href: "/admin/activation?stage=listed",
+        group: "Activation",
+      });
+    }
   }
   if (lower.includes("domain") || lower.includes("dns")) {
     shortcuts.push({

@@ -62,6 +62,7 @@ const LIVE_FILTERS = [
   "all",
   "commerce",
   "merchants",
+  "stores",
   "support",
   "errors",
 ] as const;
@@ -118,9 +119,9 @@ export function AdminHomeDashboard({
   const overallOk = health?.overall === "operational";
 
   return (
-    <div className={homePage}>
+    <div className={cn(homePage, "flex flex-col gap-5 !space-y-0")}>
       {/* GLOBAL HEADER */}
-      <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section className="order-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
@@ -150,7 +151,7 @@ export function AdminHomeDashboard({
 
       {/* PLATFORM HEALTH */}
       {health ? (
-        <section aria-label="Platform health">
+        <section aria-label="Platform health" className="order-2">
           <p className={homeKicker}>Platform health</p>
           <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
             {health.items.map((item) => (
@@ -179,10 +180,10 @@ export function AdminHomeDashboard({
         </section>
       ) : null}
 
-      {/* TIME DIMENSIONS */}
+      {/* TIME DIMENSIONS — second on mobile after attention */}
       <section
         aria-label="Business snapshot"
-        className="grid gap-2 lg:grid-cols-3"
+        className="order-4 grid gap-2 md:order-3 lg:grid-cols-3"
       >
         <div className={cn(homeCard, homeCardPad)}>
           <p className={homeKicker}>Today</p>
@@ -190,7 +191,7 @@ export function AdminHomeDashboard({
             <div>
               <p className="text-[10px] text-neutral-400">GMV</p>
               <p className="text-[14px] font-semibold tabular-nums tracking-tight">
-                {formatAdminInt(data.today.revenue)}
+                {formatAdminInt(data.today.revenue)} MAD
               </p>
               <p className={cn("mt-0.5 text-[10px]", homeSubtitle)}>
                 {deltaVsYesterday(
@@ -305,8 +306,8 @@ export function AdminHomeDashboard({
         </div>
       </section>
 
-      {/* ATTENTION CENTER */}
-      <section aria-label="Needs attention">
+      {/* ATTENTION CENTER — first operational block on mobile */}
+      <section aria-label="Needs attention" className="order-3 md:order-4">
         <div className="mb-2">
           <h2 className={homeTitle}>Needs attention</h2>
           <p className={homeSubtitle}>
@@ -380,7 +381,7 @@ export function AdminHomeDashboard({
       </section>
 
       {/* ACTIVATION / FIRST SALE */}
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <section className="order-5 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className={cn(homeCard, homeCardPad)}>
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -486,8 +487,16 @@ export function AdminHomeDashboard({
             {data.firstSale?.bottlenecks ? (
               <ul className="mt-3 space-y-1 text-[12px] text-neutral-600 dark:text-neutral-300">
                 <li>
-                  · {data.firstSale.bottlenecks.lowRecentActivity} cold /
-                  low recent activity
+                  · {data.firstSale.bottlenecks.noCustomDomain} with no custom
+                  domain
+                </li>
+                <li>
+                  · {data.firstSale.bottlenecks.noCodConfigured} without COD
+                  enabled in payment settings
+                </li>
+                <li>
+                  · {data.firstSale.bottlenecks.lowRecentActivity} cold / low
+                  recent activity
                 </li>
                 <li>
                   · {data.firstSale.bottlenecks.singleProduct} with only 1 live
@@ -518,7 +527,7 @@ export function AdminHomeDashboard({
               </Link>
             </div>
             <p className={cn("mt-1 mb-3", homeSubtitle)}>
-              HIGH intent = recent login + store + no products
+              HIGH intent = recent login + store exists + no products
             </p>
             {(data.helpToday ?? []).length === 0 ? (
               <p className={homeSubtitle}>No hot empty stores right now.</p>
@@ -535,6 +544,9 @@ export function AdminHomeDashboard({
                       </p>
                       <p className="truncate text-[10px] text-neutral-400">
                         {row.storeName}
+                        {row.intentReasons?.length
+                          ? ` · ${row.intentReasons.join(" · ")}`
+                          : ""}
                       </p>
                     </div>
                     <span
@@ -544,6 +556,7 @@ export function AdminHomeDashboard({
                           ? "bg-rose-50 text-rose-800 dark:bg-rose-500/10 dark:text-rose-300"
                           : "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
                       )}
+                      title={row.intentReasons?.join(" + ")}
                     >
                       {row.intent}
                     </span>
@@ -565,7 +578,7 @@ export function AdminHomeDashboard({
       </section>
 
       {/* LIVE + REVENUE */}
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section className="order-6 grid gap-4 xl:grid-cols-2">
         <div className={cn(homeCard, homeCardPad)}>
           <div className="flex items-center justify-between gap-2">
             <h2 className={homeTitle}>Live</h2>
@@ -674,7 +687,7 @@ export function AdminHomeDashboard({
       </section>
 
       {/* COMPACT FEEDS */}
-      <section className="grid gap-3 lg:grid-cols-3">
+      <section className="order-7 grid gap-3 lg:grid-cols-3">
         <div className={cn(homeCard, homeCardPad)}>
           <div className="mb-2 flex items-center justify-between">
             <h2 className={homeTitle}>Recent orders</h2>
