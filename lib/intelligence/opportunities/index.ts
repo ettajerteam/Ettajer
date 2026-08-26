@@ -1,111 +1,148 @@
-import type { PlatformOverviewData } from "@/lib/admin/platform-stats";
-import { formatAdminInt } from "@/lib/admin/format";
-import type { SaraOpportunity } from "@/lib/intelligence/types";
+import type {
+  Opportunity,
+  PlatformState,
+} from "@/lib/intelligence/engine-types";
+import { INTELLIGENCE_THRESHOLDS as T } from "@/lib/intelligence/thresholds";
 
-export function getOpportunities(
-  overview: PlatformOverviewData
-): SaraOpportunity[] {
-  const out: SaraOpportunity[] = [];
+export function getOpportunities(state: PlatformState): Opportunity[] {
+  const out: Opportunity[] = [];
 
-  if (overview.loggedInEmpty7d > 0) {
+  if (T.emptyStoreOpportunity && state.loggedInEmpty7d > 0) {
     out.push({
-      id: "hot-empty",
+      id: "opp-hot-empty",
       title: "Recently active empty stores",
-      potentialImpact: "High — merchants already engaged this week",
-      merchantCount: overview.loggedInEmpty7d,
-      reason: "Logged in during the last 7 days with zero products — prime activation targets.",
+      impact: "High — merchants already engaged this week",
+      confidence: 0.9,
+      affectedCount: state.loggedInEmpty7d,
+      reason: `Logged in during the last ${T.activationWindowDays} days with zero products.`,
       href: "/admin/activation?stage=empty&temp=hot",
       cta: "Open activation",
-      explanation: {
-        signal: `${overview.loggedInEmpty7d} empty stores with login in 7d`,
-        evidence: `loggedInEmpty7d = ${overview.loggedInEmpty7d}`,
-        rule: "loggedInEmpty7d > 0",
-        impact: "High-probability path to catalog → first sale",
-        recommendation: "Nudge / open activation targets",
-        source: "deterministic",
-      },
+      ruleId: "activation.empty_store && merchant.logged_in_within_window",
+      evidence: [
+        {
+          label: "loggedInEmpty7d",
+          value: state.loggedInEmpty7d,
+          source: "activation.gap",
+        },
+      ],
     });
   }
 
-  if (overview.firstSale.count > 0) {
+  if (state.firstSaleCount > 0) {
     out.push({
-      id: "first-sale",
+      id: "opp-first-sale",
       title: "Stores with products but zero sales",
-      potentialImpact: "High — closest to first real GMV",
-      merchantCount: overview.firstSale.count,
-      reason: `${formatAdminInt(overview.firstSale.highIntentCount)} show high intent (recent activity). Catalog is live; commerce has not started.`,
+      impact: "High — closest to first real GMV",
+      confidence: 0.92,
+      affectedCount: state.firstSaleCount,
+      reason:
+        state.firstSaleHighIntent > 0
+          ? `${state.firstSaleHighIntent} show high intent (recent activity).`
+          : "Catalog is live; commerce has not started.",
       href: "/admin/activation?stage=listed",
       cta: "View first-sale queue",
-      explanation: {
-        signal: `${overview.firstSale.count} stores with products · 0 real orders`,
-        evidence: `funnel.activeNoOrders = ${overview.firstSale.count}; highIntent = ${overview.firstSale.highIntentCount}`,
-        rule: "funnel.activeNoOrders > 0",
-        impact: "Unlocking first sale expands mid-tier GMV",
-        recommendation: "Prioritize high-intent first-sale merchants",
-        source: "deterministic",
-      },
+      ruleId: "activation.live_products && realOrders = 0",
+      evidence: [
+        {
+          label: "firstSaleCount",
+          value: state.firstSaleCount,
+          source: "activation.funnel",
+        },
+        {
+          label: "firstSaleHighIntent",
+          value: state.firstSaleHighIntent,
+          source: "activation.temperature",
+        },
+      ],
     });
   }
 
-  if (overview.hotEmptyCount > 0 && overview.hotEmptyCount !== overview.loggedInEmpty7d) {
+  if (state.firstSaleBottlenecks.noCodConfigured > 0) {
     out.push({
-      id: "hot-empty-all",
-      title: "Hot empty stores",
-      potentialImpact: "Medium — warm outreach window",
-      merchantCount: overview.hotEmptyCount,
-      reason: "Temperature scored hot from recent login / store age signals.",
-      href: "/admin/activation?temp=hot",
-      cta: "Open hot list",
-      explanation: {
-        signal: `${overview.hotEmptyCount} hot empty stores`,
-        evidence: `hotEmptyCount = ${overview.hotEmptyCount}`,
-        rule: "hotEmptyCount > 0",
-        impact: "Catch merchants before they go dormant",
-        recommendation: "Activation outreach",
-        source: "deterministic",
-      },
+      id: "opp-cod-config",
+      title: "First-sale stores missing COD configuration",
+      impact: "Medium — unlocks checkout completion",
+      confidence: 0.85,
+      affectedCount: state.firstSaleBottlenecks.noCodConfigured,
+      reason: "Products live but cash-on-delivery not configured.",
+      href: "/admin/activation?stage=listed",
+      cta: "Review COD readiness",
+      ruleId: "activation.first_sale && !cod_configured",
+      evidence: [
+        {
+          label: "noCodConfigured",
+          value: state.firstSaleBottlenecks.noCodConfigured,
+          source: "store.settings",
+        },
+      ],
     });
   }
 
-  if (overview.changes.orders7d > 0 && overview.realOrders7d > 0) {
+  if (state.firstSaleBottlenecks.noCustomDomain > 0) {
     out.push({
-      id: "growing-orders",
-      title: "Merchants with recent growth",
-      potentialImpact: "Positive — reinforce winning motion",
-      merchantCount: overview.concentration.filter((c) => c.orders > 0).length,
-      reason: `Real orders ${overview.changes.orders7d > 0 ? "+" : ""}${overview.changes.orders7d}% vs prior 7 days.`,
+      id: "opp-domain-setup",
+      title: "Merchants with products but no custom domain",
+      impact: "Medium — improves shareability",
+      confidence: 0.8,
+      affectedCount: state.firstSaleBottlenecks.noCustomDomain,
+      reason: "Live catalog without a branded custom domain.",
+      href: "/admin/domains",
+      cta: "View domains",
+      ruleId: "activation.first_sale && !custom_domain",
+      evidence: [
+        {
+          label: "noCustomDomain",
+          value: state.firstSaleBottlenecks.noCustomDomain,
+          source: "store.settings",
+        },
+      ],
+    });
+  }
+
+  if (state.ordersChange7d > 0 && state.realOrders7d > 0) {
+    out.push({
+      id: "opp-growing",
+      title: "Merchants with recent order growth",
+      impact: "Positive — reinforce winning motion",
+      confidence: 0.88,
+      affectedCount: state.concentration.filter((c) => c.orders > 0).length,
+      reason: `Real orders ${state.ordersChange7d > 0 ? "+" : ""}${state.ordersChange7d}% vs prior 7 days.`,
       href: "/admin/analytics?range=7",
       cta: "View analytics",
-      explanation: {
-        signal: `orders7d change ${overview.changes.orders7d}%`,
-        evidence: `realOrders7d = ${overview.realOrders7d}`,
-        rule: "changes.orders7d > 0",
-        impact: "Protect and learn from growing merchants",
-        recommendation: "Review concentration and support winners",
-        source: "deterministic",
-      },
+      ruleId: "revenue.orders_change_7d > 0",
+      evidence: [
+        {
+          label: "ordersChange7d",
+          value: state.ordersChange7d,
+          source: "platform.analytics",
+        },
+        {
+          label: "realOrders7d",
+          value: state.realOrders7d,
+          source: "platform.analytics",
+        },
+      ],
     });
   }
 
-  if (overview.helpToday.length > 0) {
+  if (state.helpToday.length > 0) {
     out.push({
-      id: "help-today",
+      id: "opp-help-today",
       title: "Who should we help today",
-      potentialImpact: "Operational — ranked help list",
-      merchantCount: overview.helpToday.length,
+      impact: "Operational — ranked help list",
+      confidence: 0.9,
+      affectedCount: state.helpToday.length,
       reason: "Merchants scored for activation health / bottlenecks today.",
       href: "/admin/activation",
       cta: "Open help list",
-      explanation: {
-        signal: `${overview.helpToday.length} merchants on today's help list`,
-        evidence: "helpToday from activation + merchant health",
-        rule: "helpToday.length > 0",
-        impact: "Focused outreach beats spray-and-pray",
-        recommendation: "Work the help-today queue",
-        source: "deterministic",
-      },
+      ruleId: "merchant.help_today.length > 0",
+      evidence: state.helpToday.slice(0, 3).map((h) => ({
+        label: h.storeName,
+        value: h.intent,
+        source: "merchant.health",
+      })),
     });
   }
 
-  return out.slice(0, 6);
+  return out.slice(0, 8);
 }

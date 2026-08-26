@@ -1,42 +1,40 @@
-import { getPlatformOverview } from "@/lib/admin/platform-stats";
-import { getOpportunities } from "@/lib/intelligence/opportunities";
-import { getRecommendedActions } from "@/lib/intelligence/recommendations/actions";
-import { getOperationalRisks } from "@/lib/intelligence/risks/center";
-import { scorePlatformHealth } from "@/lib/intelligence/scoring/health-score";
-import { getMerchantSegments } from "@/lib/intelligence/segments/merchants";
-import { getRevenueAndInsightSignals } from "@/lib/intelligence/signals/feed";
-import {
-  countCriticalSignals,
-  getPrioritySignals,
-} from "@/lib/intelligence/signals/priorities";
-import type { SaraBriefing } from "@/lib/intelligence/types";
-
 /**
- * Dr Sara briefing — composes existing platform overview into an
- * explainable operating layer. Does not re-query Prisma.
+ * Dr Sara — deterministic platform intelligence engine.
+ * No LLM. Composes getPlatformOverview() into an explainable snapshot.
  */
-export async function getDrSaraBriefing(): Promise<SaraBriefing> {
-  const overview = await getPlatformOverview();
-  const pulse = scorePlatformHealth(overview);
-  const priorities = getPrioritySignals(overview, 5);
-  const criticalCount = countCriticalSignals(overview);
 
-  return {
-    generatedAt: new Date(),
-    headline: overview.attentionSentence || "Here's what matters right now.",
-    pulse,
-    priorities,
-    feed: getRevenueAndInsightSignals(overview),
-    opportunities: getOpportunities(overview),
-    risks: getOperationalRisks(overview),
-    segments: getMerchantSegments(overview),
-    actions: getRecommendedActions(overview),
-    criticalCount,
-  };
-}
+export { getDrSaraSnapshot, getDrSaraCriticalCount, getDrSaraBriefing, buildDrSaraSnapshotFromState } from "@/lib/intelligence/snapshot";
+export { snapshotToBriefing } from "@/lib/intelligence/adapt-briefing";
+export { toPlatformState, emptyPlatformState } from "@/lib/intelligence/platform-state";
+export { collectAllSignals } from "@/lib/intelligence/signals/collect";
+export { correlateSignals } from "@/lib/intelligence/correlation";
+export { diagnosePlatform } from "@/lib/intelligence/diagnosis";
+export { calculatePriority, prioritizeSignals } from "@/lib/intelligence/scoring/priority";
+export { calculatePlatformHealth } from "@/lib/intelligence/scoring/health";
+export { getOpportunities } from "@/lib/intelligence/opportunities";
+export {
+  getRecommendedActions,
+  getRisks,
+  isValidAdminHref,
+} from "@/lib/intelligence/recommendations/actions";
+export {
+  getMerchantSegments,
+  getMerchantSegmentSummary,
+  segmentForMerchantFacts,
+} from "@/lib/intelligence/segments/merchants";
+export {
+  explainSignal,
+  explainPriority,
+  explainDiagnosis,
+  explainAction,
+} from "@/lib/intelligence/explainability/why";
+export { INTELLIGENCE_THRESHOLDS } from "@/lib/intelligence/thresholds";
 
-/** Lightweight critical count for sidebar badge (reuses overview). */
-export async function getDrSaraCriticalCount(): Promise<number> {
-  const overview = await getPlatformOverview();
-  return countCriticalSignals(overview);
-}
+export type { SaraBriefing } from "@/lib/intelligence/types";
+export type {
+  DrSaraSnapshot,
+  IntelligenceSignal,
+  PlatformState,
+  Diagnosis,
+  PrioritizedItem,
+} from "@/lib/intelligence/engine-types";

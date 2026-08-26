@@ -1,9 +1,9 @@
 /**
- * Smoke: Dr Sara briefing loads from live platform overview.
+ * Smoke: Dr Sara intelligence engine against live platform overview.
  * Run: npx tsx scripts/smoke-dr-sara.ts
  */
 import fs from "fs";
-import { getDrSaraBriefing } from "../lib/intelligence";
+import { getDrSaraSnapshot, snapshotToBriefing } from "../lib/intelligence";
 
 function loadEnv(path: string) {
   if (!fs.existsSync(path)) return;
@@ -28,35 +28,43 @@ async function main() {
   loadEnv(".env");
 
   const start = Date.now();
-  const briefing = await getDrSaraBriefing();
+  const snapshot = await getDrSaraSnapshot();
+  const briefing = snapshotToBriefing(snapshot);
   const ms = Date.now() - start;
 
   console.log(
     JSON.stringify(
       {
         ms,
-        score: briefing.pulse.score,
-        label: briefing.pulse.label,
-        dimensions: briefing.pulse.dimensions.map((d) => ({
-          id: d.id,
-          status: d.status,
-          statusLabel: d.statusLabel,
-        })),
-        priorities: briefing.priorities.length,
-        criticalCount: briefing.criticalCount,
-        feed: briefing.feed.length,
-        opportunities: briefing.opportunities.length,
-        risks: briefing.risks.length,
-        segments: briefing.segments.map((s) => ({
+        engine: snapshot.metadata,
+        health: {
+          score: snapshot.health.score,
+          status: snapshot.health.status,
+          dimensions: snapshot.health.dimensions,
+          reasons: snapshot.health.reasons,
+        },
+        signals: snapshot.signals.map((s) => ({
           id: s.id,
-          count: s.count,
+          severity: s.severity,
+          ruleId: s.ruleId,
         })),
-        actions: briefing.actions.map((a) => a.href),
-        samplePriority: briefing.priorities[0]
+        correlations: snapshot.correlations.map((c) => c.id),
+        diagnoses: snapshot.diagnoses.map((d) => d.diagnosisId),
+        priorities: snapshot.priorities.map((p) => ({
+          id: p.signalId,
+          score: p.priorityScore,
+          band: p.band,
+        })),
+        criticalCount: snapshot.criticalCount,
+        opportunities: snapshot.opportunities.length,
+        risks: snapshot.risks.length,
+        actions: snapshot.recommendedActions.map((a) => a.href),
+        uiBriefingScore: briefing.pulse.score,
+        samplePriority: snapshot.priorities[0]
           ? {
-              signal: briefing.priorities[0].signal,
-              rule: briefing.priorities[0].explanation.rule,
-              source: briefing.priorities[0].explanation.source,
+              title: snapshot.priorities[0].title,
+              ruleId: snapshot.priorities[0].ruleId,
+              calculation: snapshot.priorities[0].calculation,
             }
           : null,
       },
