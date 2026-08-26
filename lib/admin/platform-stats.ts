@@ -24,18 +24,22 @@ function utcDayKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-function emptyDaySeries(days: number, end: Date): Map<string, AdminTrendPoint> {
+function emptyDaySeries(start: Date, end: Date): Map<string, AdminTrendPoint> {
   const map = new Map<string, AdminTrendPoint>();
+  let cursor = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate()
+  );
   const endUtc = Date.UTC(
     end.getUTCFullYear(),
     end.getUTCMonth(),
     end.getUTCDate()
   );
-  for (let i = days - 1; i >= 0; i--) {
-    const key = new Date(endUtc - i * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
+  while (cursor <= endUtc) {
+    const key = new Date(cursor).toISOString().slice(0, 10);
     map.set(key, { date: key, revenue: 0, orders: 0, signups: 0 });
+    cursor += 24 * 60 * 60 * 1000;
   }
   return map;
 }
@@ -910,7 +914,7 @@ export async function getPlatformAnalytics(range: AdminAnalyticsRange = 30) {
     getActivationGap(),
   ]);
 
-  const seriesMap = emptyDaySeries(range, now);
+  const seriesMap = emptyDaySeries(rangeStart, now);
   for (const order of ordersInRange) {
     const key = utcDayKey(order.createdAt);
     const point = seriesMap.get(key);
