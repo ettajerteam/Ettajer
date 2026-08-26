@@ -24,6 +24,7 @@ import {
   homeSubtitle,
   homeTitle,
 } from "@/components/dashboard/home/home-ui";
+import { TimeOfDayGreeting } from "@/hooks/use-time-of-day-greeting";
 import { cn } from "@/lib/utils";
 
 export type AdminHomeData = {
@@ -107,13 +108,6 @@ function formatDate(value: Date | string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-}
-
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
 }
 
 function changeLabel(change: number) {
@@ -265,7 +259,7 @@ export function AdminHomeDashboard({
     <div className={homePage}>
       <section>
         <h1 className={homeHeading}>
-          {getGreeting()}, {userName}
+          <TimeOfDayGreeting />, {userName}
         </h1>
         <p className={cn("mt-1.5 max-w-lg", homeSubtitle)}>
           Platform pulse — real GMV, merchant growth, support, and storefront
