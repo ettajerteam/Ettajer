@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   TrendingUp,
   Globe,
+  Sparkles,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -21,6 +22,12 @@ export interface AdminNavItem {
   href: string;
   icon: LucideIcon;
   description?: string;
+  /** Secondary line under the label (e.g. Dr Sara) */
+  subtitle?: string;
+  /** Show live status dot next to the item */
+  statusDot?: boolean;
+  /** Fetch critical badge from /api/admin/sara/status */
+  criticalBadge?: boolean;
 }
 
 export interface AdminNavGroup {
@@ -149,6 +156,16 @@ export const adminNavGroups: AdminNavGroup[] = [
     label: "Intelligence",
     items: [
       {
+        id: "sara",
+        label: "Dr Sara",
+        href: "/admin/sara",
+        icon: Sparkles,
+        description: "Platform intelligence & operating layer",
+        subtitle: "Platform Intelligence",
+        statusDot: true,
+        criticalBadge: true,
+      },
+      {
         id: "insights",
         label: "Insights",
         href: "/admin/analytics",
@@ -170,6 +187,9 @@ export function isAdminNavActive(pathname: string, href: string): boolean {
   // Orders + Payments share /admin/payments — both highlight when on payments
   if (pathOnly === "/admin/payments") {
     return pathname === "/admin/payments" || pathname.startsWith("/admin/orders");
+  }
+  if (pathOnly === "/admin/sara") {
+    return pathname === "/admin/sara" || pathname.startsWith("/admin/sara/");
   }
   if (pathOnly === "/admin/analytics") {
     return pathname === "/admin/analytics" || pathname.startsWith("/admin/analytics/");
