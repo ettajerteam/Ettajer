@@ -112,17 +112,14 @@ export function runOsGovernor(input: {
   } else if (getKillSwitch() === "DISABLED") {
     decision = "APPROVAL_REQUIRED";
     reasons.push("Kill switch DISABLED — V9 EXECUTE blocked; approval/recommend only.");
+  } else if (input.autonomy.controlledAutoEnabled) {
+    decision = "ALLOWED";
+    reasons.push("CONTROLLED_AUTO enabled and gates passed.");
   } else {
     decision = "APPROVAL_REQUIRED";
     reasons.push(
       "Even when checks pass, default policy requires approval (CONTROLLED_AUTO disabled)."
     );
-  }
-
-  // Never ALLOWED for production execute under default policy
-  if (decision === "ALLOWED" && !input.autonomy.controlledAutoEnabled) {
-    decision = "APPROVAL_REQUIRED";
-    reasons.push("CONTROLLED_AUTO disabled — demote ALLOWED → APPROVAL_REQUIRED.");
   }
 
   return { decision, reasons, checks };

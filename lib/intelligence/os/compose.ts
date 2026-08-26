@@ -274,7 +274,11 @@ export function composeIntelligenceOS(input: ComposeOsInput): IntelligenceOSResu
     decisionId: input.topDecision?.id ?? null,
     evidence: input.topDecision?.whyThis ?? [],
     diagnoses: input.diagnosisIds,
-    alternatives: input.topDecision?.whyNot ?? [],
+    alternatives: (input.topDecision?.whyNot ?? []).map((w) => ({
+      id: w.actionId,
+      title: w.title,
+      reasons: w.reasons,
+    })),
     expectedEffect: input.topDecision?.expectedEffect ?? "n/a",
     confidence: learning.confidenceAdjustment.after,
     uncertainty: input.topDecision?.uncertainty ?? "UNKNOWN",
