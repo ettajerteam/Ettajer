@@ -795,6 +795,88 @@ export type DrSaraSnapshot = {
     modeDefault: "DRY_RUN";
     note: string;
   } | null;
+  /** V10 — Platform Intelligence OS (orchestrates V1–V9; never auto-executes) */
+  intelligenceOS: {
+    cycleId: string;
+    status: string;
+    health: {
+      composite: number;
+      weakDimensions: string[];
+      note: string;
+    };
+    graph: {
+      nodeCount: number;
+      edgeCount: number;
+      nodes: { id: string; type: string; label: string }[];
+    };
+    warnings: {
+      id: string;
+      severity: string;
+      title: string;
+      evidence: string[];
+      trajectory: string;
+      estimatedHorizon: string;
+      recommendedResponse: string;
+    }[];
+    opportunities: {
+      id: string;
+      title: string;
+      impact: string;
+      confidence: number;
+      evidence: string[];
+      recommendedAction: string;
+    }[];
+    portfolio: {
+      orderedIds: string[];
+      items: {
+        rank: number;
+        decisionId: string;
+        interventionType: string;
+        title: string;
+        score: number;
+        approvalRequired: boolean;
+      }[];
+      whyOrderedThisWay: string[];
+      combinedRisk: string;
+    };
+    bestStrategy: {
+      strategyId: string;
+      label: string;
+      whyThisStrategy: string[];
+      alternativesRejected: { strategyId: string; reasons: string[] }[];
+    } | null;
+    autonomy: {
+      mode: string;
+      controlledAutoEnabled: boolean;
+      autoExecute: false;
+      reasons: string[];
+    };
+    governance: {
+      decision: string;
+      reasons: string[];
+    };
+    learning: {
+      evidenceNotes: string[];
+      confidenceAdjustment: {
+        before: number;
+        after: number;
+        delta: number;
+        reason: string;
+      };
+    };
+    adaptation: {
+      priorityDeltas: { decisionId: string; delta: number; reason: string }[];
+      confidenceCaps: {
+        decisionId: string;
+        maxConfidence: number;
+        reason: string;
+      }[];
+      notes: string[];
+    };
+    trace: { stage: string; result: string; reason: string }[];
+    productionMutation: "NONE";
+    note: string;
+  } | null;
   metadata: {
     engine: "deterministic";
     version: string;

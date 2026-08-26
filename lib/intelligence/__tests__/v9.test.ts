@@ -518,9 +518,9 @@ describe("V9 transaction / verification / outcome / audit", () => {
 });
 
 describe("V9 snapshot + compatibility", () => {
-  it("version 9.0.0 with execution slice", () => {
+  it("version 10.0.0 with execution slice", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
-    expect(snap.metadata.version).toBe("9.0.0");
+    expect(snap.metadata.version).toBe("10.0.0");
     expect(snap.intervention?.type).toBe("COD_VERIFICATION");
     expect(snap.execution?.autoExecute).toBe(false);
     expect(snap.execution?.modeDefault).toBe("DRY_RUN");

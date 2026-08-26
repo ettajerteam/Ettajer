@@ -125,6 +125,10 @@ import { selectTopDecisionCandidate } from "@/lib/intelligence/decisions/scoring
 import { buildDecisionRationale } from "@/lib/intelligence/decisions/rationale";
 import { orchestrateIntervention } from "@/lib/intelligence/interventions/orchestrator";
 import { buildSnapshotExecutionSlice } from "@/lib/intelligence/execution/engine";
+import {
+  composeIntelligenceOS,
+  toSnapshotIntelligenceOS,
+} from "@/lib/intelligence/os/compose";
 
 export type BuildSnapshotOptions = {
   memory?: IntelligenceMemory;
@@ -135,7 +139,7 @@ export type BuildSnapshotOptions = {
   v7OutcomeHistory?: OutcomeMemoryRecord[];
 };
 
-const ENGINE_VERSION = "9.0.0";
+const ENGINE_VERSION = "10.0.0";
 
 const DIMENSION_LABELS: Record<
   keyof DrSaraSnapshot["health"]["dimensions"],
@@ -998,6 +1002,72 @@ export function buildDrSaraSnapshotFromState(
     nowIso: state.now.toISOString(),
   });
 
+  // V10 Platform Intelligence OS — compose over V1–V9 outputs (no duplicate engines)
+  const osQuality =
+    dqStatus === "INSUFFICIENT"
+      ? ("INSUFFICIENT" as const)
+      : dqStatus === "DEGRADED"
+        ? ("DEGRADED" as const)
+        : gate.warnings.length > 0
+          ? ("WARN" as const)
+          : ("OK" as const);
+
+  const intelligenceOSFull = composeIntelligenceOS({
+    state,
+    stateFingerprint: memoryResult.primaryFingerprint,
+    twinHash: digitalTwin.twinHash,
+    cycleTimestampIso: state.now.toISOString(),
+    dataQuality: osQuality,
+    insufficientEvidence: gate.insufficientEvidence,
+    healthScore: health.score,
+    topDecision: enrichedTop
+      ? {
+          id: enrichedTop.selectedAction.id,
+          title: enrichedTop.selectedAction.title,
+          score: enrichedTop.score,
+          confidence: enrichedTop.confidence,
+          whyThis: enrichedTop.rationale.whyThis,
+          whyNot: enrichedTop.rationale.whyNotAlternatives.map((w) => ({
+            actionId: w.actionId,
+            title: w.title,
+            reasons: w.reasons,
+          })),
+          expectedEffect: JSON.stringify(
+            enrichedTop.expectedOutcome.expectedAfter
+          ),
+          uncertainty: enrichedTop.uncertainty.level,
+          risk: interventionPlan?.risk.overallRisk ?? "MEDIUM",
+          historicalReliability:
+            finalMemoryTop?.historicalReliability ?? "INSUFFICIENT",
+        }
+      : null,
+    decisionCandidates: decisionResult.candidates.slice(0, 12).map((c) => ({
+      id: c.id,
+      title: c.title,
+      urgency: c.urgency,
+      impact: c.expectedImpact,
+      confidence: c.confidence,
+    })),
+    signalIds: signals.slice(0, 20).map((s) => s.id),
+    diagnosisIds: diagnoses.slice(0, 20).map((d) => d.diagnosisId),
+    scenarioIds: scenarioOutcomes.slice(0, 12).map((s) => s.scenarioId),
+    topScenarioLabel: topScenario?.scenario.label ?? null,
+    intervention: interventionPlan
+      ? {
+          type: interventionPlan.type,
+          risk: interventionPlan.risk.overallRisk,
+          blastRadius: interventionPlan.blastRadius.level,
+          approval: interventionPlan.approval.level,
+          targetCount: interventionPlan.target.count,
+          status: interventionPlan.status,
+        }
+      : null,
+    successRates: memoryResult.successRates,
+    reliability: memoryResult.reliability,
+    outcomes: options.v7OutcomeHistory ?? [],
+  });
+  const intelligenceOS = toSnapshotIntelligenceOS(intelligenceOSFull);
+
   return {
     generatedAt: state.now,
     headline:
@@ -1492,6 +1562,7 @@ export function buildDrSaraSnapshotFromState(
         }
       : null,
     execution: executionSlice,
+    intelligenceOS,
     metadata: {
       engine: "deterministic",
       version: ENGINE_VERSION,

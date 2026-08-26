@@ -1,5 +1,5 @@
 /**
- * Dr Sara — Intelligence OS V9 exports (Controlled Execution on V8 plans).
+ * Dr Sara — Intelligence OS V10 exports (Platform OS over V1–V9).
  */
 export {
   getDrSaraSnapshot,
@@ -80,6 +80,15 @@ export {
   adminActor,
   toOutcomeMemoryRecord,
 } from "@/lib/intelligence/execution/index";
+export {
+  runDrSaraCycle,
+  composeIntelligenceOS,
+  OS_CONFIG,
+  buildInterventionPortfolio,
+  resolveAutonomy,
+  runOsGovernor,
+  detectPortfolioConflicts,
+} from "@/lib/intelligence/os/index";
 export {
   buildMerchantTwin,
   generateMerchantScenarios,

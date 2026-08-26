@@ -283,9 +283,9 @@ describe("V8 planner + gates", () => {
 });
 
 describe("V8 snapshot + compatibility", () => {
-  it("version 9.0.0 with intervention plan", () => {
+  it("version 10.0.0 with intervention plan", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
-    expect(snap.metadata.version).toBe("9.0.0");
+    expect(snap.metadata.version).toBe("10.0.0");
     expect(snap.intervention?.type).toBe("COD_VERIFICATION");
     expect(snap.intervention?.status).toBe("READY_FOR_APPROVAL");
     expect(snap.intervention?.executionMode).not.toBe("AUTO_EXECUTE");

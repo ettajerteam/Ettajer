@@ -304,7 +304,7 @@ describe("V7 memory scoring + BLOCK safety", () => {
 describe("V7 snapshot + learning trace", () => {
   it("version 7.0.0 with memory + learning on empty history", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
-    expect(snap.metadata.version).toBe("9.0.0");
+    expect(snap.metadata.version).toBe("10.0.0");
     expect(snap.memory?.primaryFingerprint).toBeTruthy();
     expect(snap.learning?.learningTrace?.map((t) => t.stage)).toEqual([
       "INPUT",
