@@ -65,10 +65,10 @@ export const adminNavItems: AdminNavItem[] = [
   },
   {
     id: "analytics",
-    label: "Analytics",
+    label: "Intelligence",
     href: "/admin/analytics",
     icon: BarChart3,
-    description: "Site-wide metrics",
+    description: "GMV, growth & activation",
   },
   {
     id: "errors",
