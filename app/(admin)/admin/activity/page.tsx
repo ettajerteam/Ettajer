@@ -12,6 +12,7 @@ import {
 } from "@/components/admin/admin-ui";
 import { cn } from "@/lib/utils";
 import { homeSubtitle } from "@/components/dashboard/home/home-ui";
+import { formatAdminRelative } from "@/lib/admin/format";
 
 export const metadata = { title: "Activity — Ettajer Console" };
 
@@ -24,21 +25,6 @@ const FILTERS: { id: PlatformLiveEventCategory; label: string }[] = [
   { id: "errors", label: "Errors" },
   { id: "domains", label: "Domains" },
 ];
-
-function formatRelative(value: Date) {
-  const diffMs = Date.now() - value.getTime();
-  const mins = Math.round(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 48) return `${hours}h ago`;
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(value);
-}
 
 export default async function AdminActivityPage({
   searchParams,
@@ -100,7 +86,7 @@ export default async function AdminActivityPage({
                     <p className={cn("mt-0.5", homeSubtitle)}>{event.detail}</p>
                   </div>
                   <p className="shrink-0 text-[11px] text-neutral-400">
-                    {formatRelative(event.createdAt)}
+                    {formatAdminRelative(event.createdAt)}
                   </p>
                 </Link>
               </li>

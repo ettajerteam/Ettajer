@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { PlatformOverviewData } from "@/lib/admin/platform-stats";
 import { formatAdminInt } from "@/lib/admin/format";
+import { AdminRelativeTime } from "@/components/admin/admin-relative-time";
 import { TimeOfDayGreeting } from "@/hooks/use-time-of-day-greeting";
 import { HomeSparkline } from "@/components/dashboard/home/home-sparkline";
 import {
@@ -17,26 +18,7 @@ import {
 } from "@/components/dashboard/home/home-ui";
 import { cn } from "@/lib/utils";
 
-function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function formatRelative(value: Date | string) {
-  const diffMs = Date.now() - new Date(value).getTime();
-  const mins = Math.round(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 48) return `${hours}h ago`;
-  return formatDate(value);
-}
-
-function deltaVsYesterday(current: number, prior: number, unit: "MAD" | "count") {
+function deltaVsYesterday(current: number, prior: number, _unit: "MAD" | "count") {
   const delta = current - prior;
   if (delta === 0) return "flat vs yesterday";
   return `${delta > 0 ? "+" : ""}${formatAdminInt(delta)} vs yesterday`;
@@ -621,7 +603,7 @@ export function AdminHomeDashboard({
                       <p className={homeSubtitle}>{event.detail}</p>
                     </div>
                     <span className="shrink-0 text-[10px] text-neutral-400">
-                      {formatRelative(event.createdAt)}
+                      <AdminRelativeTime value={event.createdAt} />
                     </span>
                   </Link>
                 </li>
@@ -715,7 +697,7 @@ export function AdminHomeDashboard({
                     </div>
                     <p className={homeSubtitle}>
                       {order.store.name} · {order.status} ·{" "}
-                      {formatRelative(order.createdAt)}
+                      <AdminRelativeTime value={order.createdAt} />
                     </p>
                   </Link>
                 </li>
@@ -743,7 +725,7 @@ export function AdminHomeDashboard({
                   <p className={homeSubtitle}>
                     {user._count.stores} store
                     {user._count.stores === 1 ? "" : "s"} · {user.status} ·{" "}
-                    {formatRelative(user.createdAt)}
+                    <AdminRelativeTime value={user.createdAt} />
                   </p>
                 </Link>
               </li>
@@ -768,7 +750,7 @@ export function AdminHomeDashboard({
                   <p className="truncate text-[12px] font-medium">{msg.name}</p>
                   <p className={homeSubtitle}>
                     {msg.topic} · {msg.status} ·{" "}
-                    {formatRelative(msg.createdAt)}
+                    <AdminRelativeTime value={msg.createdAt} />
                   </p>
                 </Link>
               </li>
