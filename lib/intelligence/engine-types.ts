@@ -216,6 +216,82 @@ export type DrSaraSnapshot = {
   };
   recommendedActions: RecommendedAction[];
   criticalCount: number;
+  /** V2: single most important next step */
+  topAction: {
+    label: string;
+    href: string;
+    whyThisFirst: string;
+    priorityScore: number;
+    calculation: string;
+  } | null;
+  /** V2: ranked action list */
+  topActions: {
+    rank: number;
+    label: string;
+    href: string;
+    whyThisFirst: string;
+    priorityScore: number;
+  }[];
+  temporalTrends: {
+    id: string;
+    label: string;
+    current: number;
+    previous: number;
+    deltaPct: number;
+    direction: string;
+    acceleration: string;
+    confidence: number;
+    anomaly: boolean;
+    basis: string;
+  }[];
+  forecasts: {
+    id: string;
+    metric: string;
+    forecastDirection: string;
+    confidence: number;
+    statement: string;
+    basis: string;
+  }[];
+  bottlenecks: {
+    code: string;
+    title: string;
+    affectedCount: number;
+    highIntent?: number;
+    severity: string;
+    confidence: number;
+    ruleIds: string[];
+  }[];
+  merchantJourneys: {
+    merchantId: string;
+    storeName?: string;
+    stage: string;
+    bottleneck: string;
+    healthScore: number;
+    recommendedAction: string;
+  }[];
+  events: {
+    type: string;
+    timestamp: Date;
+    metadata: Record<string, string | number | boolean | null>;
+  }[];
+  dataQualityWarnings: {
+    id: string;
+    severity: string;
+    message: string;
+  }[];
+  actionOutcomes: {
+    totalTracked: number;
+    successCount: number;
+    failureCount: number;
+    actionSuccessRate: number | null;
+    notes: string[];
+  };
+  registryFired: string[];
+  confidence: {
+    overall: number;
+    evidenceCount: number;
+    notes: string[];
+  };
   metadata: {
     engine: "deterministic";
     version: string;
@@ -289,4 +365,22 @@ export type PlatformState = {
   attentionSentence: string;
   liveStores: number;
   totalStores: number;
+  /** Temporal / event enrichment from overview */
+  newUsers7d: number;
+  usersChange7d: number;
+  sparklines: {
+    revenue: number[];
+    orders: number[];
+    signups: number[];
+  };
+  today: { orders: number; revenue: number; signups: number };
+  yesterday: { orders: number; revenue: number; signups: number };
+  liveFeed: {
+    id: string;
+    category: string;
+    title: string;
+    detail: string;
+    href: string;
+    createdAt: Date;
+  }[];
 };

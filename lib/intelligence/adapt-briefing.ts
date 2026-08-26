@@ -211,13 +211,28 @@ export function snapshotToBriefing(snapshot: DrSaraSnapshot): SaraBriefing {
       count: s.count,
       href: s.href,
     })),
-    actions: snapshot.recommendedActions.map((a) => ({
-      id: a.id,
-      label: a.label,
-      description: a.description,
-      href: a.href,
-      urgency: a.urgency,
-    })),
+    actions: [
+      ...(snapshot.topAction
+        ? [
+            {
+              id: "TOP_ACTION",
+              label: snapshot.topAction.label,
+              description: snapshot.topAction.whyThisFirst,
+              href: snapshot.topAction.href,
+              urgency: "critical" as const,
+            },
+          ]
+        : []),
+      ...snapshot.recommendedActions
+        .filter((a) => a.label !== snapshot.topAction?.label)
+        .map((a) => ({
+          id: a.id,
+          label: a.label,
+          description: a.description,
+          href: a.href,
+          urgency: a.urgency,
+        })),
+    ],
     criticalCount: snapshot.criticalCount,
   };
 }

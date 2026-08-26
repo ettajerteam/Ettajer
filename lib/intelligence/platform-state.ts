@@ -73,6 +73,32 @@ export function toPlatformState(
     attentionSentence: overview.attentionSentence ?? "",
     liveStores: overview.liveStores ?? 0,
     totalStores: overview.totalStores ?? 0,
+    newUsers7d: overview.newUsers7d ?? 0,
+    usersChange7d: overview.changes?.users7d ?? 0,
+    sparklines: {
+      revenue: overview.sparklines?.revenue ?? [],
+      orders: overview.sparklines?.orders ?? [],
+      signups: overview.sparklines?.signups ?? [],
+    },
+    today: {
+      orders: overview.today?.orders ?? 0,
+      revenue: overview.today?.revenue ?? 0,
+      signups: overview.today?.signups ?? 0,
+    },
+    yesterday: {
+      orders: overview.yesterday?.orders ?? 0,
+      revenue: overview.yesterday?.revenue ?? 0,
+      signups: overview.yesterday?.signups ?? 0,
+    },
+    liveFeed: (overview.liveFeed ?? []).map((e) => ({
+      id: e.id,
+      category: e.category,
+      title: e.title,
+      detail: e.detail,
+      href: e.href,
+      createdAt:
+        e.createdAt instanceof Date ? e.createdAt : new Date(e.createdAt),
+    })),
   };
 }
 
@@ -123,5 +149,11 @@ export function emptyPlatformState(now = new Date()): PlatformState {
     attentionSentence: "",
     liveStores: 0,
     totalStores: 0,
+    newUsers7d: 0,
+    usersChange7d: 0,
+    sparklines: { revenue: [], orders: [], signups: [] },
+    today: { orders: 0, revenue: 0, signups: 0 },
+    yesterday: { orders: 0, revenue: 0, signups: 0 },
+    liveFeed: [],
   };
 }

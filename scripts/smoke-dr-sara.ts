@@ -1,5 +1,5 @@
 /**
- * Smoke: Dr Sara intelligence engine against live platform overview.
+ * Smoke: Dr Sara intelligence engine V2 against live platform overview.
  * Run: npx tsx scripts/smoke-dr-sara.ts
  */
 import fs from "fs";
@@ -36,37 +36,33 @@ async function main() {
     JSON.stringify(
       {
         ms,
-        engine: snapshot.metadata,
-        health: {
-          score: snapshot.health.score,
-          status: snapshot.health.status,
-          dimensions: snapshot.health.dimensions,
-          reasons: snapshot.health.reasons,
-        },
-        signals: snapshot.signals.map((s) => ({
-          id: s.id,
-          severity: s.severity,
-          ruleId: s.ruleId,
+        version: snapshot.metadata.version,
+        health: snapshot.health.score,
+        status: snapshot.health.status,
+        topAction: snapshot.topAction,
+        topActions: snapshot.topActions.slice(0, 4),
+        bottlenecks: snapshot.bottlenecks.slice(0, 4),
+        temporalTrends: snapshot.temporalTrends.map((t) => ({
+          id: t.id,
+          deltaPct: t.deltaPct,
+          direction: t.direction,
+          acceleration: t.acceleration,
+        })),
+        forecasts: snapshot.forecasts.map((f) => ({
+          id: f.id,
+          direction: f.forecastDirection,
+          statement: f.statement.slice(0, 80),
         })),
         correlations: snapshot.correlations.map((c) => c.id),
         diagnoses: snapshot.diagnoses.map((d) => d.diagnosisId),
-        priorities: snapshot.priorities.map((p) => ({
-          id: p.signalId,
-          score: p.priorityScore,
-          band: p.band,
-        })),
-        criticalCount: snapshot.criticalCount,
-        opportunities: snapshot.opportunities.length,
-        risks: snapshot.risks.length,
-        actions: snapshot.recommendedActions.map((a) => a.href),
+        registryFired: snapshot.registryFired,
+        events: snapshot.events.length,
+        journeys: snapshot.merchantJourneys.length,
+        dataQualityWarnings: snapshot.dataQualityWarnings,
+        actionOutcomes: snapshot.actionOutcomes,
+        confidence: snapshot.confidence,
         uiBriefingScore: briefing.pulse.score,
-        samplePriority: snapshot.priorities[0]
-          ? {
-              title: snapshot.priorities[0].title,
-              ruleId: snapshot.priorities[0].ruleId,
-              calculation: snapshot.priorities[0].calculation,
-            }
-          : null,
+        uiTopAction: briefing.actions[0]?.label,
       },
       null,
       2
