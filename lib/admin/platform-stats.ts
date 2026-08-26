@@ -31,6 +31,7 @@ export function deriveAdminOverviewBrief(input: {
   newUsers24h: number;
   hotEmptyCount: number;
   activatedPct: number;
+  pendingRealOrders?: number;
 }): AdminOverviewBrief {
   if (input.waitingUsers > 0) {
     return {
@@ -42,6 +43,12 @@ export function deriveAdminOverviewBrief(input: {
     return {
       tone: "attention",
       subtitle: `${input.failedLogins24h} failed logins in the last 24h — check errors for auth or attack noise.`,
+    };
+  }
+  if ((input.pendingRealOrders ?? 0) >= 5) {
+    return {
+      tone: "attention",
+      subtitle: `${input.pendingRealOrders} real orders still pending verification — COD backlog slows courier handoff.`,
     };
   }
   if (input.openSupport > 0) {
@@ -328,6 +335,62 @@ export async function getPlatformOverview() {
   }
   const sparkSeries = [...sparkMap.values()];
 
+  const startOfToday = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000);
+
+  const [
+    todayOrders,
+    yesterdayOrders,
+    todaySignups,
+    yesterdaySignups,
+    unverifiedEmails,
+    pendingRealOrders,
+    processingRealOrders,
+  ] = await Promise.all([
+    prisma.order.findMany({
+      where: { isTest: false, createdAt: { gte: startOfToday } },
+      select: { total: true },
+    }),
+    prisma.order.findMany({
+      where: {
+        isTest: false,
+        createdAt: { gte: startOfYesterday, lt: startOfToday },
+      },
+      select: { total: true },
+    }),
+    prisma.user.count({
+      where: { createdAt: { gte: startOfToday }, ...realUserWhere },
+    }),
+    prisma.user.count({
+      where: {
+        createdAt: { gte: startOfYesterday, lt: startOfToday },
+        ...realUserWhere,
+      },
+    }),
+    prisma.user.count({
+      where: { emailVerified: null, ...realUserWhere },
+    }),
+    prisma.order.count({
+      where: { isTest: false, status: "pending" },
+    }),
+    prisma.order.count({
+      where: { isTest: false, status: "processing" },
+    }),
+  ]);
+
+  const today = {
+    revenue: todayOrders.reduce((sum, o) => sum + o.total, 0),
+    orders: todayOrders.length,
+    signups: todaySignups,
+  };
+  const yesterday = {
+    revenue: yesterdayOrders.reduce((sum, o) => sum + o.total, 0),
+    orders: yesterdayOrders.length,
+    signups: yesterdaySignups,
+  };
+
   const revenue7d = realRevenue7d._sum.total ?? 0;
   const revenuePrev7d = realRevenuePrev7d._sum.total ?? 0;
   const totalRevenue = realRevenueAgg._sum.total ?? 0;
@@ -379,6 +442,7 @@ export async function getPlatformOverview() {
             (activation.funnel.hasOrders / activation.funnel.totalStores) * 100
           )
         : 0,
+    pendingRealOrders,
   });
 
   return {
@@ -425,6 +489,22 @@ export async function getPlatformOverview() {
     insights: insights.slice(0, 4),
     brief,
     testSharePct,
+    today,
+    yesterday,
+    unverifiedEmails,
+    pendingRealOrders,
+    processingRealOrders,
+    concentration: topStores.slice(0, 5).map((store) => ({
+      id: store.id,
+      name: store.name,
+      slug: store.slug,
+      gmv: store.realGmv,
+      sharePct:
+        totalRevenue > 0
+          ? Math.round((store.realGmv / totalRevenue) * 100)
+          : 0,
+      orders: store.realOrders,
+    })),
   };
 }
 
@@ -1057,8 +1137,9 @@ export async function getPlatformAnalytics(range: AdminAnalyticsRange = 30) {
       by: ["storeId"],
       where: { isTest: false, createdAt: { gte: rangeStart } },
       _sum: { total: true },
+      _count: true,
       orderBy: { _sum: { total: "desc" } },
-      take: 1,
+      take: 8,
     }),
     getActivationGap(),
   ]);
@@ -1091,18 +1172,33 @@ export async function getPlatformAnalytics(range: AdminAnalyticsRange = 30) {
       ? Math.round((testOrderCount / (realOrderCount + testOrderCount)) * 100)
       : 0;
 
-  let topStoreName: string | null = null;
-  let topStoreSharePct = 0;
-  if (topStoreRows[0] && revenue > 0) {
-    const top = topStoreRows[0];
-    const topGmv = top._sum.total ?? 0;
-    topStoreSharePct = Math.round((topGmv / revenue) * 100);
-    const store = await prisma.store.findUnique({
-      where: { id: top.storeId },
-      select: { name: true },
-    });
-    topStoreName = store?.name ?? null;
-  }
+  const topStoreIds = topStoreRows.map((row) => row.storeId);
+  const topStoreMeta = topStoreIds.length
+    ? await prisma.store.findMany({
+        where: { id: { in: topStoreIds } },
+        select: { id: true, name: true, slug: true, currency: true },
+      })
+    : [];
+  const topMetaMap = new Map(topStoreMeta.map((s) => [s.id, s]));
+  const topStoresInRange = topStoreRows
+    .map((row) => {
+      const store = topMetaMap.get(row.storeId);
+      if (!store) return null;
+      const gmv = row._sum.total ?? 0;
+      return {
+        id: store.id,
+        name: store.name,
+        slug: store.slug,
+        currency: store.currency,
+        gmv,
+        orders: row._count,
+        sharePct: revenue > 0 ? Math.round((gmv / revenue) * 100) : 0,
+      };
+    })
+    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+
+  const topStoreName = topStoresInRange[0]?.name ?? null;
+  const topStoreSharePct = topStoresInRange[0]?.sharePct ?? 0;
 
   const insightInput: AdminIntelligenceInput = {
     range,
@@ -1170,6 +1266,7 @@ export async function getPlatformAnalytics(range: AdminAnalyticsRange = 30) {
       hotEmptyCount: activation.hotEmptyCount,
       loggedInEmpty7d: activation.loggedInEmpty7d,
     },
+    topStoresInRange,
     insights: deriveAdminInsights(insightInput),
   };
 }

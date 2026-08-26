@@ -18,6 +18,7 @@ import { TimeOfDayGreeting } from "@/hooks/use-time-of-day-greeting";
 import { HomeSparkline } from "@/components/dashboard/home/home-sparkline";
 import { AdminInsightsPanel } from "@/components/admin/admin-insights-panel";
 import { AdminActivationFunnel } from "@/components/admin/admin-activation-funnel";
+import { AdminShareBars } from "@/components/admin/admin-share-bars";
 import {
   homeCard,
   homeCardPad,
@@ -168,6 +169,14 @@ export function AdminHomeDashboard({
           tone: "amber" as const,
         }
       : null,
+    data.pendingRealOrders > 0
+      ? {
+          id: "pending-orders",
+          label: `${data.pendingRealOrders} pending real orders`,
+          href: "/admin/payments",
+          tone: "amber" as const,
+        }
+      : null,
     data.newMessages > 0
       ? {
           id: "messages",
@@ -189,6 +198,14 @@ export function AdminHomeDashboard({
           id: "empty",
           label: `${data.hotEmptyCount} hot empty stores`,
           href: "/admin/activation",
+          tone: "amber" as const,
+        }
+      : null,
+    data.unverifiedEmails > 0
+      ? {
+          id: "unverified",
+          label: `${data.unverifiedEmails} unverified emails`,
+          href: "/admin/users",
           tone: "amber" as const,
         }
       : null,
@@ -236,6 +253,56 @@ export function AdminHomeDashboard({
           ))}
         </section>
       ) : null}
+
+      <section
+        aria-label="Today vs yesterday"
+        className="grid grid-cols-3 gap-2"
+      >
+        {(
+          [
+            {
+              label: "GMV today",
+              value: `${Math.round(data.today.revenue).toLocaleString()} MAD`,
+              prior: data.yesterday.revenue,
+              current: data.today.revenue,
+              unit: "MAD",
+            },
+            {
+              label: "Orders today",
+              value: data.today.orders.toLocaleString(),
+              prior: data.yesterday.orders,
+              current: data.today.orders,
+              unit: "orders",
+            },
+            {
+              label: "Signups today",
+              value: data.today.signups.toLocaleString(),
+              prior: data.yesterday.signups,
+              current: data.today.signups,
+              unit: "accounts",
+            },
+          ] as const
+        ).map((cell) => {
+          const delta = cell.current - cell.prior;
+          return (
+            <div key={cell.label} className={homeStatCell}>
+              <p className={homeKicker}>{cell.label}</p>
+              <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+                {cell.value}
+              </p>
+              <p className={cn("mt-0.5", homeSubtitle)}>
+                {delta === 0
+                  ? `flat vs yesterday`
+                  : `${delta > 0 ? "+" : ""}${
+                      cell.unit === "MAD"
+                        ? Math.round(delta).toLocaleString()
+                        : delta.toLocaleString()
+                    } vs yesterday`}
+              </p>
+            </div>
+          );
+        })}
+      </section>
 
       <section aria-label="Platform KPIs">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -295,11 +362,20 @@ export function AdminHomeDashboard({
           </p>
         </div>
         <div className={homeStatCell}>
-          <p className={homeKicker}>Waiting</p>
+          <p className={homeKicker}>Pending COD</p>
           <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.waitingUsers}
+            {data.pendingRealOrders}
           </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>Need activation</p>
+          <p className={cn("mt-0.5", homeSubtitle)}>
+            {data.processingRealOrders} confirmed
+          </p>
+        </div>
+        <div className={homeStatCell}>
+          <p className={homeKicker}>Unverified</p>
+          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+            {data.unverifiedEmails}
+          </p>
+          <p className={cn("mt-0.5", homeSubtitle)}>Emails not confirmed</p>
         </div>
         <div className={homeStatCell}>
           <p className={homeKicker}>Domains</p>
@@ -316,13 +392,6 @@ export function AdminHomeDashboard({
             {data.newMessages}
           </p>
           <p className={cn("mt-0.5", homeSubtitle)}>Open threads</p>
-        </div>
-        <div className={homeStatCell}>
-          <p className={homeKicker}>Failed logins</p>
-          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.failedLogins24h}
-          </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>Last 24h</p>
         </div>
         <div className={homeStatCell}>
           <p className={homeKicker}>Test share</p>
@@ -343,6 +412,13 @@ export function AdminHomeDashboard({
           loggedInEmpty7d={data.loggedInEmpty7d}
         />
       </div>
+
+      <AdminShareBars
+        title="GMV concentration"
+        subtitle="Lifetime real revenue share — watch single-merchant risk."
+        rows={data.concentration}
+        hrefAll="/admin/stores"
+      />
 
       <section className={cn(homeCard, homeCardPad)}>
         <h2 className={homeTitle}>Quick actions</h2>

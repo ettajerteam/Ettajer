@@ -15,6 +15,7 @@ import {
 import { AdminTrendChart } from "@/components/admin/admin-trend-chart";
 import { AdminInsightsPanel } from "@/components/admin/admin-insights-panel";
 import { AdminActivationFunnel } from "@/components/admin/admin-activation-funnel";
+import { AdminShareBars } from "@/components/admin/admin-share-bars";
 import {
   homeKicker,
   homeStatCell,
@@ -152,14 +153,21 @@ export function AdminIntelligenceDashboard({
         <AdminInsightsPanel insights={insights} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <div className="grid gap-4 xl:grid-cols-2">
+        <AdminShareBars
+          title={`Top stores (${data.range}d)`}
+          subtitle="Real GMV share inside the selected window."
+          rows={data.topStoresInRange}
+          hrefAll="/admin/stores"
+        />
         <AdminActivationFunnel
           funnel={funnel}
           hotEmptyCount={signals.hotEmptyCount}
           loggedInEmpty7d={signals.loggedInEmpty7d}
         />
+      </div>
 
-        <div className="space-y-3">
+      <div className="space-y-3">
           <AdminSectionTitle title="Real orders by status (lifetime)" />
           <AdminTableShell>
             <table className="w-full min-w-[480px] text-left text-[12px]">
@@ -218,7 +226,6 @@ export function AdminIntelligenceDashboard({
               </p>
             </div>
           </div>
-        </div>
       </div>
     </div>
   );
