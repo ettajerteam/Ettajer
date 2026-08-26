@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTimeOfDayGreeting } from "@/hooks/use-time-of-day-greeting";
 import {
   Package,
   ClipboardCheck,
@@ -43,13 +44,6 @@ const RANGES: { value: DashboardRange; label: string }[] = [
   { value: 30, label: "30d" },
   { value: 365, label: "12m" },
 ];
-
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good Morning";
-  if (h < 18) return "Good Afternoon";
-  return "Good Evening";
-}
 
 function ChangeBadge({ value }: { value: number }) {
   if (value === 0) {
@@ -115,6 +109,18 @@ export function OverviewDashboard({ data, userName }: OverviewDashboardProps) {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [carousel, setCarousel] = useState(0);
+  const greeting = useTimeOfDayGreeting("Hello", "title");
+  const [today, setToday] = useState("");
+
+  useEffect(() => {
+    setToday(
+      new Date().toLocaleDateString("en", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    );
+  }, []);
 
   const revenueDelta = data.rawRevenue - data.rawRevenuePrevious;
   const revenueChangePct = data.kpis.revenue.change;
@@ -128,18 +134,12 @@ export function OverviewDashboard({ data, userName }: OverviewDashboardProps) {
   const bestSellers = data.bestSellers;
   const activeSeller = bestSellers[carousel];
 
-  const today = new Date().toLocaleDateString("en", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {greeting()}, {userName ?? "there"}!
+            {greeting}, {userName ?? "there"}!
           </h1>
           <p className="text-sm text-muted-foreground">
             Here&apos;s what&apos;s happening with your store today
@@ -147,7 +147,7 @@ export function OverviewDashboard({ data, userName }: OverviewDashboardProps) {
         </div>
         <div className={cn(dashboardCard, "inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground")}>
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          {today}
+          <span suppressHydrationWarning>{today || "\u00a0"}</span>
         </div>
       </header>
 
