@@ -209,8 +209,8 @@ const QUICK_ACTIONS = [
   {
     id: "analytics",
     href: "/admin/analytics",
-    label: "Analytics",
-    description: "Platform metrics",
+    label: "Intelligence",
+    description: "GMV & activation",
     icon: LayoutDashboard,
   },
   {
@@ -628,7 +628,7 @@ export function AdminHomeDashboard({
             <Globe className="h-3 w-3" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className={homeTitle}>Platform health</h2>
+            <h2 className={homeTitle}>Platform intelligence</h2>
             <p className={homeSubtitle}>
               {data.liveStores} live storefronts · {data.activeProducts} active
               products · {data.domainsConnectedSuccess} domains with live DNS
@@ -639,7 +639,7 @@ export function AdminHomeDashboard({
             className="inline-flex items-center gap-1 text-[11px] font-medium text-[#007AFF] hover:underline"
           >
             <Package className="h-3 w-3" />
-            View analytics
+            Open intelligence
           </Link>
         </div>
       </section>
