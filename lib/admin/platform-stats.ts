@@ -15,10 +15,65 @@ import { getActivationGap } from "@/lib/admin/activation-stats";
 import {
   deriveAdminInsights,
   pctChange,
-  type AdminAnalyticsRange,
-  type AdminIntelligenceInput,
   type AdminTrendPoint,
 } from "@/lib/admin/platform-intelligence";
+
+export type AdminOverviewBrief = {
+  subtitle: string;
+  tone: "positive" | "neutral" | "attention";
+};
+
+export function deriveAdminOverviewBrief(input: {
+  waitingUsers: number;
+  openSupport: number;
+  failedLogins24h: number;
+  revenueChange7d: number;
+  newUsers24h: number;
+  hotEmptyCount: number;
+  activatedPct: number;
+}): AdminOverviewBrief {
+  if (input.waitingUsers > 0) {
+    return {
+      tone: "attention",
+      subtitle: `${input.waitingUsers} merchant${input.waitingUsers === 1 ? "" : "s"} waiting for activation — clear the queue before they go cold.`,
+    };
+  }
+  if (input.failedLogins24h >= 10) {
+    return {
+      tone: "attention",
+      subtitle: `${input.failedLogins24h} failed logins in the last 24h — check errors for auth or attack noise.`,
+    };
+  }
+  if (input.openSupport > 0) {
+    return {
+      tone: "attention",
+      subtitle: `${input.openSupport} open support thread${input.openSupport === 1 ? "" : "s"} need${input.openSupport === 1 ? "s" : ""} a reply.`,
+    };
+  }
+  if (input.hotEmptyCount > 0 && input.activatedPct < 20) {
+    return {
+      tone: "neutral",
+      subtitle: `${input.hotEmptyCount} empty stores are warm — nudge first product before they churn. Only ${input.activatedPct}% of stores have a real sale.`,
+    };
+  }
+  if (input.revenueChange7d >= 20) {
+    return {
+      tone: "positive",
+      subtitle: `Real GMV is up ${input.revenueChange7d}% vs last week${input.newUsers24h > 0 ? ` · +${input.newUsers24h} signup${input.newUsers24h === 1 ? "" : "s"} today` : ""}.`,
+    };
+  }
+  if (input.revenueChange7d <= -15) {
+    return {
+      tone: "attention",
+      subtitle: `Real GMV dipped ${Math.abs(input.revenueChange7d)}% vs last week — check payments and top stores.`,
+    };
+  }
+  return {
+    tone: "neutral",
+    subtitle:
+      "Platform pulse — real GMV, merchant growth, support, and storefront health in one place.",
+  };
+}
 
 function utcDayKey(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -84,6 +139,7 @@ export async function getPlatformOverview() {
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const prevWeekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const sparkStart = new Date(now.getTime() - 13 * 24 * 60 * 60 * 1000);
 
   const realUserWhere = {
     NOT: { email: { endsWith: "@example.com" as const } },
@@ -117,6 +173,9 @@ export async function getPlatformOverview() {
     domainStats,
     realByStore,
     stores,
+    sparkOrders,
+    sparkSignups,
+    activation,
   ] = await Promise.all([
     prisma.user.count({ where: realUserWhere }),
     prisma.user.count({ where: { status: USER_STATUS.ACTIVE, ...realUserWhere } }),
@@ -220,6 +279,17 @@ export async function getPlatformOverview() {
         user: { select: { name: true, email: true } },
       },
     }),
+    prisma.order.findMany({
+      where: { isTest: false, createdAt: { gte: sparkStart } },
+      select: { total: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { createdAt: { gte: sparkStart }, ...realUserWhere },
+      select: { createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    getActivationGap(),
   ]);
 
   const storeMap = new Map(stores.map((s) => [s.id, s]));
@@ -242,10 +312,74 @@ export async function getPlatformOverview() {
     })
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
 
-  function pctChange(current: number, previous: number) {
-    if (previous <= 0) return current > 0 ? 100 : 0;
-    return Math.round(((current - previous) / previous) * 100);
+  const sparkMap = emptyDaySeries(sparkStart, now);
+  for (const order of sparkOrders) {
+    const key = utcDayKey(order.createdAt);
+    const point = sparkMap.get(key);
+    if (!point) continue;
+    point.orders += 1;
+    point.revenue += order.total;
   }
+  for (const user of sparkSignups) {
+    const key = utcDayKey(user.createdAt);
+    const point = sparkMap.get(key);
+    if (!point) continue;
+    point.signups += 1;
+  }
+  const sparkSeries = [...sparkMap.values()];
+
+  const revenue7d = realRevenue7d._sum.total ?? 0;
+  const revenuePrev7d = realRevenuePrev7d._sum.total ?? 0;
+  const totalRevenue = realRevenueAgg._sum.total ?? 0;
+  const topStoreSharePct =
+    totalRevenue > 0 && topStores[0]
+      ? Math.round((topStores[0].realGmv / totalRevenue) * 100)
+      : 0;
+  const testSharePct =
+    realOrders + testOrders > 0
+      ? Math.round((testOrders / (realOrders + testOrders)) * 100)
+      : 0;
+  const aov7d = realOrders7d > 0 ? revenue7d / realOrders7d : 0;
+  const aovPrev7d =
+    realOrdersPrev7d > 0 ? revenuePrev7d / realOrdersPrev7d : 0;
+
+  const insights = deriveAdminInsights({
+    range: 7,
+    revenue: revenue7d,
+    revenuePrev: revenuePrev7d,
+    orders: realOrders7d,
+    ordersPrev: realOrdersPrev7d,
+    signups: newUsers7d,
+    signupsPrev: newUsersPrev7d,
+    aov: aov7d,
+    aovPrev: aovPrev7d,
+    testSharePct,
+    waitingUsers,
+    openSupport: newMessages,
+    failedLogins24h,
+    domainsConnected: domainStats.domainsConnected,
+    domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    topStoreSharePct,
+    topStoreName: topStores[0]?.name ?? null,
+    funnel: activation.funnel,
+    hotEmptyCount: activation.hotEmptyCount,
+    loggedInEmpty7d: activation.loggedInEmpty7d,
+  });
+
+  const brief = deriveAdminOverviewBrief({
+    waitingUsers,
+    openSupport: newMessages,
+    failedLogins24h,
+    revenueChange7d: pctChange(revenue7d, revenuePrev7d),
+    newUsers24h,
+    hotEmptyCount: activation.hotEmptyCount,
+    activatedPct:
+      activation.funnel.totalStores > 0
+        ? Math.round(
+            (activation.funnel.hasOrders / activation.funnel.totalStores) * 100
+          )
+        : 0,
+  });
 
   return {
     totalUsers,
@@ -255,20 +389,18 @@ export async function getPlatformOverview() {
     totalOrders: realOrders + testOrders,
     realOrders,
     testOrders,
-    totalRevenue: realRevenueAgg._sum.total ?? 0,
+    totalRevenue,
     testRevenue: testRevenueAgg._sum.total ?? 0,
     newUsers24h,
     newUsers7d,
+    newUsersPrev7d,
     newStores7d,
     realOrders7d,
-    realRevenue7d: realRevenue7d._sum.total ?? 0,
+    realRevenue7d: revenue7d,
     changes: {
       users7d: pctChange(newUsers7d, newUsersPrev7d),
       orders7d: pctChange(realOrders7d, realOrdersPrev7d),
-      revenue7d: pctChange(
-        realRevenue7d._sum.total ?? 0,
-        realRevenuePrev7d._sum.total ?? 0
-      ),
+      revenue7d: pctChange(revenue7d, revenuePrev7d),
     },
     newMessages,
     failedLogins24h,
@@ -281,8 +413,25 @@ export async function getPlatformOverview() {
     liveStores,
     domainsConnected: domainStats.domainsConnected,
     domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    sparklines: {
+      revenue: sparkSeries.map((p) => p.revenue),
+      orders: sparkSeries.map((p) => p.orders),
+      signups: sparkSeries.map((p) => p.signups),
+      liveStores: sparkSeries.map(() => liveStores),
+    },
+    funnel: activation.funnel,
+    hotEmptyCount: activation.hotEmptyCount,
+    loggedInEmpty7d: activation.loggedInEmpty7d,
+    insights: insights.slice(0, 4),
+    brief,
+    testSharePct,
   };
 }
+
+export type PlatformOverviewData = Awaited<
+  ReturnType<typeof getPlatformOverview>
+>;
+
 
 export async function getPlatformUsers() {
   return prisma.user.findMany({
