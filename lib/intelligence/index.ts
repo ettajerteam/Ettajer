@@ -1,5 +1,5 @@
 /**
- * Dr Sara — Intelligence OS V5 exports (Digital Twin + scenarios).
+ * Dr Sara — Intelligence OS V6 exports (Decision Intelligence on V5 twin).
  */
 export {
   getDrSaraSnapshot,
@@ -45,6 +45,14 @@ export {
   assumptionsForScenario,
 } from "@/lib/intelligence/assumptions/registry";
 export {
+  runDecisionEngine,
+  generateDecisionCandidates,
+  evaluateConstraints,
+  scoreDecisionCandidate,
+  DECISION_WEIGHTS,
+  DECISION_THRESHOLDS,
+} from "@/lib/intelligence/decisions/engine";
+export {
   buildMerchantTwin,
   generateMerchantScenarios,
 } from "@/lib/intelligence/merchants/twin";
@@ -78,3 +86,8 @@ export type {
   DigitalTwinState,
 } from "@/lib/intelligence/twin/types";
 export type { IntelligenceMemory } from "@/lib/intelligence/memory/types";
+export type {
+  Decision,
+  DecisionCandidate,
+  DecisionEngineResult,
+} from "@/lib/intelligence/decisions/types";

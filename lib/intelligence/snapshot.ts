@@ -112,6 +112,7 @@ import { compareScenarios } from "@/lib/intelligence/scenarios/compare";
 import { SCENARIO_REGISTRY } from "@/lib/intelligence/scenarios/registry";
 import { toDigitalTwinState } from "@/lib/intelligence/twin/state-contract";
 import { simulateCounterfactual } from "@/lib/intelligence/counterfactual/simulate";
+import { runDecisionEngine } from "@/lib/intelligence/decisions/engine";
 
 export type BuildSnapshotOptions = {
   memory?: IntelligenceMemory;
@@ -119,7 +120,7 @@ export type BuildSnapshotOptions = {
   decisionHistory?: DecisionMemoryEntry[];
 };
 
-const ENGINE_VERSION = "5.0.0";
+const ENGINE_VERSION = "6.0.0";
 
 const DIMENSION_LABELS: Record<
   keyof DrSaraSnapshot["health"]["dimensions"],
@@ -835,7 +836,26 @@ export function buildDrSaraSnapshotFromState(
         })
       : null;
 
-  // V5: never auto-execute
+  // V6 Decision Intelligence (recommend only — never execute)
+  const dqStatus: "OK" | "DEGRADED" | "INSUFFICIENT" = gate.insufficientEvidence
+    ? "INSUFFICIENT"
+    : scenarioDataQuality.status === "DEGRADED"
+      ? "DEGRADED"
+      : "OK";
+
+  const decisionResult = runDecisionEngine({
+    state,
+    signals,
+    diagnoses,
+    recommendedActions,
+    scenarios: scenarioOutcomes,
+    dataQualityStatus: dqStatus,
+    insufficientEvidence: gate.insufficientEvidence,
+    evidenceQuality: eq,
+    cycleId,
+  });
+
+  // V5/V6: never auto-execute
   void C.twin;
   const autonomyV5 = { ...autonomy, autoExecute: false as const };
 
@@ -1219,6 +1239,59 @@ export function buildDrSaraSnapshotFromState(
     recoverySimulation: {
       onTrack: recoverySimulation.onTrack,
       note: recoverySimulation.note,
+    },
+    /** V6 — Decision Intelligence (additive; does not replace TOP_ACTION / TOP_SCENARIO) */
+    decision: {
+      topDecision: decisionResult.topDecision
+        ? {
+            id: decisionResult.topDecision.id,
+            version: decisionResult.topDecision.version,
+            selectedAction: decisionResult.topDecision.selectedAction,
+            score: decisionResult.topDecision.score,
+            confidence: decisionResult.topDecision.confidence,
+            whyThis: decisionResult.topDecision.rationale.whyThis,
+            whyNot: decisionResult.topDecision.rationale.whyNotAlternatives.map(
+              (w) => ({
+                actionId: w.actionId,
+                title: w.title,
+                reasons: w.reasons,
+              })
+            ),
+            expectedOutcome: decisionResult.topDecision.expectedOutcome,
+            uncertainty: decisionResult.topDecision.uncertainty,
+            scenarioSupport: {
+              strength: decisionResult.topDecision.scenarioSupport.strength,
+              scenarioId: decisionResult.topDecision.scenarioSupport.scenarioId,
+              baseline: decisionResult.topDecision.scenarioSupport.baseline,
+              expectedAfter:
+                decisionResult.topDecision.scenarioSupport.expectedAfter,
+            },
+            constraints: decisionResult.topDecision.constraints.map((c) => ({
+              constraintId: c.constraintId,
+              status: c.status,
+              reason: c.reason,
+            })),
+            alternatives: decisionResult.topDecision.alternatives,
+            mode: "RECOMMENDED" as const,
+          }
+        : null,
+      alternatives: decisionResult.alternatives.slice(0, 8).map((a) => ({
+        id: a.id,
+        title: a.title,
+        score: a.score,
+        blocked: a.blocked,
+        domain: a.domain,
+      })),
+      candidates: decisionResult.candidates.map((c) => ({
+        id: c.id,
+        title: c.title,
+        score: c.score,
+        blocked: c.blocked,
+        route: c.route,
+        urgency: c.urgency,
+        confidence: c.confidence,
+      })),
+      trace: decisionResult.trace,
     },
     metadata: {
       engine: "deterministic",

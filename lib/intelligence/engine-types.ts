@@ -620,6 +620,70 @@ export type DrSaraSnapshot = {
     onTrack: boolean;
     note: string;
   } | null;
+  /** V6 — Decision Intelligence (additive) */
+  decision: {
+    topDecision: {
+      id: string;
+      version: string;
+      selectedAction: {
+        id: string;
+        type: string;
+        title: string;
+        route: string;
+        mode: "RECOMMENDED";
+      };
+      score: number;
+      confidence: number;
+      whyThis: string[];
+      whyNot: { actionId: string; title: string; reasons: string[] }[];
+      expectedOutcome: {
+        kind: "SIMULATED" | "NONE";
+        baseline: Record<string, number>;
+        expectedAfter: Record<string, [number, number]>;
+        note: string;
+      };
+      uncertainty: {
+        level: string;
+        dataQuality: string;
+        notes: string[];
+      };
+      scenarioSupport: {
+        strength: string;
+        scenarioId: string | null;
+        baseline: Record<string, number>;
+        expectedAfter: Record<string, [number, number]>;
+      };
+      constraints: {
+        constraintId: string;
+        status: string;
+        reason: string;
+      }[];
+      alternatives: {
+        id: string;
+        title: string;
+        score: number;
+        blocked: boolean;
+      }[];
+      mode: "RECOMMENDED";
+    } | null;
+    alternatives: {
+      id: string;
+      title: string;
+      score: number;
+      blocked: boolean;
+      domain: string;
+    }[];
+    candidates: {
+      id: string;
+      title: string;
+      score: number;
+      blocked: boolean;
+      route: string;
+      urgency: number;
+      confidence: number;
+    }[];
+    trace: { stage: string; detail: string; count?: number }[];
+  } | null;
   metadata: {
     engine: "deterministic";
     version: string;

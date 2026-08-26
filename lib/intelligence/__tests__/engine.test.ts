@@ -81,7 +81,7 @@ describe("fixtures: healthy platform", () => {
       })
     );
     expect(snap.health.score).toBeGreaterThan(80);
-    expect(snap.metadata.version).toBe("5.0.0");
+    expect(snap.metadata.version).toBe("6.0.0");
     expect(snap.topAction).toBeNull();
   });
 });

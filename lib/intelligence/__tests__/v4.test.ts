@@ -618,7 +618,7 @@ describe("V4 snapshot compatibility", () => {
     const snap = buildDrSaraSnapshotFromState(
       state({ pendingRealOrders: 12, pendingRealGmv: 2000, totalStores: 50 })
     );
-    expect(snap.metadata.version).toBe("5.0.0");
+    expect(snap.metadata.version).toBe("6.0.0");
     expect(snap.earlyWarnings.length).toBeGreaterThan(0);
     expect(snap.executionTraceV4?.stages.length).toBeGreaterThan(5);
     expect(snap.autonomy.level).toBe(1);
@@ -653,7 +653,7 @@ describe("V4 snapshot compatibility", () => {
   it("empty platform insufficient evidence does not crash", () => {
     const snap = buildDrSaraSnapshotFromState(state({ totalStores: 0 }));
     expect(snap.dataQualityV2.insufficientEvidence).toBe(true);
-    expect(snap.metadata.version).toBe("5.0.0");
+    expect(snap.metadata.version).toBe("6.0.0");
   });
 
   it("same input → same V4 top action", () => {
