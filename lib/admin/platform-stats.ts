@@ -19,6 +19,10 @@ import {
   type AdminIntelligenceInput,
   type AdminTrendPoint,
 } from "@/lib/admin/platform-intelligence";
+import {
+  buildAttentionQueue,
+  buildAttentionSentence,
+} from "@/lib/admin/attention-queue";
 
 export type AdminOverviewBrief = {
   subtitle: string;
@@ -447,6 +451,29 @@ export async function getPlatformOverview() {
     pendingRealOrders,
   });
 
+  const attentionItems = buildAttentionQueue({
+    pendingRealOrders,
+    waitingUsers,
+    hotEmptyCount: activation.hotEmptyCount,
+    loggedInEmpty7d: activation.loggedInEmpty7d,
+    activeNoOrders: activation.funnel.activeNoOrders,
+    domainsConnected: domainStats.domainsConnected,
+    domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    openSupport: newMessages,
+    failedLogins24h,
+    processingRealOrders,
+  });
+  const attentionSentence = buildAttentionSentence(attentionItems);
+
+  const top2SharePct =
+    totalRevenue > 0
+      ? Math.round(
+          (topStores.slice(0, 2).reduce((s, t) => s + t.realGmv, 0) /
+            totalRevenue) *
+            100
+        )
+      : 0;
+
   return {
     totalUsers,
     activeUsers,
@@ -488,8 +515,10 @@ export async function getPlatformOverview() {
     funnel: activation.funnel,
     hotEmptyCount: activation.hotEmptyCount,
     loggedInEmpty7d: activation.loggedInEmpty7d,
-    insights: insights.slice(0, 4),
+    insights: insights.slice(0, 6),
     brief,
+    attentionItems,
+    attentionSentence,
     testSharePct,
     today,
     yesterday,
@@ -507,6 +536,20 @@ export async function getPlatformOverview() {
           : 0,
       orders: store.realOrders,
     })),
+    concentrationRisk: {
+      top2SharePct,
+      elevated: top2SharePct >= 50,
+      message:
+        top2SharePct >= 50
+          ? `Revenue concentration is high: the top 2 merchants generate ${top2SharePct}% of tracked GMV.`
+          : top2SharePct > 0
+            ? `Top 2 merchants generate ${top2SharePct}% of tracked GMV.`
+            : null,
+      why:
+        top2SharePct >= 50
+          ? "A large decline in one merchant could significantly impact total platform revenue."
+          : null,
+    },
   };
 }
 
@@ -843,7 +886,17 @@ export async function getPlatformStoreDetail(storeId: string) {
 
   if (!store) return null;
 
-  const [realAgg, testAgg, ordersByStatus, recentOrders] = await Promise.all([
+  const [
+    realAgg,
+    testAgg,
+    ordersByStatus,
+    recentOrders,
+    activeProducts,
+    draftProducts,
+    firstRealOrder,
+    firstProduct,
+    firstDelivery,
+  ] = await Promise.all([
     prisma.order.aggregate({
       where: { storeId, isTest: false },
       _count: true,
@@ -879,12 +932,33 @@ export async function getPlatformStoreDetail(storeId: string) {
         createdAt: true,
       },
     }),
+    prisma.product.count({ where: { storeId, status: "active" } }),
+    prisma.product.count({
+      where: { storeId, status: { not: "active" } },
+    }),
+    prisma.order.findFirst({
+      where: { storeId, isTest: false },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, createdAt: true, status: true },
+    }),
+    prisma.product.findFirst({
+      where: { storeId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, createdAt: true, status: true },
+    }),
+    prisma.order.findFirst({
+      where: { storeId, isTest: false, status: "delivered" },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+    }),
   ]);
 
   return {
     ...store,
     stats: {
       products: store._count.products,
+      activeProducts,
+      draftProducts,
       customers: store._count.customers,
       categories: store._count.categories,
       collections: store._count.collections,
@@ -894,6 +968,16 @@ export async function getPlatformStoreDetail(storeId: string) {
       testOrders: testAgg._count,
       testGmv: testAgg._sum.total ?? 0,
       totalOrders: realAgg._count + testAgg._count,
+    },
+    lifecycle: {
+      accountCreatedAt: store.user.createdAt,
+      storeCreatedAt: store.createdAt,
+      themeConfigured: Boolean(store.primaryColor || store.theme || store.websiteTemplateId),
+      firstProductAt: firstProduct?.createdAt ?? null,
+      firstProductPublished: firstProduct?.status === "active",
+      hasPublishedProducts: activeProducts > 0,
+      firstRealOrderAt: firstRealOrder?.createdAt ?? null,
+      firstDeliveryAt: firstDelivery?.createdAt ?? null,
     },
     ordersByStatus,
     orders: recentOrders,
@@ -1420,4 +1504,236 @@ export async function getPlatformPayments() {
     testRevenue,
     ordersByStore,
   };
+}
+
+/** Domain health center — DNS verified via checkDomainDns only. */
+export async function getPlatformDomains() {
+  const rows = await prisma.storeSettings.findMany({
+    where: { customDomain: { not: null } },
+    select: {
+      customDomain: true,
+      domainPrimary: true,
+      store: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  const domains = await Promise.all(
+    rows.map(async (row) => {
+      const domain = normalizeCustomDomain(row.customDomain);
+      if (!domain) {
+        return null;
+      }
+      let dnsOk = false;
+      let dnsDetail = "DNS check unavailable";
+      try {
+        const result = await checkDomainDns(domain);
+        dnsOk = result.ok;
+        dnsDetail = result.detail;
+      } catch {
+        dnsOk = false;
+        dnsDetail = "DNS lookup failed";
+      }
+      return {
+        domain,
+        domainPrimary: row.domainPrimary,
+        dnsOk,
+        dnsDetail,
+        storeId: row.store.id,
+        storeName: row.store.name,
+        slug: row.store.slug,
+        ownerId: row.store.user.id,
+        ownerName: row.store.user.name,
+        ownerEmail: row.store.user.email,
+      };
+    })
+  );
+
+  const list = domains.filter((d): d is NonNullable<typeof d> => Boolean(d));
+  const failing = list.filter((d) => !d.dnsOk).length;
+  return {
+    domains: list.sort((a, b) => Number(a.dnsOk) - Number(b.dnsOk) || a.domain.localeCompare(b.domain)),
+    total: list.length,
+    ok: list.length - failing,
+    failing,
+  };
+}
+
+export type PlatformLiveEventCategory =
+  | "all"
+  | "commerce"
+  | "merchants"
+  | "stores"
+  | "support"
+  | "errors"
+  | "domains";
+
+export type PlatformLiveEvent = {
+  id: string;
+  category: Exclude<PlatformLiveEventCategory, "all">;
+  title: string;
+  detail: string;
+  href: string;
+  createdAt: Date;
+};
+
+/** Live platform stream from real recent entities (not fabricated). */
+export async function getPlatformLiveFeed(limit = 40): Promise<PlatformLiveEvent[]> {
+  const realUserWhere = {
+    NOT: { email: { endsWith: "@example.com" as const } },
+  };
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [orders, users, messages, loginFails] = await Promise.all([
+    prisma.order.findMany({
+      where: { isTest: false },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        orderNumber: true,
+        total: true,
+        createdAt: true,
+        store: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.user.findMany({
+      where: realUserWhere,
+      orderBy: { createdAt: "desc" },
+      take: 15,
+      select: { id: true, name: true, email: true, createdAt: true },
+    }),
+    prisma.supportMessage.findMany({
+      where: { NOT: { direction: SUPPORT_MESSAGE_DIRECTION.OUTBOUND } },
+      orderBy: { createdAt: "desc" },
+      take: 15,
+      select: {
+        id: true,
+        topic: true,
+        email: true,
+        createdAt: true,
+        status: true,
+      },
+    }),
+    prisma.loginAttempt.findMany({
+      where: securityFailedLoginWhere({ createdAt: { gte: dayAgo } }),
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { id: true, email: true, reason: true, createdAt: true },
+    }),
+  ]);
+
+  const events: PlatformLiveEvent[] = [];
+
+  for (const o of orders) {
+    events.push({
+      id: `order-${o.id}`,
+      category: "commerce",
+      title: `${o.store.name} received an order`,
+      detail: `${Math.round(o.total).toLocaleString()} MAD · #${o.orderNumber}`,
+      href: `/admin/orders/${o.id}`,
+      createdAt: o.createdAt,
+    });
+  }
+  for (const u of users) {
+    events.push({
+      id: `user-${u.id}`,
+      category: "merchants",
+      title: "New merchant joined",
+      detail: u.name || u.email,
+      href: `/admin/users/${u.id}`,
+      createdAt: u.createdAt,
+    });
+  }
+  for (const m of messages) {
+    events.push({
+      id: `support-${m.id}`,
+      category: "support",
+      title: m.topic || "Support message",
+      detail: `${m.email} · ${m.status}`,
+      href: "/admin/messages",
+      createdAt: m.createdAt,
+    });
+  }
+  for (const f of loginFails) {
+    events.push({
+      id: `login-${f.id}`,
+      category: "errors",
+      title: "Failed login",
+      detail: `${f.email}${f.reason ? ` · ${f.reason}` : ""}`,
+      href: "/admin/errors",
+      createdAt: f.createdAt,
+    });
+  }
+
+  return events
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, limit);
+}
+
+/** Lightweight admin search for the command palette. */
+export async function searchPlatformAdmin(query: string) {
+  const q = query.trim();
+  if (q.length < 2) {
+    return { users: [], stores: [], orders: [] };
+  }
+
+  const realUserWhere = {
+    NOT: { email: { endsWith: "@example.com" as const } },
+  };
+
+  const [users, stores, orders] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        AND: [
+          realUserWhere,
+          {
+            OR: [
+              { email: { contains: q, mode: "insensitive" } },
+              { name: { contains: q, mode: "insensitive" } },
+            ],
+          },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, email: true },
+    }),
+    prisma.store.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { slug: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, slug: true },
+    }),
+    prisma.order.findMany({
+      where: {
+        OR: [
+          { orderNumber: { contains: q, mode: "insensitive" } },
+          { customerEmail: { contains: q, mode: "insensitive" } },
+          { customerName: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        orderNumber: true,
+        total: true,
+        store: { select: { name: true } },
+      },
+    }),
+  ]);
+
+  return { users, stores, orders };
 }

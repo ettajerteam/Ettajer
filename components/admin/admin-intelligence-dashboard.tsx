@@ -63,8 +63,8 @@ export function AdminIntelligenceDashboard({
     <div className={adminPage}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <AdminPageHeader
-          title="Platform intelligence"
-          description="Real GMV, merchant growth, and activation — not vanity traffic. Test checkouts stay out of the revenue curve."
+          title="Insights"
+          description="Signal → why it matters → recommended action. Derived from live platform data — not an LLM."
         />
         <div className="inline-flex rounded-lg border border-black/[0.06] bg-[#F5F5F7]/80 p-0.5 dark:border-white/10 dark:bg-white/[0.04]">
           {RANGES.map((item) => (

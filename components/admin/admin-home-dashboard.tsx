@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
-  AlertTriangle,
   ArrowUpRight,
   CreditCard,
   Globe,
@@ -160,61 +159,10 @@ export function AdminHomeDashboard({
   data: PlatformOverviewData;
   userName: string;
 }) {
-  const attention = [
-    data.waitingUsers > 0
-      ? {
-          id: "waiting",
-          label: `${data.waitingUsers} waiting users`,
-          href: "/admin/users",
-          tone: "amber" as const,
-        }
-      : null,
-    data.pendingRealOrders > 0
-      ? {
-          id: "pending-orders",
-          label: `${data.pendingRealOrders} pending real orders`,
-          href: "/admin/payments",
-          tone: "amber" as const,
-        }
-      : null,
-    data.newMessages > 0
-      ? {
-          id: "messages",
-          label: `${data.newMessages} open support threads`,
-          href: "/admin/messages",
-          tone: "amber" as const,
-        }
-      : null,
-    data.failedLogins24h > 0
-      ? {
-          id: "logins",
-          label: `${data.failedLogins24h} failed logins (24h)`,
-          href: "/admin/errors",
-          tone: "rose" as const,
-        }
-      : null,
-    data.hotEmptyCount > 0
-      ? {
-          id: "empty",
-          label: `${data.hotEmptyCount} hot empty stores`,
-          href: "/admin/activation",
-          tone: "amber" as const,
-        }
-      : null,
-    data.unverifiedEmails > 0
-      ? {
-          id: "unverified",
-          label: `${data.unverifiedEmails} unverified emails`,
-          href: "/admin/users",
-          tone: "amber" as const,
-        }
-      : null,
-  ].filter(Boolean) as Array<{
-    id: string;
-    label: string;
-    href: string;
-    tone: "amber" | "rose";
-  }>;
+  const attention = data.attentionItems ?? [];
+  const attentionSentence =
+    data.attentionSentence ??
+    "Platform pulse — real GMV, merchant growth, support, and storefront health.";
 
   const briefToneClass =
     data.brief.tone === "positive"
@@ -226,31 +174,56 @@ export function AdminHomeDashboard({
   return (
     <div className={homePage}>
       <section>
-        <h1 className={homeHeading}>
-          <TimeOfDayGreeting />, {userName}
-        </h1>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className={homeKicker}>Ettajer Console</p>
+            <h1 className={cn(homeHeading, "mt-1")}>
+              <TimeOfDayGreeting />, {userName}
+            </h1>
+          </div>
+          <p className="hidden text-[11px] text-neutral-400 sm:block">
+            ⌘K / Ctrl K · command palette
+          </p>
+        </div>
         <p className={cn("mt-1.5 max-w-2xl", homeSubtitle, briefToneClass)}>
           {data.brief.subtitle}
+        </p>
+        <p className="mt-2 max-w-3xl text-[13px] font-medium tracking-tight text-neutral-800 dark:text-neutral-100">
+          {attentionSentence}
         </p>
       </section>
 
       {attention.length > 0 ? (
-        <section className="flex flex-wrap gap-2" aria-label="Needs attention">
-          {attention.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-                item.tone === "rose"
-                  ? "border-rose-200/80 bg-rose-50 text-rose-700 hover:bg-rose-100/80 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
-                  : "border-amber-200/80 bg-amber-50 text-amber-800 hover:bg-amber-100/80 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
-              )}
-            >
-              <AlertTriangle className="h-3 w-3" />
-              {item.label}
-            </Link>
-          ))}
+        <section aria-label="Attention required">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+              Attention required
+            </p>
+            <span className={homeSubtitle}>Prioritized by urgency · impact</span>
+          </div>
+          <ul className="space-y-2">
+            {attention.map((item) => (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  className="group flex gap-3 rounded-[12px] border border-black/[0.06] bg-white px-3 py-2.5 transition-colors hover:border-black/[0.1] hover:bg-[#FAFAFA] dark:border-white/10 dark:bg-[#121212] dark:hover:bg-white/[0.03]"
+                >
+                  <p className="w-12 shrink-0 text-[18px] font-semibold tabular-nums tracking-tight text-neutral-900 dark:text-white">
+                    {item.count}
+                  </p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-neutral-900 dark:text-white">
+                      {item.title}
+                    </p>
+                    <p className={cn("mt-0.5", homeSubtitle)}>{item.reason}</p>
+                    <p className="mt-1.5 text-[12px] font-medium text-[#007AFF]">
+                      {item.cta} →
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 
@@ -377,7 +350,7 @@ export function AdminHomeDashboard({
           </p>
           <p className={cn("mt-0.5", homeSubtitle)}>Emails not confirmed</p>
         </div>
-        <div className={homeStatCell}>
+        <Link href="/admin/domains" className={homeStatCell}>
           <p className={homeKicker}>Domains</p>
           <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
             {data.domainsConnectedSuccess}
@@ -385,7 +358,7 @@ export function AdminHomeDashboard({
           <p className={cn("mt-0.5", homeSubtitle)}>
             of {data.domainsConnected} linked
           </p>
-        </div>
+        </Link>
         <div className={homeStatCell}>
           <p className={homeKicker}>Support</p>
           <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
@@ -413,12 +386,33 @@ export function AdminHomeDashboard({
         />
       </div>
 
-      <AdminShareBars
-        title="GMV concentration"
-        subtitle="Lifetime real revenue share — watch single-merchant risk."
-        rows={data.concentration}
-        hrefAll="/admin/stores"
-      />
+      <div>
+        <AdminShareBars
+          title="GMV concentration"
+          subtitle="Lifetime real revenue share — business concentration signal."
+          rows={data.concentration}
+          hrefAll="/admin/analytics?range=30"
+        />
+        {data.concentrationRisk?.message ? (
+          <div
+            className={cn(
+              "mt-2 rounded-lg border px-3 py-2.5",
+              data.concentrationRisk.elevated
+                ? "border-amber-200/80 bg-amber-50/70 dark:border-amber-500/20 dark:bg-amber-500/10"
+                : "border-black/[0.05] bg-[#F5F5F7] dark:border-white/[0.06] dark:bg-white/[0.03]"
+            )}
+          >
+            <p className="text-[12px] font-medium text-neutral-900 dark:text-white">
+              {data.concentrationRisk.message}
+            </p>
+            {data.concentrationRisk.why ? (
+              <p className={cn("mt-1", homeSubtitle)}>
+                {data.concentrationRisk.why}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <section className={cn(homeCard, homeCardPad)}>
         <h2 className={homeTitle}>Quick actions</h2>
