@@ -234,7 +234,8 @@ export function buildDrSaraSnapshotFromState(
           (i) => i.interventionId === o.interventionId
         );
         return (
-          int?.merchantId === p.merchantId &&
+          (int?.targetType === "merchant" || int?.targetType === "store") &&
+          int?.targetId === p.merchantId &&
           (int.type === "FIRST_SALE_ASSIST" || int.type === "ACTIVATION_OUTREACH")
         );
       })

@@ -38,7 +38,7 @@ export function resolveInterventionConflicts(
   interventions: Intervention[]
 ): ConflictResolution {
   const dependencyGraph: DependencyEdge[] = [];
-  const present = new Set(interventions.map((i) => i.type));
+  const present = new Set<string>(interventions.map((i) => i.type));
   const blocked: ConflictResolution["blocked"] = [];
   const allowed: Intervention[] = [];
 
