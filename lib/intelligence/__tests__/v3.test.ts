@@ -536,11 +536,11 @@ describe("V3 segments + graph + explainability + registry", () => {
 });
 
 describe("V3 snapshot + UI adapter compatibility", () => {
-    it("snapshot version is 4.0.0 with execution trace", () => {
+    it("snapshot version is 5.0.0 with execution trace", () => {
     const snap = buildDrSaraSnapshotFromState(
       state({ pendingRealOrders: 12, pendingRealGmv: 2000 })
     );
-    expect(snap.metadata.version).toBe("4.0.0");
+    expect(snap.metadata.version).toBe("5.0.0");
     expect(snap.executionTrace.rulesEvaluated).toBeGreaterThan(0);
     expect(snap.executionTrace.topAction).toBeTruthy();
     expect(snap.topIntervention?.type).toBe("COD_VERIFICATION");
@@ -573,7 +573,7 @@ describe("V3 snapshot + UI adapter compatibility", () => {
 
   it("empty platform does not crash V3", () => {
     const snap = buildDrSaraSnapshotFromState(state());
-    expect(snap.metadata.version).toBe("4.0.0");
+    expect(snap.metadata.version).toBe("5.0.0");
     expect(snap.executionTrace.signalsGenerated).toBeGreaterThanOrEqual(0);
   });
 

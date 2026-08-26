@@ -109,6 +109,20 @@ export const INTELLIGENCE_SCORING_CONFIG = {
     defaultLevel: 1,
     autoExecute: false,
   },
+  twin: {
+    maxScenariosPerMerchant: 3,
+    maxPortfolioSizes: [10, 25, 50] as readonly number[],
+    defaultSupportCapacity: 5,
+    defaultDailyActivationCapacity: 20,
+    defaultOperationsCapacity: 10,
+    /** Historical COD clearance range [low, high] fractions when no memory */
+    defaultCodClearanceRange: [0.4, 0.7] as readonly [number, number],
+    defaultDnsClearanceRange: [0.5, 0.9] as readonly [number, number],
+    defaultSupportClearanceRange: [0.6, 1.0] as readonly [number, number],
+    trajectoryHorizonsHours: [24, 48, 168] as readonly number[],
+    decisionStabilityWindow: 3,
+    scenarioCacheMax: 64,
+  },
   thresholds: INTELLIGENCE_THRESHOLDS,
 } as const;
 

@@ -123,3 +123,15 @@ Warnings surface on the snapshot as `dataQualityWarnings`.
 3. Add a deterministic fixture test.
 4. Never invent routes — only existing `/admin/*` paths.
 5. Soft language for causal rules.
+
+
+## V5 Scenario Rules
+
+| ruleId | Notes |
+|--------|-------|
+| TWIN_EDGE_* | State graph edges (CAUSAL_SUPPORTED / CORRELATION_ONLY) |
+| SCENARIO_SIM_V5 | Deterministic historical-range simulation |
+| NO_ACTION baseline | Required every cycle |
+| CHAIN_DOMAIN_TO_ACTIVATION | Multi-step scenario |
+| OVERLAPPING_EFFECT | Prevents double-counting |
+| EXPECTED_OPPORTUNITY | Cascade language — never guaranteed orders |

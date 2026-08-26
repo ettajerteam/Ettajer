@@ -86,8 +86,35 @@ import {
 } from "@/lib/intelligence/warnings/early";
 import type { SaraBriefing } from "@/lib/intelligence/types";
 import { INTELLIGENCE_SCORING_CONFIG as C } from "@/lib/intelligence/config/scoring";
+import { buildPlatformDigitalTwin } from "@/lib/intelligence/twin/build";
+import { generateScenarios } from "@/lib/intelligence/scenarios/simulate";
+import { rankScenarios } from "@/lib/intelligence/scenarios/rank";
+import { buildCounterfactuals } from "@/lib/intelligence/counterfactual/engine";
+import {
+  buildMerchantTwin,
+  generateMerchantScenarios,
+} from "@/lib/intelligence/merchants/twin";
+import { buildActivationPortfolios } from "@/lib/intelligence/portfolio/simulate";
+import {
+  buildStateTrajectory,
+  simulateEscalationRisk,
+  simulateRecovery,
+} from "@/lib/intelligence/trajectory/forecast";
+import { assessDecisionStability } from "@/lib/intelligence/stability/decision";
+import {
+  getCachedScenarios,
+  scenarioCacheKey,
+  setCachedScenarios,
+} from "@/lib/intelligence/cache/scenario-cache";
+import type { DecisionMemoryEntry } from "@/lib/intelligence/stability/decision";
 
-const ENGINE_VERSION = "4.0.0";
+export type BuildSnapshotOptions = {
+  memory?: IntelligenceMemory;
+  /** Prior cycle decision memory for stability (optional) */
+  decisionHistory?: DecisionMemoryEntry[];
+};
+
+const ENGINE_VERSION = "5.0.0";
 
 const DIMENSION_LABELS: Record<
   keyof DrSaraSnapshot["health"]["dimensions"],
@@ -132,10 +159,6 @@ function statusLabelFor(
   }
   return score >= 85 ? "Operational" : `Score ${score}`;
 }
-
-export type BuildSnapshotOptions = {
-  memory?: IntelligenceMemory;
-};
 
 export function buildDrSaraSnapshotFromState(
   state: ReturnType<typeof toPlatformState>,
@@ -592,6 +615,146 @@ export function buildDrSaraSnapshotFromState(
     learningUpdate,
   });
 
+  // ─── V5 Digital Twin + scenarios (AUTO_EXECUTE always false) ───
+  const digitalTwin = buildPlatformDigitalTwin({
+    state,
+    sourceSnapshotId: cycleId,
+    confidencePenalty: gate.confidencePenalty,
+    insufficientEvidence: gate.insufficientEvidence,
+    sampleSize: gate.sampleSize,
+    risks: risks.map((r) => r.id),
+    opportunities: opportunities.map((o) => o.id),
+  });
+
+  const recoveringCOD = earlyWarnings.some(
+    (w) =>
+      w.metric === "pendingRealOrders" &&
+      (w.state === "RECOVERING" || w.state === "RESOLVED")
+  );
+  const velocity = {
+    pendingCOD: earlyWarnings.find((w) => w.metric === "pendingRealOrders")
+      ?.velocity ?? (state.pendingRealOrders > 0 ? 1 : 0),
+    support:
+      earlyWarnings.find((w) => w.metric === "openSupport")?.velocity ?? 0,
+    dns:
+      earlyWarnings.find((w) => w.metric === "domainFailing")?.velocity ?? 0,
+    operationsHealth: state.pendingRealOrders > 0 ? -2 : 1,
+  };
+
+  const cacheKey = scenarioCacheKey({
+    twinHash: digitalTwin.twinHash,
+    scenarioLabel: "all",
+    evidenceFingerprint: [
+      state.pendingRealOrders,
+      state.domainFailing,
+      state.openSupport,
+      recoveringCOD ? 1 : 0,
+    ].join(":"),
+  });
+  let scenarioOutcomes = getCachedScenarios(cacheKey);
+  if (!scenarioOutcomes) {
+    scenarioOutcomes = generateScenarios({
+      twin: digitalTwin,
+      candidateInterventions: interventions.map((i) => i.type),
+      performance: memory.rulePerformance,
+      domainFailing: state.domainFailing,
+      recoveringCOD,
+      velocity: {
+        pendingCOD: velocity.pendingCOD,
+        support: velocity.support,
+        dns: velocity.dns,
+      },
+    });
+    setCachedScenarios(cacheKey, scenarioOutcomes);
+  }
+
+  const rankedScenarios = rankScenarios({
+    scenarios: scenarioOutcomes,
+    urgencies: {
+      COD_VERIFICATION: 1,
+      DNS_DIAGNOSIS: 0.9,
+      FIX_DOMAIN: 0.9,
+      SUPPORT_ESCALATION: 0.85,
+      FIRST_SALE_ASSIST: 0.55,
+      ACTIVATION_OUTREACH: 0.5,
+    },
+  });
+
+  const topScenario = rankedScenarios.topScenario;
+  const interventionAdvantage = topScenario?.advantage
+    ? {
+        scenarioId: topScenario.advantage.scenarioId,
+        advantage: topScenario.advantage.advantage,
+        riskReduction: topScenario.advantage.riskReduction,
+        formula: topScenario.advantage.formula,
+      }
+    : null;
+
+  const counterfactuals = buildCounterfactuals({
+    twin: digitalTwin,
+    performance: memory.rulePerformance,
+  });
+
+  const stateTrajectory = buildStateTrajectory({
+    twin: digitalTwin,
+    velocity: {
+      pendingCOD: velocity.pendingCOD,
+      operationsHealth: velocity.operationsHealth,
+    },
+  });
+
+  const portfolioScenarios = buildActivationPortfolios(digitalTwin);
+  const merchantTwinsBuilt = profiles.slice(0, 12).map((p) => {
+    const mt = buildMerchantTwin(p);
+    const ms = generateMerchantScenarios(mt);
+    return {
+      ...mt,
+      recommendedIntervention: ms.recommended,
+    };
+  });
+
+  const escalationRisk = simulateEscalationRisk({
+    pendingCOD: state.pendingRealOrders,
+    velocityPerDay: Math.max(0, velocity.pendingCOD),
+  });
+
+  const recoverySeries = [
+    ...memory.observations.map((o) => o.metrics.pendingRealOrders),
+    state.pendingRealOrders,
+  ];
+  const recoverySimulation = simulateRecovery({ series: recoverySeries });
+
+  const assumptionCount = scenarioOutcomes.reduce(
+    (n, s) => n + s.assumptions.length,
+    0
+  );
+  const uncertainty = {
+    confidence: digitalTwin.confidence,
+    evidenceQuality: eq,
+    assumptionCount,
+    dataQualityPenalty: gate.confidencePenalty,
+  };
+
+  const decisionChanges = assessDecisionStability({
+    history: options.decisionHistory ?? [],
+    currentTopAction: top?.action.label ?? null,
+    currentTopScenario: topScenario?.scenario.label ?? null,
+    evidence: [
+      recoveringCOD
+        ? "COD backlog is recovering."
+        : state.pendingRealOrders > 0
+          ? "COD backlog remains elevated."
+          : "No COD backlog.",
+      state.domainFailing > 0
+        ? `DNS failure severity=${state.domainFailing}.`
+        : "DNS stable.",
+    ],
+  });
+
+  // V5: never auto-execute
+  void C.twin;
+  const autonomyV5 = { ...autonomy, autoExecute: false as const };
+
   return {
     generatedAt: state.now,
     headline:
@@ -826,9 +989,9 @@ export function buildDrSaraSnapshotFromState(
       explanation: s.explanation,
     })),
     autonomy: {
-      level: autonomy.level,
-      label: autonomy.label,
-      autoExecute: autonomy.autoExecute,
+      level: autonomyV5.level,
+      label: autonomyV5.label,
+      autoExecute: false,
     },
     executionTraceV4: {
       cycleId: executionTraceV4.cycleId,
@@ -846,6 +1009,74 @@ export function buildDrSaraSnapshotFromState(
       missingDimensions: gate.missingDimensions,
       confidencePenalty: gate.confidencePenalty,
       insufficientEvidence: gate.insufficientEvidence,
+    },
+    digitalTwin: {
+      twinHash: digitalTwin.twinHash,
+      confidence: digitalTwin.confidence,
+      health: { ...digitalTwin.health },
+      metrics: { ...digitalTwin.metrics },
+      constraints: { ...digitalTwin.constraints },
+      dependencyCount: digitalTwin.dependencies.length,
+    },
+    scenarios: scenarioOutcomes.map((s) => ({
+      scenarioId: s.scenarioId,
+      kind: s.kind,
+      label: s.label,
+      intervention: s.intervention,
+      expectedImpact: s.expectedImpact,
+      confidence: s.confidence,
+      blockedFactors: s.blockedFactors,
+    })),
+    scenarioRanking: rankedScenarios.ranked.slice(0, 8).map((r) => ({
+      rank: r.rank,
+      scenarioId: r.scenario.scenarioId,
+      label: r.scenario.label,
+      score: r.score,
+      advantage: r.advantage.advantage,
+    })),
+    topScenario: topScenario
+      ? {
+          scenarioId: topScenario.scenario.scenarioId,
+          label: topScenario.scenario.label,
+          intervention: topScenario.scenario.intervention,
+          score: topScenario.score,
+          whyChosen: topScenario.whyChosen,
+        }
+      : null,
+    interventionAdvantage,
+    counterfactuals: counterfactuals.map((c) => ({
+      id: c.id,
+      statement: c.statement,
+      evidenceStrength: c.evidenceStrength,
+      confidence: c.confidence,
+    })),
+    stateTrajectory: stateTrajectory.map((t) => ({
+      dimension: t.dimension,
+      now: t.now,
+      points: t.points.map((p) => ({ label: p.label, range: p.range })),
+    })),
+    portfolioScenarios: portfolioScenarios.map((p) => ({
+      id: p.id,
+      label: p.label,
+      selectedSize: p.selectedSize,
+      capacityLimit: p.capacityLimit,
+      note: p.note,
+    })),
+    merchantTwins: merchantTwinsBuilt.map((m) => ({
+      merchantId: m.merchantId,
+      stage: m.stage,
+      bottleneck: m.bottleneck,
+      recommendedIntervention: m.recommendedIntervention,
+    })),
+    decisionChanges,
+    uncertainty,
+    escalationRisk: {
+      note: escalationRisk.note,
+      escalationRisk: escalationRisk.escalationRisk,
+    },
+    recoverySimulation: {
+      onTrack: recoverySimulation.onTrack,
+      note: recoverySimulation.note,
     },
     metadata: {
       engine: "deterministic",

@@ -472,6 +472,89 @@ export type DrSaraSnapshot = {
     confidencePenalty: number;
     insufficientEvidence: boolean;
   };
+  /** V5 — Digital Twin & scenarios (additive) */
+  digitalTwin: {
+    twinHash: string;
+    confidence: number;
+    health: Record<string, number>;
+    metrics: Record<string, number>;
+    constraints: Record<string, number>;
+    dependencyCount: number;
+  } | null;
+  scenarios: {
+    scenarioId: string;
+    kind: string;
+    label: string;
+    intervention: string | null;
+    expectedImpact: number;
+    confidence: number;
+    blockedFactors: string[];
+  }[];
+  scenarioRanking: {
+    rank: number;
+    scenarioId: string;
+    label: string;
+    score: number;
+    advantage: number;
+  }[];
+  topScenario: {
+    scenarioId: string;
+    label: string;
+    intervention: string | null;
+    score: number;
+    whyChosen: string;
+  } | null;
+  interventionAdvantage: {
+    scenarioId: string;
+    advantage: number;
+    riskReduction: number;
+    formula: string;
+  } | null;
+  counterfactuals: {
+    id: string;
+    statement: string;
+    evidenceStrength: string;
+    confidence: number;
+  }[];
+  stateTrajectory: {
+    dimension: string;
+    now: number;
+    points: { label: string; range: [number, number] }[];
+  }[];
+  portfolioScenarios: {
+    id: string;
+    label: string;
+    selectedSize: number;
+    capacityLimit: number;
+    note: string;
+  }[];
+  merchantTwins: {
+    merchantId: string;
+    stage: string;
+    bottleneck: string;
+    recommendedIntervention: string | null;
+  }[];
+  decisionChanges: {
+    previousTopAction: string | null;
+    currentTopAction: string | null;
+    changed: boolean;
+    changeReason: string;
+    stability: string;
+  } | null;
+  uncertainty: {
+    confidence: number;
+    evidenceQuality: number;
+    assumptionCount: number;
+    dataQualityPenalty: number;
+  };
+  escalationRisk: {
+    note: string;
+    escalationRisk: boolean;
+  } | null;
+  recoverySimulation: {
+    onTrack: boolean;
+    note: string;
+  } | null;
   metadata: {
     engine: "deterministic";
     version: string;
