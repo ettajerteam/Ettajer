@@ -764,6 +764,37 @@ export type DrSaraSnapshot = {
     trace: { stage: string; detail: string }[];
     rationale: string[];
   } | null;
+  /** V9 — Controlled execution governance (snapshot never auto-executes) */
+  execution: {
+    status: string;
+    killSwitch: string;
+    autoExecute: false;
+    approval: {
+      approvalId: string | null;
+      lifecycle: string | null;
+      requiresApproval: boolean;
+      expiresAt: string | null;
+    } | null;
+    authorization: { authorized: boolean; reasons: string[] };
+    governor: { verdict: string; reasons: string[] };
+    idempotency: { key: string | null };
+    verification: { note: string };
+    outcome: {
+      success: boolean | null;
+      productionMutation: "NONE";
+    } | null;
+    executionTrace: {
+      stage: string;
+      timestamp: string;
+      stateFingerprint: string;
+      actor: string;
+      result: string;
+      reason: string;
+      identifiers: Record<string, string>;
+    }[];
+    modeDefault: "DRY_RUN";
+    note: string;
+  } | null;
   metadata: {
     engine: "deterministic";
     version: string;

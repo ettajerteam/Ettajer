@@ -124,6 +124,7 @@ import type {
 import { selectTopDecisionCandidate } from "@/lib/intelligence/decisions/scoring";
 import { buildDecisionRationale } from "@/lib/intelligence/decisions/rationale";
 import { orchestrateIntervention } from "@/lib/intelligence/interventions/orchestrator";
+import { buildSnapshotExecutionSlice } from "@/lib/intelligence/execution/engine";
 
 export type BuildSnapshotOptions = {
   memory?: IntelligenceMemory;
@@ -134,7 +135,7 @@ export type BuildSnapshotOptions = {
   v7OutcomeHistory?: OutcomeMemoryRecord[];
 };
 
-const ENGINE_VERSION = "8.0.0";
+const ENGINE_VERSION = "9.0.0";
 
 const DIMENSION_LABELS: Record<
   keyof DrSaraSnapshot["health"]["dimensions"],
@@ -985,9 +986,17 @@ export function buildDrSaraSnapshotFromState(
     cycleId,
   });
 
-  // V5/V6/V7/V8: never auto-execute
+  // V5–V9: never auto-execute
   void C.twin;
   const autonomyV5 = { ...autonomy, autoExecute: false as const };
+
+  // V9 Controlled Execution — snapshot projects governance readiness only (no execute)
+  const executionSlice = buildSnapshotExecutionSlice({
+    plan: interventionPlan,
+    stateFingerprint: memoryResult.primaryFingerprint,
+    cycleId,
+    nowIso: state.now.toISOString(),
+  });
 
   return {
     generatedAt: state.now,
@@ -1482,6 +1491,7 @@ export function buildDrSaraSnapshotFromState(
           rationale: interventionPlan.rationale.slice(0, 6),
         }
       : null,
+    execution: executionSlice,
     metadata: {
       engine: "deterministic",
       version: ENGINE_VERSION,

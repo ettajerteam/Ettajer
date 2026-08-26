@@ -1,5 +1,5 @@
 /**
- * Dr Sara — Intelligence OS V7 exports (Memory & Outcome on V6 decisions).
+ * Dr Sara — Intelligence OS V9 exports (Controlled Execution on V8 plans).
  */
 export {
   getDrSaraSnapshot,
@@ -67,6 +67,20 @@ export {
   buildIdempotencyKey,
 } from "@/lib/intelligence/interventions/index";
 export {
+  runGovernedExecution,
+  buildSnapshotExecutionSlice,
+  resetExecutionEngine,
+  executeIntervention,
+  requestApproval,
+  approve,
+  reject,
+  getKillSwitch,
+  setKillSwitch,
+  EXECUTION_REGISTRY,
+  adminActor,
+  toOutcomeMemoryRecord,
+} from "@/lib/intelligence/execution/index";
+export {
   buildMerchantTwin,
   generateMerchantScenarios,
 } from "@/lib/intelligence/merchants/twin";
@@ -111,3 +125,8 @@ export type {
   MemoryEngineResult,
 } from "@/lib/intelligence/memory/v7-types";
 export type { InterventionPlan } from "@/lib/intelligence/interventions/types";
+export type {
+  ExecutionRecord,
+  ApprovalRecord,
+  ExecutionOutcome,
+} from "@/lib/intelligence/execution/types";
