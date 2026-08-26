@@ -22,13 +22,33 @@ import { cn } from "@/lib/utils";
 import { adminNavItems } from "@/lib/admin/admin-nav";
 
 type SearchResults = {
-  users: { id: string; name: string | null; email: string }[];
-  stores: { id: string; name: string; slug: string }[];
+  users: {
+    id: string;
+    name: string | null;
+    email: string;
+    _count?: { stores: number };
+  }[];
+  stores: {
+    id: string;
+    name: string;
+    slug: string;
+    ownerId?: string;
+    ownerName?: string | null;
+    ownerEmail?: string;
+    realOrders?: number;
+  }[];
   orders: {
     id: string;
     orderNumber: string;
     total: number;
-    store: { name: string };
+    store: { name: string; id?: string };
+  }[];
+  shortcuts?: {
+    id: string;
+    label: string;
+    hint: string;
+    href: string;
+    group: string;
   }[];
 };
 
@@ -43,22 +63,6 @@ type PaletteItem = {
 
 const QUICK_ACTIONS: PaletteItem[] = [
   {
-    id: "qa-merchant",
-    label: "Open merchant search",
-    hint: "Type a name or email",
-    href: "/admin/users",
-    group: "Quick actions",
-    icon: Users,
-  },
-  {
-    id: "qa-store",
-    label: "Open store search",
-    hint: "Browse stores",
-    href: "/admin/stores",
-    group: "Quick actions",
-    icon: Store,
-  },
-  {
     id: "qa-pending",
     label: "Verify pending orders",
     hint: "COD backlog",
@@ -67,18 +71,25 @@ const QUICK_ACTIONS: PaletteItem[] = [
     icon: ShoppingBag,
   },
   {
-    id: "qa-support",
-    label: "Open support inbox",
-    href: "/admin/messages",
-    group: "Quick actions",
-    icon: MessageSquare,
-  },
-  {
     id: "qa-activation",
     label: "Open activation targets",
     href: "/admin/activation?stage=empty",
     group: "Quick actions",
     icon: Rocket,
+  },
+  {
+    id: "qa-listed",
+    label: "First-sale targets",
+    href: "/admin/activation?stage=listed",
+    group: "Quick actions",
+    icon: Store,
+  },
+  {
+    id: "qa-support",
+    label: "Open support inbox",
+    href: "/admin/messages",
+    group: "Quick actions",
+    icon: MessageSquare,
   },
   {
     id: "qa-domains",
@@ -111,6 +122,7 @@ export function AdminCommandPalette() {
     users: [],
     stores: [],
     orders: [],
+    shortcuts: [],
   });
 
   useEffect(() => {
@@ -120,26 +132,28 @@ export function AdminCommandPalette() {
         setOpen((v) => !v);
       }
     }
+    function onOpen() {
+      setOpen(true);
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("ettajer:open-command-palette", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("ettajer:open-command-palette", onOpen);
+    };
   }, []);
 
   useEffect(() => {
     if (!open) {
       setQuery("");
       setActive(0);
-      setResults({ users: [], stores: [], orders: [] });
+      setResults({ users: [], stores: [], orders: [], shortcuts: [] });
     }
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
-    if (q.length < 2) {
-      setResults({ users: [], stores: [], orders: [] });
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
     setLoading(true);
     const t = window.setTimeout(async () => {
@@ -151,11 +165,12 @@ export function AdminCommandPalette() {
         const data = (await res.json()) as SearchResults;
         if (!cancelled) setResults(data);
       } catch {
-        if (!cancelled) setResults({ users: [], stores: [], orders: [] });
+        if (!cancelled)
+          setResults({ users: [], stores: [], orders: [], shortcuts: [] });
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }, 160);
+    }, 140);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
@@ -179,37 +194,71 @@ export function AdminCommandPalette() {
     const q = query.trim().toLowerCase();
     const list: PaletteItem[] = [];
 
-    if (results.users.length || results.stores.length || results.orders.length) {
-      for (const u of results.users) {
+    for (const s of results.shortcuts ?? []) {
+      list.push({
+        id: s.id,
+        label: s.label,
+        hint: s.hint,
+        href: s.href,
+        group: s.group,
+      });
+    }
+
+    for (const store of results.stores) {
+      list.push({
+        id: `store-${store.id}`,
+        label: store.name,
+        hint: `/${store.slug}${
+          typeof store.realOrders === "number"
+            ? ` · ${store.realOrders} real order${store.realOrders === 1 ? "" : "s"}`
+            : ""
+        }`,
+        href: `/admin/stores/${store.id}`,
+        group: "Stores",
+        icon: Store,
+      });
+      if (store.ownerId) {
         list.push({
-          id: `user-${u.id}`,
-          label: u.name || u.email,
-          hint: u.email,
-          href: `/admin/users/${u.id}`,
-          group: "Users",
+          id: `store-owner-${store.id}`,
+          label: store.ownerName || store.ownerEmail || "Merchant",
+          hint: "Open merchant",
+          href: `/admin/users/${store.ownerId}`,
+          group: "Merchants",
           icon: Users,
         });
-      }
-      for (const s of results.stores) {
         list.push({
-          id: `store-${s.id}`,
-          label: s.name,
-          hint: `/${s.slug}`,
-          href: `/admin/stores/${s.id}`,
-          group: "Stores",
-          icon: Store,
-        });
-      }
-      for (const o of results.orders) {
-        list.push({
-          id: `order-${o.id}`,
-          label: `#${o.orderNumber}`,
-          hint: `${o.store.name} · ${Math.round(o.total).toLocaleString()} MAD`,
-          href: `/admin/orders/${o.id}`,
-          group: "Orders",
+          id: `store-orders-${store.id}`,
+          label: `Orders · ${store.name}`,
+          hint: "View payments filtered by store page",
+          href: `/admin/stores/${store.id}`,
+          group: "Actions",
           icon: ShoppingBag,
         });
       }
+    }
+
+    for (const u of results.users) {
+      list.push({
+        id: `user-${u.id}`,
+        label: u.name || u.email,
+        hint: `${u.email}${
+          u._count ? ` · ${u._count.stores} store${u._count.stores === 1 ? "" : "s"}` : ""
+        }`,
+        href: `/admin/users/${u.id}`,
+        group: "Users",
+        icon: Users,
+      });
+    }
+
+    for (const o of results.orders) {
+      list.push({
+        id: `order-${o.id}`,
+        label: `#${o.orderNumber}`,
+        hint: `${o.store.name} · ${Math.round(o.total).toLocaleString()} MAD`,
+        href: `/admin/orders/${o.id}`,
+        group: "Orders",
+        icon: ShoppingBag,
+      });
     }
 
     const filter = (rows: PaletteItem[]) =>
@@ -218,13 +267,13 @@ export function AdminCommandPalette() {
         : rows.filter(
             (r) =>
               r.label.toLowerCase().includes(q) ||
-              (r.hint ?? "").toLowerCase().includes(q)
+              (r.hint ?? "").toLowerCase().includes(q) ||
+              r.group.toLowerCase().includes(q)
           );
 
     list.push(...filter(QUICK_ACTIONS));
     list.push(...filter(navItems));
 
-    // Deduplicate by href+label
     const seen = new Set<string>();
     return list.filter((item) => {
       const key = `${item.group}:${item.href}:${item.label}`;
@@ -287,14 +336,14 @@ export function AdminCommandPalette() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="Search users, stores, orders — or jump…"
+              placeholder="Search users, stores, orders — or try “pending orders”"
               className="h-11 w-full bg-transparent text-[13px] outline-none placeholder:text-neutral-400"
             />
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-400" />
             ) : null}
           </div>
-          <div className="max-h-[360px] overflow-y-auto p-1.5">
+          <div className="max-h-[380px] overflow-y-auto p-1.5">
             {items.length === 0 ? (
               <p className="px-3 py-6 text-center text-[12px] text-neutral-400">
                 No matches

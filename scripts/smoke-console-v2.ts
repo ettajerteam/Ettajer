@@ -36,7 +36,7 @@ async function main() {
   const act = await getActivationGap();
   const feed = await getPlatformLiveFeed(10);
   const payments = await getPlatformPayments();
-  const search = await searchPlatformAdmin("store");
+  const search = await searchPlatformAdmin("pending orders");
   const domains = await getPlatformDomains();
   const sample = act.emptyAll[0] ?? act.activeNoOrders[0];
   const health = sample ? healthFromActivationRow(sample) : null;
@@ -45,29 +45,42 @@ async function main() {
     ms: Date.now() - t0,
     users: overview.totalUsers,
     stores: overview.totalStores,
+    liveStores: overview.liveStores,
     realOrders: overview.realOrders,
     realGmv: overview.totalRevenue,
+    healthOverall: overview.health.overallLabel,
+    healthStrip: overview.health.items.map((i) => ({
+      label: i.label,
+      status: i.statusLabel,
+    })),
     attentionSentence: overview.attentionSentence,
-    attentionCount: overview.attentionItems.length,
     attentionTop: overview.attentionItems.slice(0, 4).map((i) => ({
       id: i.id,
       count: i.count,
+      tier: i.tier,
+      score: i.priorityScore,
       title: i.title,
-      href: i.href,
     })),
+    today: overview.today,
+    last7d: {
+      gmv: overview.realRevenue7d,
+      orders: overview.realOrders7d,
+      changes: overview.changes,
+    },
     funnel: overview.funnel,
-    concentrationRisk: overview.concentrationRisk,
-    insights: overview.insights.slice(0, 3).map((i) => ({
-      id: i.id,
-      category: i.category,
-      signal: i.signal,
+    helpToday: overview.helpToday.slice(0, 3).map((h) => ({
+      merchant: h.ownerName || h.ownerEmail,
+      intent: h.intent,
+      health: h.healthScore,
     })),
+    firstSale: overview.firstSale,
+    liveFeedInline: overview.liveFeed.slice(0, 3).map((e) => e.title),
+    concentrationRisk: overview.concentrationRisk,
     sampleHealth: sample
       ? {
           store: sample.storeName,
           score: health?.score,
           band: health?.bandLabel,
-          bottleneck: health?.bottleneck,
         }
       : null,
     liveFeedSample: feed.slice(0, 3).map((e) => ({
@@ -76,11 +89,7 @@ async function main() {
     })),
     paymentsPending:
       payments.ordersByStatus.find((r) => r.status === "pending")?._count ?? 0,
-    searchHits: {
-      users: search.users.length,
-      stores: search.stores.length,
-      orders: search.orders.length,
-    },
+    searchShortcuts: search.shortcuts,
     domains: { total: domains.total, ok: domains.ok, failing: domains.failing },
   };
 

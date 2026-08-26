@@ -23,6 +23,13 @@ import {
   buildAttentionQueue,
   buildAttentionSentence,
 } from "@/lib/admin/attention-queue";
+import { derivePlatformHealth } from "@/lib/admin/platform-health";
+import {
+  activationTemperature,
+  healthFromActivationRow,
+  temperatureLabel,
+} from "@/lib/admin/merchant-health";
+import { isResendConfigured } from "@/lib/resend";
 
 export type AdminOverviewBrief = {
   subtitle: string;
@@ -354,6 +361,7 @@ export async function getPlatformOverview() {
     unverifiedEmails,
     pendingRealOrders,
     processingRealOrders,
+    pendingRealGmvAgg,
   ] = await Promise.all([
     prisma.order.findMany({
       where: { isTest: false, createdAt: { gte: startOfToday } },
@@ -384,6 +392,10 @@ export async function getPlatformOverview() {
     prisma.order.count({
       where: { isTest: false, status: "processing" },
     }),
+    prisma.order.aggregate({
+      where: { isTest: false, status: "pending" },
+      _sum: { total: true },
+    }),
   ]);
 
   const today = {
@@ -411,6 +423,7 @@ export async function getPlatformOverview() {
   const aov7d = realOrders7d > 0 ? revenue7d / realOrders7d : 0;
   const aovPrev7d =
     realOrdersPrev7d > 0 ? revenuePrev7d / realOrdersPrev7d : 0;
+  const pendingRealGmv = pendingRealGmvAgg._sum.total ?? 0;
 
   const insights = deriveAdminInsights({
     range: 7,
@@ -462,8 +475,101 @@ export async function getPlatformOverview() {
     openSupport: newMessages,
     failedLogins24h,
     processingRealOrders,
+    pendingRealGmv,
   });
   const attentionSentence = buildAttentionSentence(attentionItems);
+
+  const health = derivePlatformHealth({
+    pendingRealOrders,
+    realOrders7d,
+    liveStores,
+    totalStores,
+    domainsConnected: domainStats.domainsConnected,
+    domainsConnectedSuccess: domainStats.domainsConnectedSuccess,
+    failedLogins24h,
+    openSupport: newMessages,
+    emailConfigured: isResendConfigured(),
+  });
+
+  const helpToday = activation.hotEmpty.slice(0, 8).map((row) => {
+    const healthScore = healthFromActivationRow(row);
+    const temp = activationTemperature(row.lastLoginAt, row.createdAt);
+    return {
+      storeId: row.storeId,
+      storeName: row.storeName,
+      slug: row.slug,
+      ownerId: row.ownerId,
+      ownerName: row.ownerName,
+      ownerEmail: row.ownerEmail,
+      intent: temp === "hot" ? "HIGH" : temp === "warm" ? "MEDIUM" : "LOW",
+      intentReasons: [
+        row.lastLoginAt ? "Logged in recently" : null,
+        "Store exists",
+        row.activeProducts + row.draftProducts === 0 ? "No products" : null,
+      ].filter(Boolean) as string[],
+      healthScore: healthScore.score,
+      healthBand: healthScore.bandLabel,
+      temperature: temperatureLabel(temp),
+    };
+  });
+
+  const firstSaleHot = activation.activeNoOrders.filter((r) => {
+    const t = activationTemperature(r.lastLoginAt, r.createdAt);
+    return t === "hot" || t === "warm";
+  });
+  const firstSaleBottlenecks = {
+    lowRecentActivity: activation.activeNoOrders.filter((r) => {
+      const t = activationTemperature(r.lastLoginAt, r.createdAt);
+      return t === "cold";
+    }).length,
+    singleProduct: activation.activeNoOrders.filter(
+      (r) => r.activeProducts === 1
+    ).length,
+    multiProductReady: activation.activeNoOrders.filter(
+      (r) => r.activeProducts >= 3
+    ).length,
+  };
+
+  const liveFeed: {
+    id: string;
+    category: string;
+    title: string;
+    detail: string;
+    href: string;
+    createdAt: Date;
+  }[] = [];
+  for (const o of recentOrders.slice(0, 6)) {
+    if (o.isTest) continue;
+    liveFeed.push({
+      id: `order-${o.id}`,
+      category: "commerce",
+      title: `${o.store.name} received an order`,
+      detail: `${Math.round(o.total).toLocaleString()} ${o.store.currency}`,
+      href: `/admin/orders/${o.id}`,
+      createdAt: o.createdAt,
+    });
+  }
+  for (const u of recentUsers.slice(0, 4)) {
+    liveFeed.push({
+      id: `user-${u.id}`,
+      category: "merchants",
+      title: "New merchant joined",
+      detail: u.name || u.email,
+      href: `/admin/users/${u.id}`,
+      createdAt: u.createdAt,
+    });
+  }
+  for (const m of recentMessages.slice(0, 3)) {
+    liveFeed.push({
+      id: `support-${m.id}`,
+      category: "support",
+      title: m.topic || "Support message",
+      detail: m.name || m.email,
+      href: "/admin/messages",
+      createdAt: m.createdAt,
+    });
+  }
+  liveFeed.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const top2SharePct =
     totalRevenue > 0
@@ -519,6 +625,16 @@ export async function getPlatformOverview() {
     brief,
     attentionItems,
     attentionSentence,
+    health,
+    helpToday,
+    firstSale: {
+      count: activation.funnel.activeNoOrders,
+      highIntentCount: firstSaleHot.length,
+      liveProductsPlatform: activeProducts,
+      bottlenecks: firstSaleBottlenecks,
+    },
+    liveFeed: liveFeed.slice(0, 8),
+    pendingRealGmv,
     testSharePct,
     today,
     yesterday,
@@ -541,13 +657,17 @@ export async function getPlatformOverview() {
       elevated: top2SharePct >= 50,
       message:
         top2SharePct >= 50
-          ? `Revenue concentration is high: the top 2 merchants generate ${top2SharePct}% of tracked GMV.`
+          ? `Top 2 merchants · ${top2SharePct}% of tracked GMV`
           : top2SharePct > 0
             ? `Top 2 merchants generate ${top2SharePct}% of tracked GMV.`
             : null,
       why:
         top2SharePct >= 50
-          ? "A large decline in one merchant could significantly impact total platform revenue."
+          ? "Revenue is currently concentrated in a small number of merchants."
+          : null,
+      recommended:
+        top2SharePct >= 50
+          ? "Increase the number of mid-tier merchants generating their first real sales."
           : null,
     },
   };
@@ -1680,8 +1800,81 @@ export async function getPlatformLiveFeed(limit = 40): Promise<PlatformLiveEvent
 /** Lightweight admin search for the command palette. */
 export async function searchPlatformAdmin(query: string) {
   const q = query.trim();
+  const lower = q.toLowerCase();
+
+  const shortcuts: {
+    id: string;
+    label: string;
+    hint: string;
+    href: string;
+    group: string;
+  }[] = [];
+
+  if (
+    lower.includes("pending") ||
+    lower.includes("cod") ||
+    (lower.includes("order") && lower.includes("pending"))
+  ) {
+    shortcuts.push({
+      id: "shortcut-pending",
+      label: "Pending COD orders",
+      hint: "Payments · verify backlog",
+      href: "/admin/payments?focus=pending",
+      group: "Payments",
+    });
+  }
+  if (
+    lower.includes("empty") ||
+    lower.includes("activation") ||
+    lower.includes("hot empty")
+  ) {
+    shortcuts.push({
+      id: "shortcut-empty",
+      label: "Empty / hot stores",
+      hint: "Activation targets",
+      href: "/admin/activation?stage=empty",
+      group: "Activation",
+    });
+  }
+  if (
+    lower.includes("first sale") ||
+    lower.includes("listed") ||
+    lower.includes("zero sale") ||
+    lower.includes("no sale")
+  ) {
+    shortcuts.push({
+      id: "shortcut-listed",
+      label: "First-sale targets",
+      hint: "Listed · zero real orders",
+      href: "/admin/activation?stage=listed",
+      group: "Activation",
+    });
+  }
+  if (lower.includes("domain") || lower.includes("dns")) {
+    shortcuts.push({
+      id: "shortcut-domains",
+      label: "Domain health",
+      hint: "DNS diagnosis",
+      href: "/admin/domains",
+      group: "Domains",
+    });
+  }
+  if (
+    lower.includes("support") ||
+    lower.includes("inbox") ||
+    lower.includes("message")
+  ) {
+    shortcuts.push({
+      id: "shortcut-support",
+      label: "Support inbox",
+      hint: "Open threads",
+      href: "/admin/messages",
+      group: "Support",
+    });
+  }
+
   if (q.length < 2) {
-    return { users: [], stores: [], orders: [] };
+    return { users: [], stores: [], orders: [], shortcuts };
   }
 
   const realUserWhere = {
@@ -1703,7 +1896,12 @@ export async function searchPlatformAdmin(query: string) {
       },
       take: 8,
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, email: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        _count: { select: { stores: true } },
+      },
     }),
     prisma.store.findMany({
       where: {
@@ -1714,7 +1912,17 @@ export async function searchPlatformAdmin(query: string) {
       },
       take: 8,
       orderBy: { createdAt: "desc" },
-      select: { id: true, name: true, slug: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        user: { select: { id: true, name: true, email: true } },
+        _count: {
+          select: {
+            orders: { where: { isTest: false } },
+          },
+        },
+      },
     }),
     prisma.order.findMany({
       where: {
@@ -1730,10 +1938,23 @@ export async function searchPlatformAdmin(query: string) {
         id: true,
         orderNumber: true,
         total: true,
-        store: { select: { name: true } },
+        store: { select: { id: true, name: true } },
       },
     }),
   ]);
 
-  return { users, stores, orders };
+  return {
+    users,
+    stores: stores.map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      ownerId: s.user.id,
+      ownerName: s.user.name,
+      ownerEmail: s.user.email,
+      realOrders: s._count.orders,
+    })),
+    orders,
+    shortcuts,
+  };
 }

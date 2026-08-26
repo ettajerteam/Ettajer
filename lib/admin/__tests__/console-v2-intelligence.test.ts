@@ -69,9 +69,41 @@ describe("attention queue", () => {
       failedLogins24h: 0,
     });
     expect(items[0]?.id).toBe("pending-cod");
+    expect(items[0]?.tier).toBeDefined();
+    expect(items[0]?.priorityScore).toBeGreaterThan(0);
+    expect(items[0]?.impact).toContain("orders");
     const sentence = buildAttentionSentence(items);
     expect(sentence).toContain("12 orders need attention");
-    expect(sentence).toContain("merchants need activation");
+    expect(sentence).toContain("support thread");
     expect(items.some((i) => i.id === "domains")).toBe(true);
+    expect(items.find((i) => i.id === "empty-activation")?.tier).toBe("medium");
+    expect(items.find((i) => i.id === "first-sale")?.tier).toBe("opportunity");
+    // Opportunity ranks below urgent ops
+    const firstSale = items.find((i) => i.id === "first-sale");
+    const pending = items.find((i) => i.id === "pending-cod");
+    expect(pending!.priorityScore).toBeGreaterThan(firstSale!.priorityScore);
+  });
+});
+
+describe("platform health", () => {
+  it("flags domain DNS issues without inventing SSL", async () => {
+    const { derivePlatformHealth } = await import(
+      "@/lib/admin/platform-health"
+    );
+    const health = derivePlatformHealth({
+      pendingRealOrders: 12,
+      realOrders7d: 9,
+      liveStores: 149,
+      totalStores: 384,
+      domainsConnected: 4,
+      domainsConnectedSuccess: 0,
+      failedLogins24h: 2,
+      openSupport: 1,
+      emailConfigured: true,
+    });
+    expect(health.overall).not.toBe("operational");
+    const domains = health.items.find((i) => i.id === "domains");
+    expect(domains?.status).toBe("issues");
+    expect(domains?.statusLabel).toContain("4");
   });
 });

@@ -4,7 +4,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { AdminHomeDashboard } from "@/components/admin/admin-home-dashboard";
 import { auth } from "@/lib/auth-session";
 
-export const metadata = { title: "Platform Admin" };
+export const metadata = { title: "Ettajer Console" };
 
 export default async function AdminOverviewPage() {
   await requireAdminPage();
