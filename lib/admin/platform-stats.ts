@@ -15,6 +15,8 @@ import { getActivationGap } from "@/lib/admin/activation-stats";
 import {
   deriveAdminInsights,
   pctChange,
+  type AdminAnalyticsRange,
+  type AdminIntelligenceInput,
   type AdminTrendPoint,
 } from "@/lib/admin/platform-intelligence";
 
