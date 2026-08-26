@@ -1,646 +1,761 @@
+"use client";
+
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  CreditCard,
-  Globe,
-  LayoutDashboard,
-  MessageSquare,
-  Package,
-  ShoppingBag,
-  Store,
-  Users,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import type { PlatformOverviewData } from "@/lib/admin/platform-stats";
+import { formatAdminInt } from "@/lib/admin/format";
+import { AdminRelativeTime } from "@/components/admin/admin-relative-time";
+import { TimeOfDayGreeting } from "@/hooks/use-time-of-day-greeting";
+import { HomeSparkline } from "@/components/dashboard/home/home-sparkline";
 import {
   homeCard,
   homeCardPad,
-  homeHeading,
-  homeIconWrap,
   homeKicker,
   homeLinkQuiet,
   homePage,
-  homeStatCell,
   homeSubtitle,
   homeTitle,
 } from "@/components/dashboard/home/home-ui";
 import { cn } from "@/lib/utils";
 
-export type AdminHomeData = {
-  totalUsers: number;
-  activeUsers: number;
-  waitingUsers: number;
-  totalStores: number;
-  totalOrders: number;
-  realOrders: number;
-  testOrders: number;
-  totalRevenue: number;
-  testRevenue: number;
-  newUsers24h: number;
-  newUsers7d: number;
-  newStores7d: number;
-  realOrders7d: number;
-  realRevenue7d: number;
-  changes: {
-    users7d: number;
-    orders7d: number;
-    revenue7d: number;
-  };
-  newMessages: number;
-  failedLogins24h: number;
-  totalProducts: number;
-  activeProducts: number;
-  liveStores: number;
-  domainsConnected: number;
-  domainsConnectedSuccess: number;
-  recentUsers: Array<{
-    id: string;
-    email: string;
-    name: string | null;
-    status: string;
-    founderNumber: number | null;
-    createdAt: Date | string;
-    _count: { stores: number };
-  }>;
-  recentMessages: Array<{
-    id: string;
-    name: string;
-    email: string;
-    topic: string;
-    message: string;
-    createdAt: Date | string;
-  }>;
-  recentOrders: Array<{
-    id: string;
-    orderNumber: string;
-    status: string;
-    isTest: boolean;
-    total: number;
-    customerName: string;
-    customerEmail: string;
-    createdAt: Date | string;
-    store: {
-      id: string;
-      name: string;
-      slug: string;
-      currency: string;
-    };
-  }>;
-  topStores: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    currency: string;
-    primaryColor: string | null;
-    logo: string | null;
-    ownerName: string | null;
-    ownerEmail: string;
-    realOrders: number;
-    realGmv: number;
-  }>;
-};
-
-function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+function deltaVsYesterday(current: number, prior: number, _unit: "MAD" | "count") {
+  const delta = current - prior;
+  if (delta === 0) return "flat vs yesterday";
+  return `${delta > 0 ? "+" : ""}${formatAdminInt(delta)} vs yesterday`;
 }
 
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+function openCommandPalette() {
+  window.dispatchEvent(new CustomEvent("ettajer:open-command-palette"));
 }
 
-function changeLabel(change: number) {
-  if (change === 0) return "flat vs prior 7d";
-  if (change > 0) return `+${change}% vs prior 7d`;
-  return `${change}% vs prior 7d`;
+function HealthDot({ status }: { status: string }) {
+  const color =
+    status === "operational"
+      ? "bg-emerald-500"
+      : status === "issues"
+        ? "bg-rose-500"
+        : status === "attention"
+          ? "bg-amber-500"
+          : "bg-neutral-300";
+  return <span className={cn("inline-block h-1.5 w-1.5 rounded-full", color)} />;
 }
 
-function ChangeHint({ change }: { change: number }) {
-  return (
-    <span
-      className={cn(
-        "text-[10px] font-medium",
-        change > 0
-          ? "text-emerald-600 dark:text-emerald-400"
-          : change < 0
-            ? "text-neutral-400"
-            : "text-neutral-400"
-      )}
-    >
-      {changeLabel(change)}
-    </span>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  hint,
-  href,
-  icon: Icon,
-  change,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  href: string;
-  icon: LucideIcon;
-  change?: number;
-}) {
-  return (
-    <Link
-      href={href}
-      className="block rounded-[12px] transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400/30"
-    >
-      <article className={cn(homeCard, homeCardPad, "h-full")}>
-        <div className="flex items-start justify-between gap-2">
-          <Icon className="h-3.5 w-3.5 text-neutral-400" aria-hidden />
-          <ArrowUpRight className="h-3 w-3 text-neutral-300 opacity-0 transition group-hover:opacity-100" />
-        </div>
-        <p className={cn("mt-3", homeKicker)}>{label}</p>
-        <p className="mt-1 text-[18px] font-semibold tracking-[-0.03em] text-neutral-900 dark:text-white">
-          {value}
-        </p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-          {typeof change === "number" ? <ChangeHint change={change} /> : null}
-          {hint ? <span className={homeSubtitle}>{hint}</span> : null}
-        </div>
-      </article>
-    </Link>
-  );
-}
-
-const QUICK_ACTIONS = [
-  {
-    id: "users",
-    href: "/admin/users",
-    label: "Users",
-    description: "Accounts & founders",
-    icon: Users,
-  },
-  {
-    id: "stores",
-    href: "/admin/stores",
-    label: "Stores",
-    description: "Browse every storefront",
-    icon: Store,
-  },
-  {
-    id: "payments",
-    href: "/admin/payments",
-    label: "Payments",
-    description: "Orders & real GMV",
-    icon: CreditCard,
-  },
-  {
-    id: "messages",
-    href: "/admin/messages",
-    label: "Messages",
-    description: "Support inbox",
-    icon: MessageSquare,
-  },
-  {
-    id: "analytics",
-    href: "/admin/analytics",
-    label: "Analytics",
-    description: "Platform metrics",
-    icon: LayoutDashboard,
-  },
-  {
-    id: "errors",
-    href: "/admin/errors",
-    label: "Errors",
-    description: "Failed logins & issues",
-    icon: AlertTriangle,
-  },
+const LIVE_FILTERS = [
+  "all",
+  "commerce",
+  "merchants",
+  "stores",
+  "support",
+  "errors",
 ] as const;
 
 export function AdminHomeDashboard({
   data,
   userName,
 }: {
-  data: AdminHomeData;
+  data: PlatformOverviewData;
   userName: string;
 }) {
-  const attention = [
-    data.waitingUsers > 0
-      ? {
-          id: "waiting",
-          label: `${data.waitingUsers} waiting users`,
-          href: "/admin/users",
-          tone: "amber" as const,
-        }
-      : null,
-    data.newMessages > 0
-      ? {
-          id: "messages",
-          label: `${data.newMessages} open support threads`,
-          href: "/admin/messages",
-          tone: "amber" as const,
-        }
-      : null,
-    data.failedLogins24h > 0
-      ? {
-          id: "logins",
-          label: `${data.failedLogins24h} failed logins (24h)`,
-          href: "/admin/errors",
-          tone: "rose" as const,
-        }
-      : null,
-  ].filter(Boolean) as Array<{
-    id: string;
-    label: string;
-    href: string;
-    tone: "amber" | "rose";
-  }>;
+  const [liveFilter, setLiveFilter] = useState<(typeof LIVE_FILTERS)[number]>(
+    "all"
+  );
+
+  const attention = data.attentionItems ?? [];
+  const health = data.health;
+  const funnel = data.funnel;
+  const total = Math.max(funnel.totalStores, 1);
+
+  const funnelStages = [
+    {
+      key: "empty",
+      label: "Empty",
+      count: funnel.noProducts,
+      href: "/admin/activation?stage=empty",
+    },
+    {
+      key: "draft",
+      label: "Draft",
+      count: funnel.draftOnly,
+      href: "/admin/activation?stage=draft",
+    },
+    {
+      key: "listed",
+      label: "Listed / 0 sales",
+      count: funnel.activeNoOrders,
+      href: "/admin/activation?stage=listed",
+    },
+    {
+      key: "activated",
+      label: "Activated",
+      count: funnel.hasOrders,
+      href: "/admin/activation?stage=activated",
+    },
+  ] as const;
+
+  const liveEvents = useMemo(() => {
+    const feed = data.liveFeed ?? [];
+    if (liveFilter === "all") return feed;
+    return feed.filter((e) => e.category === liveFilter);
+  }, [data.liveFeed, liveFilter]);
+
+  const overallOk = health?.overall === "operational";
 
   return (
-    <div className={homePage}>
-      <section>
-        <h1 className={homeHeading}>
-          {getGreeting()}, {userName}
-        </h1>
-        <p className={cn("mt-1.5 max-w-lg", homeSubtitle)}>
-          Platform pulse — real GMV, merchant growth, support, and storefront
-          health in one place.
-        </p>
+    <div className={cn(homePage, "flex flex-col gap-5 !space-y-0")}>
+      {/* GLOBAL HEADER */}
+      <section className="order-1 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+              Ettajer Console
+            </h1>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.06] px-2 py-0.5 text-[10px] font-medium text-neutral-600 dark:border-white/10 dark:text-neutral-300">
+              <HealthDot status={health?.overall ?? "unknown"} />
+              {health?.overallLabel ?? "Status unknown"}
+            </span>
+          </div>
+          <p className={cn("mt-1", homeSubtitle)}>
+            <TimeOfDayGreeting />, {userName}
+            {data.attentionSentence ? ` · ${data.attentionSentence}` : null}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openCommandPalette}
+          className="flex h-9 w-full max-w-sm items-center gap-2 rounded-lg border border-black/[0.08] bg-white px-3 text-left text-[12px] text-neutral-400 transition-colors hover:border-black/[0.12] hover:bg-[#FAFAFA] sm:w-64 dark:border-white/10 dark:bg-[#121212] dark:hover:bg-white/[0.04]"
+        >
+          <span className="flex-1 truncate">Search anything…</span>
+          <kbd className="rounded border border-black/[0.06] bg-[#F5F5F7] px-1.5 py-0.5 font-mono text-[9px] text-neutral-500 dark:border-white/10 dark:bg-white/5">
+            ⌘K
+          </kbd>
+        </button>
       </section>
 
-      {attention.length > 0 ? (
-        <section className="flex flex-wrap gap-2">
-          {attention.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-                item.tone === "rose"
-                  ? "border-rose-200/80 bg-rose-50 text-rose-700 hover:bg-rose-100/80 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300"
-                  : "border-amber-200/80 bg-amber-50 text-amber-800 hover:bg-amber-100/80 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300"
-              )}
-            >
-              <AlertTriangle className="h-3 w-3" />
-              {item.label}
-            </Link>
-          ))}
+      {/* PLATFORM HEALTH */}
+      {health ? (
+        <section aria-label="Platform health" className="order-2">
+          <p className={homeKicker}>Platform health</p>
+          <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
+            {health.items.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                title={item.detail}
+                className="flex items-center justify-between gap-2 rounded-lg border border-black/[0.06] bg-white px-2.5 py-2 transition-colors hover:bg-[#FAFAFA] dark:border-white/10 dark:bg-[#121212] dark:hover:bg-white/[0.03]"
+              >
+                <span className="truncate text-[11px] text-neutral-500">
+                  {item.label}
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-neutral-800 dark:text-neutral-100">
+                  <HealthDot status={item.status} />
+                  {item.statusLabel}
+                </span>
+              </Link>
+            ))}
+          </div>
+          {!overallOk ? (
+            <p className={cn("mt-1.5", homeSubtitle)}>
+              Statuses derived from live orders, DNS checks, auth failures, and
+              email env — not synthetic probes.
+            </p>
+          ) : null}
         </section>
       ) : null}
 
-      <section aria-label="Platform KPIs">
-        <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-          Last 7 days
-        </p>
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-          <KpiCard
-            label="Real GMV"
-            value={`${data.totalRevenue.toLocaleString()} MAD`}
-            hint={`7d ${data.realRevenue7d.toLocaleString()} MAD`}
-            href="/admin/payments"
-            icon={CreditCard}
-            change={data.changes.revenue7d}
-          />
-          <KpiCard
-            label="Real orders"
-            value={data.realOrders.toLocaleString()}
-            hint={`${data.testOrders} test · ${data.realOrders7d} in 7d`}
-            href="/admin/payments"
-            icon={ShoppingBag}
-            change={data.changes.orders7d}
-          />
-          <KpiCard
-            label="Users"
-            value={data.totalUsers.toLocaleString()}
-            hint={`${data.activeUsers} active · +${data.newUsers24h} today`}
-            href="/admin/users"
-            icon={Users}
-            change={data.changes.users7d}
-          />
-          <KpiCard
-            label="Live stores"
-            value={data.liveStores.toLocaleString()}
-            hint={`${data.totalStores} total · +${data.newStores7d} this week`}
-            href="/admin/stores"
-            icon={Store}
-          />
-        </div>
-      </section>
-
-      <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-        <div className={homeStatCell}>
-          <p className={homeKicker}>Products</p>
-          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.totalProducts.toLocaleString()}
-          </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>
-            {data.activeProducts} live
-          </p>
-        </div>
-        <div className={homeStatCell}>
-          <p className={homeKicker}>Waiting</p>
-          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.waitingUsers}
-          </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>Need activation</p>
-        </div>
-        <div className={homeStatCell}>
-          <p className={homeKicker}>Domains</p>
-          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.domainsConnectedSuccess}
-          </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>
-            of {data.domainsConnected} linked
-          </p>
-        </div>
-        <div className={homeStatCell}>
-          <p className={homeKicker}>Support</p>
-          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.newMessages}
-          </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>Open threads</p>
-        </div>
-        <div className={homeStatCell}>
-          <p className={homeKicker}>Failed logins</p>
-          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.failedLogins24h}
-          </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>Last 24h</p>
-        </div>
-        <div className={homeStatCell}>
-          <p className={homeKicker}>Test GMV</p>
-          <p className="mt-1 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
-            {data.testRevenue.toLocaleString()}
-          </p>
-          <p className={cn("mt-0.5", homeSubtitle)}>Excluded from real</p>
-        </div>
-      </section>
-
-      <section className={cn(homeCard, homeCardPad)}>
-        <h2 className={homeTitle}>Quick actions</h2>
-        <p className={homeSubtitle}>Jump into the areas you check most</p>
-        <div className="mt-3 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-          {QUICK_ACTIONS.map((action) => (
-            <Link
-              key={action.id}
-              href={action.href}
-              className="group flex items-start gap-2 rounded-lg border border-black/[0.04] bg-[#F5F5F7]/80 px-2.5 py-2.5 transition-colors duration-200 hover:bg-neutral-100 dark:border-white/[0.06] dark:bg-white/[0.03] dark:hover:bg-white/[0.05]"
-            >
-              <span className={homeIconWrap}>
-                <action.icon className="h-3 w-3" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[12px] font-medium text-neutral-900 dark:text-white">
-                  {action.label}
-                </span>
-                <span className="mt-0.5 block truncate text-[10px] text-neutral-400">
-                  {action.description}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <section>
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className={homeTitle}>Recent orders</h2>
-            <Link href="/admin/payments" className={homeLinkQuiet}>
-              All payments →
-            </Link>
-          </div>
-          <div className={cn(homeCard, "overflow-hidden")}>
-            {data.recentOrders.length === 0 ? (
-              <p className="px-4 py-8 text-center text-[12px] text-neutral-400">
-                No orders yet
+      {/* TIME DIMENSIONS — second on mobile after attention */}
+      <section
+        aria-label="Business snapshot"
+        className="order-4 grid gap-2 md:order-3 lg:grid-cols-3"
+      >
+        <div className={cn(homeCard, homeCardPad)}>
+          <p className={homeKicker}>Today</p>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-[10px] text-neutral-400">GMV</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {formatAdminInt(data.today.revenue)} MAD
               </p>
-            ) : (
-              <ul className="divide-y divide-black/[0.04] dark:divide-white/[0.06]">
-                {data.recentOrders.map((order) => (
-                  <li key={order.id}>
-                    <Link
-                      href={`/admin/orders/${order.id}`}
-                      className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-                    >
-                      <span className={cn(homeIconWrap, "mt-0.5")}>
-                        <ShoppingBag className="h-3 w-3" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-[12px] font-medium text-neutral-900 dark:text-white">
-                            {order.orderNumber}
-                          </p>
-                          <span className="shrink-0 text-[11px] tabular-nums text-neutral-700 dark:text-neutral-300">
-                            {order.total.toLocaleString()} {order.store.currency}
-                          </span>
-                        </div>
-                        <p className="truncate text-[10px] text-neutral-400">
-                          {order.customerName} · {order.store.name}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <span
-                            className={
-                              order.isTest
-                                ? "rounded bg-amber-50 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-                                : "rounded bg-emerald-50 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                            }
-                          >
-                            {order.isTest ? "Test" : "Real"}
-                          </span>
-                          <span className="text-[10px] capitalize text-neutral-400">
-                            {order.status}
-                          </span>
-                          <span className="text-[10px] text-neutral-300">
-                            {formatDate(order.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-
-        <section>
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className={homeTitle}>Top stores</h2>
-            <Link href="/admin/stores" className={homeLinkQuiet}>
-              All stores →
-            </Link>
-          </div>
-          <div className={cn(homeCard, "overflow-hidden")}>
-            {data.topStores.length === 0 ? (
-              <p className="px-4 py-8 text-center text-[12px] text-neutral-400">
-                No store GMV yet
+              <p className={cn("mt-0.5 text-[10px]", homeSubtitle)}>
+                {deltaVsYesterday(
+                  data.today.revenue,
+                  data.yesterday.revenue,
+                  "MAD"
+                )}
               </p>
-            ) : (
-              <ul className="divide-y divide-black/[0.04] dark:divide-white/[0.06]">
-                {data.topStores.map((store) => (
-                  <li key={store.id}>
-                    <Link
-                      href={`/admin/stores/${store.id}`}
-                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-                    >
-                      <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg text-[10px] font-semibold text-white"
-                        style={{
-                          backgroundColor: store.primaryColor || "#007AFF",
-                        }}
-                      >
-                        {store.logo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={store.logo}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          store.name.slice(0, 2).toUpperCase()
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[12px] font-medium text-neutral-900 dark:text-white">
-                          {store.name}
-                        </p>
-                        <p className="truncate text-[10px] text-neutral-400">
-                          {store.ownerName || store.ownerEmail} · /
-                          {store.slug}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <p className="text-[12px] font-semibold tabular-nums text-neutral-900 dark:text-white">
-                          {store.realGmv.toLocaleString()} {store.currency}
-                        </p>
-                        <p className="text-[10px] text-neutral-400">
-                          {store.realOrders} real orders
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+            </div>
+            <div>
+              <p className="text-[10px] text-neutral-400">Orders</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {data.today.orders}
+              </p>
+              <p className={cn("mt-0.5 text-[10px]", homeSubtitle)}>
+                {deltaVsYesterday(
+                  data.today.orders,
+                  data.yesterday.orders,
+                  "count"
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-neutral-400">Signups</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {data.today.signups}
+              </p>
+              <p className={cn("mt-0.5 text-[10px]", homeSubtitle)}>
+                {deltaVsYesterday(
+                  data.today.signups,
+                  data.yesterday.signups,
+                  "count"
+                )}
+              </p>
+            </div>
           </div>
-        </section>
-      </div>
+        </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <section>
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className={homeTitle}>Recent signups</h2>
-            <Link href="/admin/users" className={homeLinkQuiet}>
-              All users →
+        <div className={cn(homeCard, homeCardPad)}>
+          <div className="flex items-center justify-between gap-2">
+            <p className={homeKicker}>Last 7 days</p>
+            <HomeSparkline
+              points={data.sparklines.revenue}
+              className="opacity-70"
+            />
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[10px] text-neutral-400">Real GMV</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {formatAdminInt(data.realRevenue7d)} MAD
+              </p>
+              <p
+                className={cn(
+                  "mt-0.5 text-[10px] font-medium",
+                  data.changes.revenue7d > 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-neutral-400"
+                )}
+              >
+                {data.changes.revenue7d > 0 ? "+" : ""}
+                {data.changes.revenue7d}% vs prior 7d
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] text-neutral-400">Real orders</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {data.realOrders7d}
+              </p>
+              <p
+                className={cn(
+                  "mt-0.5 text-[10px] font-medium",
+                  data.changes.orders7d > 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-neutral-400"
+                )}
+              >
+                {data.changes.orders7d > 0 ? "+" : ""}
+                {data.changes.orders7d}% vs prior 7d
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className={cn(homeCard, homeCardPad)}>
+          <p className={homeKicker}>Lifetime</p>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <Link href="/admin/users" className="min-w-0">
+              <p className="text-[10px] text-neutral-400">Users</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {formatAdminInt(data.totalUsers)}
+              </p>
+            </Link>
+            <Link href="/admin/stores" className="min-w-0">
+              <p className="text-[10px] text-neutral-400">Stores</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {formatAdminInt(data.totalStores)}
+              </p>
+            </Link>
+            <Link href="/admin/stores" className="min-w-0">
+              <p className="text-[10px] text-neutral-400">Live</p>
+              <p className="text-[14px] font-semibold tabular-nums tracking-tight">
+                {formatAdminInt(data.liveStores)}
+              </p>
             </Link>
           </div>
-          <div className={cn(homeCard, "overflow-hidden")}>
-            <ul className="divide-y divide-black/[0.04] dark:divide-white/[0.06]">
-              {data.recentUsers.map((user) => (
-                <li key={user.id}>
-                  <Link
-                    href={`/admin/users/${user.id}`}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#007AFF] text-[10px] font-semibold uppercase text-white">
-                      {(user.name || user.email).slice(0, 2)}
+          <p className={cn("mt-2", homeSubtitle)}>
+            {formatAdminInt(data.activeProducts)} live products ·{" "}
+            {data.realOrders} real orders ·{" "}
+            {formatAdminInt(data.totalRevenue)} MAD GMV
+          </p>
+        </div>
+      </section>
+
+      {/* ATTENTION CENTER — first operational block on mobile */}
+      <section aria-label="Needs attention" className="order-3 md:order-4">
+        <div className="mb-2">
+          <h2 className={homeTitle}>Needs attention</h2>
+          <p className={homeSubtitle}>
+            Prioritized by urgency, impact, and merchant risk · deterministic
+            scores
+          </p>
+        </div>
+        {attention.length === 0 ? (
+          <div
+            className={cn(
+              homeCard,
+              homeCardPad,
+              "text-[13px] text-neutral-500"
+            )}
+          >
+            No critical blockers — platform pulse is clear.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {attention.map((item) => (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  className="group block rounded-[12px] border border-black/[0.06] bg-white px-3 py-3 transition-colors hover:border-black/[0.1] hover:bg-[#FAFAFA] dark:border-white/10 dark:bg-[#121212] dark:hover:bg-white/[0.03]"
+                >
+                  <div className="flex flex-wrap items-start gap-3">
+                    <p className="w-12 shrink-0 text-[22px] font-semibold tabular-nums tracking-tight text-neutral-900 dark:text-white">
+                      {item.count}
+                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em]",
+                            item.tier === "high"
+                              ? "bg-rose-50 text-rose-800 dark:bg-rose-500/10 dark:text-rose-300"
+                              : item.tier === "medium"
+                                ? "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
+                                : item.tier === "opportunity"
+                                  ? "bg-sky-50 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300"
+                                  : "bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+                          )}
+                        >
+                          {item.tierLabel}
+                        </span>
+                        <span className="text-[10px] text-neutral-400">
+                          score {item.priorityScore} · {item.priorityReason}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[13px] font-medium text-neutral-900 dark:text-white">
+                        {item.title}
+                      </p>
+                      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-neutral-400">
+                        Why
+                      </p>
+                      <p className={homeSubtitle}>{item.why ?? item.reason}</p>
+                      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-neutral-400">
+                        Impact
+                      </p>
+                      <p className={homeSubtitle}>{item.impact}</p>
+                      <p className="mt-2 text-[12px] font-medium text-[#007AFF]">
+                        {item.cta} →
+                      </p>
                     </div>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* ACTIVATION / FIRST SALE */}
+      <section className="order-5 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className={cn(homeCard, homeCardPad)}>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className={homeTitle}>Merchant activation</h2>
+              <p className={homeSubtitle}>
+                Mutually exclusive stages · {funnel.totalStores} stores
+              </p>
+            </div>
+            <Link href="/admin/activation" className={homeLinkQuiet}>
+              Full board →
+            </Link>
+          </div>
+
+          <div className="mt-4 space-y-1">
+            {funnelStages.map((stage, index) => {
+              const pct = Math.round((stage.count / total) * 100);
+              return (
+                <div key={stage.key}>
+                  {index > 0 ? (
+                    <div className="flex justify-center py-0.5 text-[10px] text-neutral-300 dark:text-neutral-600">
+                      ↓
+                    </div>
+                  ) : null}
+                  <Link
+                    href={stage.href}
+                    className="block rounded-lg px-2 py-1.5 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+                  >
+                    <div className="mb-1 flex items-baseline justify-between gap-2">
+                      <p className="text-[12px] font-medium text-neutral-800 dark:text-neutral-100">
+                        {stage.label}
+                      </p>
+                      <p className="text-[12px] tabular-nums text-neutral-500">
+                        {formatAdminInt(stage.count)}
+                        <span className="ml-1 text-neutral-400">· {pct}%</span>
+                      </p>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.05] dark:bg-white/[0.08]">
+                      <div
+                        className="h-full rounded-full bg-neutral-900 dark:bg-white"
+                        style={{ width: `${Math.max(4, pct)}%` }}
+                      />
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-black/[0.05] pt-3 dark:border-white/[0.06]">
+            <div>
+              <p className={homeKicker}>Empty → listed share</p>
+              <p className="mt-1 text-[13px] font-semibold tabular-nums">
+                {funnel.totalStores > 0
+                  ? Math.round(
+                      ((funnel.activeNoOrders + funnel.hasOrders) /
+                        funnel.totalStores) *
+                        100
+                    )
+                  : 0}
+                %
+              </p>
+              <p className={cn("mt-0.5", homeSubtitle)}>
+                Stores with ≥1 live product
+              </p>
+            </div>
+            <div>
+              <p className={homeKicker}>Listed → first sale</p>
+              <p className="mt-1 text-[13px] font-semibold tabular-nums">
+                {funnel.activeNoOrders + funnel.hasOrders > 0
+                  ? Math.round(
+                      (funnel.hasOrders /
+                        (funnel.activeNoOrders + funnel.hasOrders)) *
+                        100
+                    )
+                  : 0}
+                %
+              </p>
+              <p className={cn("mt-0.5", homeSubtitle)}>
+                Of listed stores that sold
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className={cn(homeCard, homeCardPad)}>
+            <h2 className={homeTitle}>First-sale opportunity</h2>
+            <p className="mt-2 text-[22px] font-semibold tabular-nums tracking-tight text-neutral-900 dark:text-white">
+              {formatAdminInt(
+                data.firstSale?.count ?? funnel.activeNoOrders
+              )}
+              <span className="ml-2 text-[12px] font-medium text-neutral-400">
+                stores
+              </span>
+            </p>
+            <p className={cn("mt-1", homeSubtitle)}>
+              {formatAdminInt(data.activeProducts)} live products across the
+              platform · high-intent subset:{" "}
+              {data.firstSale?.highIntentCount != null
+                ? formatAdminInt(data.firstSale.highIntentCount)
+                : "—"}
+            </p>
+            {data.firstSale?.bottlenecks ? (
+              <ul className="mt-3 space-y-1 text-[12px] text-neutral-600 dark:text-neutral-300">
+                <li>
+                  · {data.firstSale.bottlenecks.noCustomDomain} with no custom
+                  domain
+                </li>
+                <li>
+                  · {data.firstSale.bottlenecks.noCodConfigured} without COD
+                  enabled in payment settings
+                </li>
+                <li>
+                  · {data.firstSale.bottlenecks.lowRecentActivity} cold / low
+                  recent activity
+                </li>
+                <li>
+                  · {data.firstSale.bottlenecks.singleProduct} with only 1 live
+                  product
+                </li>
+                <li>
+                  · {data.firstSale.bottlenecks.multiProductReady} with 3+ live
+                  products ready
+                </li>
+              </ul>
+            ) : null}
+            <Link
+              href="/admin/activation?stage=listed"
+              className="mt-3 inline-flex text-[12px] font-medium text-[#007AFF]"
+            >
+              View first-sale targets →
+            </Link>
+          </div>
+
+          <div className={cn(homeCard, homeCardPad)}>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className={homeTitle}>Who should we help today?</h2>
+              <Link
+                href="/admin/activation?stage=empty&temp=hot"
+                className={homeLinkQuiet}
+              >
+                All hot →
+              </Link>
+            </div>
+            <p className={cn("mt-1 mb-3", homeSubtitle)}>
+              HIGH intent = recent login + store exists + no products
+            </p>
+            {(data.helpToday ?? []).length === 0 ? (
+              <p className={homeSubtitle}>No hot empty stores right now.</p>
+            ) : (
+              <ul className="divide-y divide-black/[0.04] dark:divide-white/[0.06]">
+                {(data.helpToday ?? []).map((row) => (
+                  <li
+                    key={row.storeId}
+                    className="flex items-center gap-2 py-2 first:pt-0 last:pb-0"
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[12px] font-medium text-neutral-900 dark:text-white">
-                        {user.name ?? "—"}
+                        {row.ownerName || row.ownerEmail}
                       </p>
                       <p className="truncate text-[10px] text-neutral-400">
-                        {user.email}
+                        {row.storeName}
+                        {row.intentReasons?.length
+                          ? ` · ${row.intentReasons.join(" · ")}`
+                          : ""}
                       </p>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-[10px] capitalize text-neutral-500">
-                        {user.status}
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                        row.intent === "HIGH"
+                          ? "bg-rose-50 text-rose-800 dark:bg-rose-500/10 dark:text-rose-300"
+                          : "bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
+                      )}
+                      title={row.intentReasons?.join(" + ")}
+                    >
+                      {row.intent}
+                    </span>
+                    <span className="w-8 text-right text-[11px] tabular-nums text-neutral-500">
+                      {row.healthScore}
+                    </span>
+                    <Link
+                      href={`/admin/stores/${row.storeId}`}
+                      className="text-[11px] font-medium text-[#007AFF]"
+                    >
+                      Open →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* LIVE + REVENUE */}
+      <section className="order-6 grid gap-4 xl:grid-cols-2">
+        <div className={cn(homeCard, homeCardPad)}>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className={homeTitle}>Live</h2>
+            <Link href="/admin/activity" className={homeLinkQuiet}>
+              Full stream →
+            </Link>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {LIVE_FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setLiveFilter(f)}
+                className={cn(
+                  "rounded-md border px-2 py-0.5 text-[10px] font-medium capitalize transition-colors",
+                  liveFilter === f
+                    ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                    : "border-black/[0.06] text-neutral-500 hover:bg-black/[0.02] dark:border-white/10"
+                )}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          <ul className="mt-3 space-y-2">
+            {liveEvents.length === 0 ? (
+              <li className={homeSubtitle}>No events in this filter.</li>
+            ) : (
+              liveEvents.slice(0, 6).map((event) => (
+                <li key={event.id}>
+                  <Link
+                    href={event.href}
+                    className="flex gap-2.5 rounded-md px-1 py-1 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+                  >
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#007AFF]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-medium text-neutral-900 dark:text-white">
+                        {event.title}
                       </p>
-                      <p className="text-[10px] text-neutral-400">
-                        {user._count.stores} stores
+                      <p className={homeSubtitle}>{event.detail}</p>
+                    </div>
+                    <span className="shrink-0 text-[10px] text-neutral-400">
+                      <AdminRelativeTime value={event.createdAt} />
+                    </span>
+                  </Link>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+
+        <div className={cn(homeCard, homeCardPad)}>
+          <h2 className={homeTitle}>Revenue concentration</h2>
+          {data.concentrationRisk?.message ? (
+            <>
+              <p className="mt-2 text-[15px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+                {data.concentrationRisk.message}
+              </p>
+              {data.concentrationRisk.why ? (
+                <p className={cn("mt-2", homeSubtitle)}>
+                  <span className="font-medium text-neutral-700 dark:text-neutral-200">
+                    Risk:{" "}
+                  </span>
+                  {data.concentrationRisk.why}
+                </p>
+              ) : null}
+              {data.concentrationRisk.recommended ? (
+                <p className={cn("mt-1", homeSubtitle)}>
+                  <span className="font-medium text-neutral-700 dark:text-neutral-200">
+                    Recommended:{" "}
+                  </span>
+                  {data.concentrationRisk.recommended}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className={cn("mt-2", homeSubtitle)}>
+              Not enough real GMV yet to measure concentration.
+            </p>
+          )}
+          <ul className="mt-3 space-y-1.5">
+            {data.concentration.slice(0, 4).map((row) => (
+              <li key={row.id} className="flex items-center gap-2 text-[12px]">
+                <Link
+                  href={`/admin/stores/${row.id}`}
+                  className="min-w-0 flex-1 truncate font-medium text-neutral-800 hover:underline dark:text-neutral-100"
+                >
+                  {row.name}
+                </Link>
+                <span className="tabular-nums text-neutral-500">
+                  {row.sharePct}%
+                </span>
+                <span className="w-16 text-right tabular-nums text-neutral-400">
+                  {formatAdminInt(row.gmv)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/admin/analytics?range=30"
+            className="mt-3 inline-flex text-[12px] font-medium text-[#007AFF]"
+          >
+            Open intelligence →
+          </Link>
+        </div>
+      </section>
+
+      {/* COMPACT FEEDS */}
+      <section className="order-7 grid gap-3 lg:grid-cols-3">
+        <div className={cn(homeCard, homeCardPad)}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className={homeTitle}>Recent orders</h2>
+            <Link href="/admin/payments" className={homeLinkQuiet}>
+              View all →
+            </Link>
+          </div>
+          <ul className="space-y-2">
+            {data.recentOrders
+              .filter((o) => !o.isTest)
+              .slice(0, 6)
+              .map((order) => (
+                <li key={order.id}>
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="block rounded-md px-0.5 py-0.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-[12px] font-medium">
+                        {order.orderNumber}
+                      </p>
+                      <p className="shrink-0 text-[11px] tabular-nums">
+                        {formatAdminInt(order.total)}
                       </p>
                     </div>
+                    <p className={homeSubtitle}>
+                      {order.store.name} · {order.status} ·{" "}
+                      <AdminRelativeTime value={order.createdAt} />
+                    </p>
                   </Link>
                 </li>
               ))}
-            </ul>
-          </div>
-        </section>
+          </ul>
+        </div>
 
-        <section>
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <h2 className={homeTitle}>Support inbox</h2>
-            <Link href="/admin/messages" className={homeLinkQuiet}>
-              Open inbox →
+        <div className={cn(homeCard, homeCardPad)}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className={homeTitle}>New merchants</h2>
+            <Link href="/admin/users" className={homeLinkQuiet}>
+              View all →
             </Link>
           </div>
-          <div className={cn(homeCard, "overflow-hidden")}>
-            {data.recentMessages.length === 0 ? (
-              <p className="px-4 py-8 text-center text-[12px] text-neutral-400">
-                No support emails yet
-              </p>
-            ) : (
-              <ul className="divide-y divide-black/[0.04] dark:divide-white/[0.06]">
-                {data.recentMessages.map((msg) => (
-                  <li key={msg.id}>
-                    <Link
-                      href="/admin/messages"
-                      className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-                    >
-                      <span className={cn(homeIconWrap, "mt-0.5")}>
-                        <MessageSquare className="h-3 w-3" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-[12px] font-medium text-neutral-900 dark:text-white">
-                            {msg.name}
-                          </p>
-                          <span className="shrink-0 text-[10px] text-neutral-400">
-                            {formatDate(msg.createdAt)}
-                          </span>
-                        </div>
-                        <p className="truncate text-[10px] text-neutral-400">
-                          {msg.topic}
-                        </p>
-                        <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-neutral-500 dark:text-neutral-400">
-                          {msg.message}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-      </div>
+          <ul className="space-y-2">
+            {data.recentUsers.slice(0, 6).map((user) => (
+              <li key={user.id}>
+                <Link
+                  href={`/admin/users/${user.id}`}
+                  className="block rounded-md px-0.5 py-0.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+                >
+                  <p className="truncate text-[12px] font-medium">
+                    {user.name || user.email}
+                  </p>
+                  <p className={homeSubtitle}>
+                    {user._count.stores} store
+                    {user._count.stores === 1 ? "" : "s"} · {user.status} ·{" "}
+                    <AdminRelativeTime value={user.createdAt} />
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-      <section className={cn(homeCard, homeCardPad)}>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className={homeIconWrap}>
-            <Globe className="h-3 w-3" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className={homeTitle}>Platform health</h2>
-            <p className={homeSubtitle}>
-              {data.liveStores} live storefronts · {data.activeProducts} active
-              products · {data.domainsConnectedSuccess} domains with live DNS
-            </p>
+        <div className={cn(homeCard, homeCardPad)}>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className={homeTitle}>Support</h2>
+            <Link href="/admin/messages" className={homeLinkQuiet}>
+              View all →
+            </Link>
           </div>
-          <Link
-            href="/admin/analytics"
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-[#007AFF] hover:underline"
-          >
-            <Package className="h-3 w-3" />
-            View analytics
-          </Link>
+          <ul className="space-y-2">
+            {data.recentMessages.slice(0, 6).map((msg) => (
+              <li key={msg.id}>
+                <Link
+                  href="/admin/messages"
+                  className="block rounded-md px-0.5 py-0.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+                >
+                  <p className="truncate text-[12px] font-medium">{msg.name}</p>
+                  <p className={homeSubtitle}>
+                    {msg.topic} · {msg.status} ·{" "}
+                    <AdminRelativeTime value={msg.createdAt} />
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </div>
