@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { PlatformOverviewData } from "@/lib/admin/platform-stats";
+import { formatAdminInt } from "@/lib/admin/format";
 import { TimeOfDayGreeting } from "@/hooks/use-time-of-day-greeting";
 import { HomeSparkline } from "@/components/dashboard/home/home-sparkline";
 import {
@@ -17,7 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function formatDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -38,11 +39,7 @@ function formatRelative(value: Date | string) {
 function deltaVsYesterday(current: number, prior: number, unit: "MAD" | "count") {
   const delta = current - prior;
   if (delta === 0) return "flat vs yesterday";
-  const formatted =
-    unit === "MAD"
-      ? Math.round(delta).toLocaleString()
-      : delta.toLocaleString();
-  return `${delta > 0 ? "+" : ""}${formatted} vs yesterday`;
+  return `${delta > 0 ? "+" : ""}${formatAdminInt(delta)} vs yesterday`;
 }
 
 function openCommandPalette() {
@@ -193,7 +190,7 @@ export function AdminHomeDashboard({
             <div>
               <p className="text-[10px] text-neutral-400">GMV</p>
               <p className="text-[14px] font-semibold tabular-nums tracking-tight">
-                {Math.round(data.today.revenue).toLocaleString()}
+                {formatAdminInt(data.today.revenue)}
               </p>
               <p className={cn("mt-0.5 text-[10px]", homeSubtitle)}>
                 {deltaVsYesterday(
@@ -244,7 +241,7 @@ export function AdminHomeDashboard({
             <div>
               <p className="text-[10px] text-neutral-400">Real GMV</p>
               <p className="text-[14px] font-semibold tabular-nums tracking-tight">
-                {Math.round(data.realRevenue7d).toLocaleString()} MAD
+                {formatAdminInt(data.realRevenue7d)} MAD
               </p>
               <p
                 className={cn(
@@ -284,26 +281,26 @@ export function AdminHomeDashboard({
             <Link href="/admin/users" className="min-w-0">
               <p className="text-[10px] text-neutral-400">Users</p>
               <p className="text-[14px] font-semibold tabular-nums tracking-tight">
-                {data.totalUsers.toLocaleString()}
+                {formatAdminInt(data.totalUsers)}
               </p>
             </Link>
             <Link href="/admin/stores" className="min-w-0">
               <p className="text-[10px] text-neutral-400">Stores</p>
               <p className="text-[14px] font-semibold tabular-nums tracking-tight">
-                {data.totalStores.toLocaleString()}
+                {formatAdminInt(data.totalStores)}
               </p>
             </Link>
             <Link href="/admin/stores" className="min-w-0">
               <p className="text-[10px] text-neutral-400">Live</p>
               <p className="text-[14px] font-semibold tabular-nums tracking-tight">
-                {data.liveStores.toLocaleString()}
+                {formatAdminInt(data.liveStores)}
               </p>
             </Link>
           </div>
           <p className={cn("mt-2", homeSubtitle)}>
-            {data.activeProducts.toLocaleString()} live products ·{" "}
+            {formatAdminInt(data.activeProducts)} live products ·{" "}
             {data.realOrders} real orders ·{" "}
-            {Math.round(data.totalRevenue).toLocaleString()} MAD GMV
+            {formatAdminInt(data.totalRevenue)} MAD GMV
           </p>
         </div>
       </section>
@@ -416,7 +413,7 @@ export function AdminHomeDashboard({
                         {stage.label}
                       </p>
                       <p className="text-[12px] tabular-nums text-neutral-500">
-                        {stage.count.toLocaleString()}
+                        {formatAdminInt(stage.count)}
                         <span className="ml-1 text-neutral-400">· {pct}%</span>
                       </p>
                     </div>
@@ -472,16 +469,19 @@ export function AdminHomeDashboard({
           <div className={cn(homeCard, homeCardPad)}>
             <h2 className={homeTitle}>First-sale opportunity</h2>
             <p className="mt-2 text-[22px] font-semibold tabular-nums tracking-tight text-neutral-900 dark:text-white">
-              {data.firstSale?.count?.toLocaleString() ??
-                funnel.activeNoOrders.toLocaleString()}
+              {formatAdminInt(
+                data.firstSale?.count ?? funnel.activeNoOrders
+              )}
               <span className="ml-2 text-[12px] font-medium text-neutral-400">
                 stores
               </span>
             </p>
             <p className={cn("mt-1", homeSubtitle)}>
-              {data.activeProducts.toLocaleString()} live products across the
+              {formatAdminInt(data.activeProducts)} live products across the
               platform · high-intent subset:{" "}
-              {data.firstSale?.highIntentCount?.toLocaleString() ?? "—"}
+              {data.firstSale?.highIntentCount != null
+                ? formatAdminInt(data.firstSale.highIntentCount)
+                : "—"}
             </p>
             {data.firstSale?.bottlenecks ? (
               <ul className="mt-3 space-y-1 text-[12px] text-neutral-600 dark:text-neutral-300">
@@ -659,7 +659,7 @@ export function AdminHomeDashboard({
                   {row.sharePct}%
                 </span>
                 <span className="w-16 text-right tabular-nums text-neutral-400">
-                  {Math.round(row.gmv).toLocaleString()}
+                  {formatAdminInt(row.gmv)}
                 </span>
               </li>
             ))}
@@ -697,7 +697,7 @@ export function AdminHomeDashboard({
                         {order.orderNumber}
                       </p>
                       <p className="shrink-0 text-[11px] tabular-nums">
-                        {Math.round(order.total).toLocaleString()}
+                        {formatAdminInt(order.total)}
                       </p>
                     </div>
                     <p className={homeSubtitle}>

@@ -15,6 +15,7 @@ import {
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatAdminInt } from "@/lib/admin/format";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
 import {
   SUPPORT_MESSAGE_DIRECTION,
@@ -581,7 +582,7 @@ export function AdminSupportChat({
                         {ctx.healthBand ? ` · ${ctx.healthBand}` : ""}
                       </p>
                       <p>Real orders: {ctx.realOrders}</p>
-                      <p>GMV: {Math.round(ctx.realGmv).toLocaleString()}</p>
+                      <p>GMV: {formatAdminInt(ctx.realGmv)}</p>
                       <p>Last activity: {ctx.lastActivity ?? "—"}</p>
                       <p>Store status: {ctx.storeStatus ?? "—"}</p>
                     </div>

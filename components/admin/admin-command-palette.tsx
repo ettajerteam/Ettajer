@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { adminNavItems } from "@/lib/admin/admin-nav";
+import { formatAdminInt } from "@/lib/admin/format";
 
 type SearchResults = {
   users: {
@@ -254,7 +255,7 @@ export function AdminCommandPalette() {
       list.push({
         id: `order-${o.id}`,
         label: `#${o.orderNumber}`,
-        hint: `${o.store.name} · ${Math.round(o.total).toLocaleString()} MAD`,
+        hint: `${o.store.name} · ${formatAdminInt(o.total)} MAD`,
         href: `/admin/orders/${o.id}`,
         group: "Orders",
         icon: ShoppingBag,
