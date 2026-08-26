@@ -16,7 +16,7 @@ export default async function AdminSaraPage() {
   const experience = buildSaraExperienceViewModel(snapshot);
 
   return (
-    <AdminLayout>
+    <AdminLayout immersive>
       <DrSaraPage briefing={briefing} experience={experience} />
     </AdminLayout>
   );

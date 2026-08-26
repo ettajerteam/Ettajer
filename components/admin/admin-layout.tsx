@@ -16,14 +16,25 @@ function SidebarFallback() {
   );
 }
 
-export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isCollapsed, toggle } = useSidebarStore();
+export function AdminLayout({
+  children,
+  immersive = false,
+}: {
+  children: React.ReactNode;
+  immersive?: boolean;
+}) {
+  const { isCollapsed, toggle, setCollapsed } = useSidebarStore();
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!immersive) return;
+    setCollapsed(false);
+  }, [immersive, setCollapsed]);
 
   const isDark = mounted && resolvedTheme === "dark";
 
@@ -49,44 +60,46 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             isDark ? "bg-[#121212] text-white" : "bg-white text-foreground"
           )}
         >
-          <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-[#121212]/90">
-            <div className="flex h-11 items-center justify-between gap-3 px-4 sm:px-5">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <button
-                  type="button"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 lg:hidden dark:hover:bg-white/10 dark:hover:text-white"
-                  onClick={toggle}
-                  aria-label="Open navigation"
-                >
-                  <Menu className="h-4 w-4" />
-                </button>
-                <div className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-neutral-600 dark:text-neutral-300">
-                  <Shield className="h-3.5 w-3.5 shrink-0 text-[#007AFF]" />
-                  <span className="truncate">Ettajer Console</span>
-                  <span className="hidden text-neutral-300 sm:inline dark:text-neutral-600">
-                    ·
-                  </span>
-                  <span className="hidden truncate text-neutral-400 sm:inline">
-                    Platform control center
-                  </span>
+          {!immersive ? (
+            <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-white/90 backdrop-blur-xl dark:border-white/10 dark:bg-[#121212]/90">
+              <div className="flex h-11 items-center justify-between gap-3 px-4 sm:px-5">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 lg:hidden dark:hover:bg-white/10 dark:hover:text-white"
+                    onClick={toggle}
+                    aria-label="Open navigation"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </button>
+                  <div className="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-neutral-600 dark:text-neutral-300">
+                    <Shield className="h-3.5 w-3.5 shrink-0 text-[#007AFF]" />
+                    <span className="truncate">Ettajer Console</span>
+                    <span className="hidden text-neutral-300 sm:inline dark:text-neutral-600">
+                      ·
+                    </span>
+                    <span className="hidden truncate text-neutral-400 sm:inline">
+                      Platform control center
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <AdminCommandPalette />
+                  <button
+                    type="button"
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    aria-label="Refresh"
+                  >
+                    <RefreshCw
+                      className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+                    />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <AdminCommandPalette />
-                <button
-                  type="button"
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors duration-200 hover:bg-black/[0.04] hover:text-neutral-700 disabled:opacity-50 dark:hover:bg-white/10 dark:hover:text-white"
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  aria-label="Refresh"
-                >
-                  <RefreshCw
-                    className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
-                  />
-                </button>
-              </div>
-            </div>
-          </header>
+            </header>
+          ) : null}
           <div className="flex-1 overflow-auto bg-[#F5F5F7] dark:bg-[#0a0a0a]">
             {children}
           </div>

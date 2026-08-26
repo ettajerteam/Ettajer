@@ -34,11 +34,6 @@ const SARA_COMMANDS: SaraCommand[] = [
   { id: "why", label: "Show reasoning", hint: "Why chain", section: "why" },
 ];
 
-function isMac() {
-  if (typeof navigator === "undefined") return false;
-  return /Mac|iPhone|iPad/.test(navigator.platform);
-}
-
 function scrollToSection(section: ExperienceSectionId) {
   const el = document.getElementById(`sara-section-${section}`);
   el?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -53,22 +48,20 @@ export function SaraCommandPalette({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
-  const onSaraPage =
-    typeof window !== "undefined" &&
-    window.location.pathname.startsWith("/admin/sara");
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
-      if (!onSaraPage) return;
       e.preventDefault();
       e.stopPropagation();
       setOpen((v) => !v);
     }
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [onSaraPage]);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -98,13 +91,10 @@ export function SaraCommandPalette({
     setActive(0);
   }, [items.length, query]);
 
-  const activate = useCallback(
-    (section: ExperienceSectionId) => {
-      setOpen(false);
-      scrollToSection(section);
-    },
-    []
-  );
+  const activate = useCallback((section: ExperienceSectionId) => {
+    setOpen(false);
+    scrollToSection(section);
+  }, []);
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") {
@@ -120,7 +110,8 @@ export function SaraCommandPalette({
     }
   }
 
-  if (!onSaraPage) return null;
+  const shortcutLabel =
+    mounted && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K";
 
   return (
     <>
@@ -132,8 +123,11 @@ export function SaraCommandPalette({
       >
         <Search className="h-3 w-3" />
         <span className="hidden sm:inline">Sara</span>
-        <kbd className="rounded border border-black/[0.06] bg-white px-1 py-0.5 font-mono text-[9px] dark:border-white/10 dark:bg-black/30">
-          {isMac() ? "⌘K" : "Ctrl K"}
+        <kbd
+          suppressHydrationWarning
+          className="rounded border border-black/[0.06] bg-white px-1 py-0.5 font-mono text-[9px] dark:border-white/10 dark:bg-black/30"
+        >
+          {shortcutLabel}
         </kbd>
       </button>
 
