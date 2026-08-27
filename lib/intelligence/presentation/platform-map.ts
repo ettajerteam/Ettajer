@@ -1,15 +1,27 @@
 /**
  * System map — visual layer over intelligence graph + platform metrics.
+ * Design V2: deterministic coordinates + emphasis for TOP_DECISION path.
  */
 import type { DrSaraSnapshot } from "@/lib/intelligence/engine-types";
 import type {
   PlatformMapEdge,
   PlatformMapNode,
 } from "@/lib/intelligence/presentation/experience-model";
+import { SYSTEM_NODE_LAYOUT } from "@/lib/intelligence/presentation/design-layout";
 
 const SYSTEM_NODES: Omit<
   PlatformMapNode,
-  "metric" | "status" | "signals" | "risks" | "opportunities" | "connectedDecisions"
+  | "metric"
+  | "metricValue"
+  | "status"
+  | "signals"
+  | "risks"
+  | "opportunities"
+  | "connectedDecisions"
+  | "x"
+  | "y"
+  | "size"
+  | "emphasis"
 >[] = [
   { id: "merchants", label: "Merchants", category: "MERCHANTS" },
   { id: "commerce", label: "Commerce", category: "COMMERCE" },
@@ -21,12 +33,13 @@ const SYSTEM_NODES: Omit<
   { id: "operations", label: "Operations", category: "OPERATIONS" },
 ];
 
-const STATIC_EDGES: PlatformMapEdge[] = [
+const STATIC_EDGES: Omit<PlatformMapEdge, "active">[] = [
   { from: "activation", to: "commerce", label: "First sale path" },
   { from: "commerce", to: "revenue", label: "Orders → GMV" },
   { from: "domains", to: "commerce", label: "Store reach" },
   { from: "payments", to: "operations", label: "COD verification" },
   { from: "operations", to: "support", label: "Fulfillment pressure" },
+  { from: "merchants", to: "activation", label: "Onboarding" },
 ];
 
 function statusFromScore(score: number): PlatformMapNode["status"] {
@@ -34,6 +47,40 @@ function statusFromScore(score: number): PlatformMapNode["status"] {
   if (score < 60) return "attention";
   if (score < 75) return "watch";
   return "ok";
+}
+
+function parseMetric(value: unknown): { text: string; num: number | null } {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return { text: String(value), num: value };
+  }
+  if (value == null || value === "—") return { text: "—", num: null };
+  const n = Number(value);
+  return { text: String(value), num: Number.isFinite(n) ? n : null };
+}
+
+function sizeFromMetric(num: number | null, status: PlatformMapNode["status"]): number {
+  const base =
+    status === "critical" ? 1.25 : status === "attention" ? 1.1 : status === "watch" ? 1 : 0.9;
+  if (num == null) return base;
+  const scale = Math.min(1.4, Math.max(0.75, Math.log10(Math.max(num, 1) + 1) / 2 + 0.7));
+  return Number((base * scale).toFixed(3));
+}
+
+function emphasisPath(decisionId: string | null): Set<string> {
+  if (!decisionId) return new Set();
+  if (decisionId.includes("COD") || decisionId.includes("PENDING")) {
+    return new Set(["payments", "operations", "support"]);
+  }
+  if (decisionId.includes("DOMAIN") || decisionId.includes("DNS")) {
+    return new Set(["domains", "commerce"]);
+  }
+  if (decisionId.includes("FIRST_SALE") || decisionId.includes("ACTIVAT")) {
+    return new Set(["activation", "commerce", "merchants"]);
+  }
+  if (decisionId.includes("SUPPORT")) {
+    return new Set(["support", "operations"]);
+  }
+  return new Set(["operations"]);
 }
 
 export function buildPlatformMapView(snapshot: DrSaraSnapshot): {
@@ -44,37 +91,31 @@ export function buildPlatformMapView(snapshot: DrSaraSnapshot): {
   const m = twin?.metrics ?? {};
   const os = snapshot.intelligenceOS;
   const topDecision = snapshot.decision?.topDecision?.selectedAction.id ?? null;
-
-  const warningsByResponse = new Map<string, string[]>();
-  for (const w of os?.warnings ?? []) {
-    const key = w.recommendedResponse.split("_")[0]?.toLowerCase() ?? w.id;
-    warningsByResponse.set(key, w.evidence);
-  }
+  const emphasis = emphasisPath(topDecision);
+  const merchantTotal = snapshot.merchantSegments.summary.reduce(
+    (sum, s) => sum + s.count,
+    0
+  );
 
   const nodes: PlatformMapNode[] = SYSTEM_NODES.map((n) => {
-    let metric = "—";
+    let raw: unknown = "—";
     let status: PlatformMapNode["status"] = "ok";
     const signals: string[] = [];
     const risks: string[] = [];
     const opportunities: string[] = [];
     const connectedDecisions: string[] = [];
 
-    const merchantTotal = snapshot.merchantSegments.summary.reduce(
-      (sum, s) => sum + s.count,
-      0
-    );
-
     switch (n.id) {
       case "merchants":
-        metric = String(m.totalStores ?? (merchantTotal || "—"));
+        raw = m.totalStores ?? (merchantTotal || "—");
         status = statusFromScore(snapshot.health.dimensions.activation ?? 70);
         break;
       case "commerce":
-        metric = String(m.realOrders7d ?? twin?.provenanced?.realRevenue7d ?? "—");
+        raw = m.realOrders7d ?? twin?.provenanced?.realRevenue7d ?? "—";
         status = statusFromScore(snapshot.health.dimensions.revenue ?? 70);
         break;
       case "payments":
-        metric = String(twin?.provenanced?.pendingCOD ?? m.pendingCOD ?? "—");
+        raw = twin?.provenanced?.pendingCOD ?? m.pendingCOD ?? "—";
         status =
           Number(twin?.provenanced?.pendingCOD ?? 0) >= 10 ? "attention" : "ok";
         if (topDecision === "REVIEW_PENDING_COD") {
@@ -82,26 +123,26 @@ export function buildPlatformMapView(snapshot: DrSaraSnapshot): {
         }
         break;
       case "domains":
-        metric = String(twin?.provenanced?.domainFailures ?? "—");
+        raw = twin?.provenanced?.domainFailures ?? "—";
         status =
           Number(twin?.provenanced?.domainFailures ?? 0) >= 3
             ? "attention"
             : statusFromScore(snapshot.health.dimensions.technical);
         break;
       case "support":
-        metric = String(twin?.provenanced?.supportBacklog ?? "—");
+        raw = twin?.provenanced?.supportBacklog ?? "—";
         status = statusFromScore(snapshot.health.dimensions.support);
         break;
       case "revenue":
-        metric = String(twin?.provenanced?.realRevenue7d ?? "—");
+        raw = twin?.provenanced?.realRevenue7d ?? "—";
         status = statusFromScore(snapshot.health.dimensions.revenue);
         break;
       case "activation":
-        metric = String(m.firstSalePool ?? snapshot.bottlenecks[0]?.affectedCount ?? "—");
+        raw = m.firstSalePool ?? snapshot.bottlenecks[0]?.affectedCount ?? "—";
         status = statusFromScore(snapshot.health.dimensions.activation);
         break;
       case "operations":
-        metric = String(twin?.provenanced?.pendingCOD ?? "—");
+        raw = twin?.provenanced?.pendingCOD ?? "—";
         status = statusFromScore(snapshot.health.dimensions.operations);
         break;
     }
@@ -122,32 +163,45 @@ export function buildPlatformMapView(snapshot: DrSaraSnapshot): {
       }
     }
 
+    const parsed = parseMetric(raw);
+    const layout = SYSTEM_NODE_LAYOUT[n.id] ?? { x: 50, y: 50 };
+
     return {
       ...n,
-      metric,
+      metric: parsed.text,
+      metricValue: parsed.num,
       status,
       signals: signals.slice(0, 3),
       risks: risks.slice(0, 2),
       opportunities: opportunities.slice(0, 2),
       connectedDecisions,
+      x: layout.x,
+      y: layout.y,
+      size: sizeFromMetric(parsed.num, status),
+      emphasis: emphasis.has(n.id),
     };
   });
 
-  const graphEdges: PlatformMapEdge[] = [...STATIC_EDGES];
+  const edges: PlatformMapEdge[] = STATIC_EDGES.map((e) => ({
+    ...e,
+    active: emphasis.has(e.from) && emphasis.has(e.to),
+  }));
+
   for (const gn of os?.graph.nodes.slice(0, 8) ?? []) {
     if (gn.type === "DECISION" || gn.type === "INTERVENTION") {
-      graphEdges.push({
-        from: "operations",
-        to: gn.type === "DECISION" ? "payments" : "operations",
+      const candidate = {
+        from: "operations" as const,
+        to: (gn.type === "DECISION" ? "payments" : "operations") as string,
         label: gn.label,
-      });
+        active: false,
+      };
+      if (
+        !edges.some((x) => x.from === candidate.from && x.to === candidate.to)
+      ) {
+        edges.push(candidate);
+      }
     }
   }
 
-  const uniqueEdges = graphEdges.filter(
-    (e, i, arr) =>
-      arr.findIndex((x) => x.from === e.from && x.to === e.to) === i
-  );
-
-  return { nodes, edges: uniqueEdges };
+  return { nodes, edges };
 }

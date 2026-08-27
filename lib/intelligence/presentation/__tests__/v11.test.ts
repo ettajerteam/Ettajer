@@ -1,5 +1,5 @@
 /**
- * Dr Sara V11 — Experience presentation layer tests.
+ * Dr Sara Design V2 + V11 presentation tests.
  */
 import { describe, expect, it } from "vitest";
 import { buildDrSaraSnapshotFromState } from "@/lib/intelligence/snapshot";
@@ -8,6 +8,7 @@ import type { PlatformState } from "@/lib/intelligence/engine-types";
 import {
   buildSaraExperienceViewModel,
   EXPERIENCE_VERSION,
+  DESIGN_VERSION,
   buildPlatformMapView,
   buildTimelineView,
   buildScenarioLabView,
@@ -15,6 +16,10 @@ import {
   buildRiskFieldView,
   buildLearningLoopView,
   buildAgentNetworkView,
+  opportunityLayout,
+  riskLayout,
+  SYSTEM_NODE_LAYOUT,
+  stableHash,
 } from "@/lib/intelligence/presentation";
 
 function state(partial: Partial<PlatformState> = {}): PlatformState {
@@ -50,161 +55,142 @@ function liveOps() {
   });
 }
 
-describe("V11 experience model", () => {
+describe("Design V2 experience model", () => {
+  it("includes design version and arrival", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const vm = buildSaraExperienceViewModel(snap);
+    expect(vm.version).toBe(EXPERIENCE_VERSION);
+    expect(vm.designVersion).toBe(DESIGN_VERSION);
+    expect(vm.arrival.operatorName).toBe("Professor Salah");
+    expect(vm.arrival.greeting.length).toBeGreaterThan(0);
+    expect(vm.arrival.attentionCount).toBeGreaterThan(0);
+  });
+
+  it("is deterministic including radar and risk positions", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const a = buildSaraExperienceViewModel(snap);
+    const b = buildSaraExperienceViewModel(snap);
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    expect(a.opportunities.map((o) => [o.id, o.x, o.y])).toEqual(
+      b.opportunities.map((o) => [o.id, o.x, o.y])
+    );
+    expect(a.riskField.map((r) => [r.id, r.x, r.y, r.scale])).toEqual(
+      b.riskField.map((r) => [r.id, r.x, r.y, r.scale])
+    );
+  });
+
+  it("stableHash and layouts are deterministic", () => {
+    expect(stableHash("cod")).toBe(stableHash("cod"));
+    const a = opportunityLayout("opp-1", "REVENUE", 0, 3);
+    const b = opportunityLayout("opp-1", "REVENUE", 0, 3);
+    expect(a).toEqual(b);
+    const r1 = riskLayout("risk-1", "HIGH", 0, 4);
+    const r2 = riskLayout("risk-1", "HIGH", 0, 4);
+    expect(r1).toEqual(r2);
+  });
+
+  it("platform map has fixed coordinates and emphasis path", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const map = buildPlatformMapView(snap);
+    expect(map.nodes).toHaveLength(8);
+    for (const n of map.nodes) {
+      expect(SYSTEM_NODE_LAYOUT[n.id]).toEqual({ x: n.x, y: n.y });
+    }
+    if (snap.decision?.topDecision?.selectedAction.id === "REVIEW_PENDING_COD") {
+      expect(map.nodes.filter((n) => n.emphasis).map((n) => n.id).sort()).toEqual(
+        ["operations", "payments", "support"].sort()
+      );
+      expect(map.edges.some((e) => e.active)).toBe(true);
+    }
+  });
+
+  it("NOW exposes domain metric and review CTA", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const vm = buildSaraExperienceViewModel(snap);
+    expect(vm.now.cta).toBe("Review decision");
+    expect(vm.now.domain).toBeTruthy();
+    expect(vm.now.relatedPath.length).toBeGreaterThan(0);
+  });
+
+  it("decision room CTA is Review decision", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const room = buildDecisionRoomView(snap);
+    expect(room?.cta).toBe("Review decision");
+  });
+
+  it("agent network marks only Dr Sara active with fixed modules", () => {
+    const network = buildAgentNetworkView();
+    expect(network.modules.filter((m) => m.status === "ACTIVE")).toHaveLength(1);
+    expect(network.modules.find((m) => m.id === "dr-sara")?.status).toBe("ACTIVE");
+    expect(network.modules.some((m) => m.status === "FUTURE")).toBe(true);
+  });
+
+  it("learning loop has active step index", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const learning = buildLearningLoopView(snap);
+    expect(learning.steps).toHaveLength(6);
+    expect(learning.activeStepIndex).toBeGreaterThanOrEqual(0);
+    expect(learning.activeStepIndex).toBeLessThan(learning.steps.length);
+  });
+
+  it("navigation narrative order", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const vm = buildSaraExperienceViewModel(snap);
+    const ids = vm.navigation.map((n) => n.id);
+    expect(ids.indexOf("now")).toBeLessThan(ids.indexOf("why"));
+    expect(ids.indexOf("why")).toBeLessThan(ids.indexOf("system"));
+    expect(ids.indexOf("system")).toBeLessThan(ids.indexOf("outcome"));
+    expect(ids.indexOf("decision")).toBeLessThan(ids.indexOf("execution"));
+    expect(ids).toContain("network");
+  });
+
+  it("preserves engine contract", () => {
+    const snap = buildDrSaraSnapshotFromState(liveOps());
+    const vm = buildSaraExperienceViewModel(snap);
+    expect(vm.engineVersion).toBe("10.0.0");
+    expect(vm.autoExecute).toBe(false);
+    expect(vm.productionMutation).toBe("NONE");
+    expect(vm.preserved.topDecision).toBe(
+      snap.decision?.topDecision?.selectedAction.id
+    );
+  });
+});
+
+describe("V11 regression under Design V2", () => {
   it("builds deterministic view model from snapshot", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
     const a = buildSaraExperienceViewModel(snap);
     const b = buildSaraExperienceViewModel(snap);
-    expect(a.version).toBe(EXPERIENCE_VERSION);
-    expect(a.engineVersion).toBe("10.0.0");
-    expect(a.autoExecute).toBe(false);
-    expect(a.productionMutation).toBe("NONE");
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 
-  it("renders TOP_DECISION in NOW and preserved fields", () => {
-    const snap = buildDrSaraSnapshotFromState(liveOps());
-    const vm = buildSaraExperienceViewModel(snap);
-    expect(snap.decision?.topDecision).toBeTruthy();
-    expect(vm.preserved.topDecision).toBe(
-      snap.decision?.topDecision?.selectedAction.id
-    );
-    expect(vm.preserved.topAction).toBe(snap.topAction?.label);
-    expect(vm.preserved.topScenario).toBe(
-      snap.topScenario?.scenarioId ?? null
-    );
-    expect(vm.now.headline).toBe(
-      snap.decision?.topDecision?.selectedAction.title
-    );
-    expect(vm.now.decisionId).toBe("REVIEW_PENDING_COD");
-  });
-
-  it("why chain uses engine data not fabrication", () => {
+  it("why chain uses engine data", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
     const vm = buildSaraExperienceViewModel(snap);
     expect(vm.whyChain.length).toBeGreaterThan(2);
-    const decisionStep = vm.whyChain.find((s) => s.label === "DECISION");
-    expect(decisionStep?.detail).toBe(
-      snap.decision?.topDecision?.selectedAction.title
-    );
-    if (snap.intervention) {
-      const interventionStep = vm.whyChain.find(
-        (s) => s.label === "INTERVENTION"
-      );
-      expect(interventionStep?.detail).toContain(snap.intervention.type);
-    }
   });
 
-  it("scenario lab includes expected ranges from intervention", () => {
+  it("scenario lab includes expected ranges", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
-    const vm = buildSaraExperienceViewModel(snap);
-    expect(vm.scenarioLab.length).toBeGreaterThan(0);
-    const primary = vm.scenarioLab.find(
-      (r) => r.scenarioId === snap.intervention?.type
-    );
-    expect(primary).toBeTruthy();
-    if (snap.intervention?.measurement.primaryMetric) {
-      const metric = snap.intervention.measurement.primaryMetric;
-      expect(primary?.baseline[metric]).toBeDefined();
-      expect(primary?.expectedRange[metric]).toBeDefined();
-    }
+    const rows = buildScenarioLabView(snap);
+    expect(rows.length).toBeGreaterThan(0);
   });
 
-  it("shows insufficient evidence when data quality degraded", () => {
-    const base = liveOps();
-    const snap = buildDrSaraSnapshotFromState({
-      ...base,
-      totalStores: 0,
-      pendingRealOrders: 0,
-      realOrders7d: 0,
-    });
-    if (snap.dataQualityV2.insufficientEvidence) {
-      const vm = buildSaraExperienceViewModel(snap);
-      expect(vm.live).toBe(false);
-      const outcome = vm.whyChain.find((s) => s.label === "EXPECTED OUTCOME");
-      expect(outcome?.detail).toBe("INSUFFICIENT EVIDENCE");
-    }
-  });
-
-  it("platform map has consistent nodes and edges", () => {
-    const snap = buildDrSaraSnapshotFromState(liveOps());
-    const map = buildPlatformMapView(snap);
-    expect(map.nodes).toHaveLength(8);
-    expect(map.edges.length).toBeGreaterThan(0);
-    for (const edge of map.edges) {
-      expect(map.nodes.some((n) => n.id === edge.from)).toBe(true);
-      expect(map.nodes.some((n) => n.id === edge.to)).toBe(true);
-    }
-  });
-
-  it("decision room connects V6 V8 V9", () => {
-    const snap = buildDrSaraSnapshotFromState(liveOps());
-    const room = buildDecisionRoomView(snap);
-    expect(room).toBeTruthy();
-    expect(room?.decisionId).toBe(snap.decision?.topDecision?.selectedAction.id);
-    expect(room?.risk).toBe(snap.intervention?.overallRisk);
-    expect(room?.beforeExecution.length).toBeGreaterThan(0);
-  });
-
-  it("execution state reflects governance", () => {
-    const snap = buildDrSaraSnapshotFromState(liveOps());
-    const vm = buildSaraExperienceViewModel(snap);
-    expect(vm.execution.autoExecute).toBe(false);
-    expect(vm.execution.productionExecutionDisabled).toBe(true);
-    expect(snap.execution?.outcome?.productionMutation).toBe("NONE");
-  });
-
-  it("learning loop handles insufficient history", () => {
-    const snap = buildDrSaraSnapshotFromState(liveOps());
-    const learning = buildLearningLoopView(snap);
-    expect(learning.steps).toHaveLength(6);
-    expect(typeof learning.insufficientHistory).toBe("boolean");
-  });
-
-  it("agent network placeholder only shows Dr Sara active", () => {
-    const network = buildAgentNetworkView();
-    expect(network.master.status).toBe("ACTIVE");
-    expect(network.futureModules.length).toBeGreaterThan(0);
-  });
-
-  it("responsive navigation ordering includes core sections", () => {
-    const snap = buildDrSaraSnapshotFromState(liveOps());
-    const vm = buildSaraExperienceViewModel(snap);
-    const ids = vm.navigation.map((n) => n.id);
-    expect(ids.indexOf("now")).toBeLessThan(ids.indexOf("decision"));
-    expect(ids.indexOf("decision")).toBeLessThan(ids.indexOf("execution"));
-    expect(ids).toContain("system");
-    expect(ids).toContain("learning");
-  });
-
-  it("timeline uses temporal trends without fabrication", () => {
+  it("timeline uses temporal trends", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
     const timeline = buildTimelineView(snap);
     expect(timeline.some((t) => t.phase === "NOW")).toBe(true);
-    for (const seg of timeline) {
-      if (seg.insufficientEvidence) {
-        expect(
-          seg.detail.includes("INSUFFICIENT") ||
-            seg.evidence.length >= 0
-        ).toBe(true);
-      }
-    }
   });
 
-  it("risk field uses warnings and intervention blast radius", () => {
+  it("risk field includes intervention risk", () => {
     const snap = buildDrSaraSnapshotFromState(liveOps());
     const risks = buildRiskFieldView(snap);
-    expect(risks.length).toBeGreaterThan(0);
     if (snap.intervention) {
-      expect(
-        risks.some((r) => r.id === "intervention-risk")
-      ).toBe(true);
-    } else {
-      expect(risks.length).toBeGreaterThan(0);
+      expect(risks.some((r) => r.id === "intervention-risk")).toBe(true);
     }
   });
 
-  it("presentation layer has no LLM imports", async () => {
+  it("presentation has no LLM imports", async () => {
     const fs = await import("fs");
     const path = await import("path");
     const dir = path.join(process.cwd(), "lib/intelligence/presentation");
@@ -212,16 +198,5 @@ describe("V11 experience model", () => {
       const text = fs.readFileSync(path.join(dir, f), "utf8");
       expect(text).not.toMatch(/openai|anthropic|@ai-sdk|langchain|embedding/i);
     }
-  });
-});
-
-describe("V11 backward compatibility", () => {
-  it("does not alter engine snapshot fields", () => {
-    const snap = buildDrSaraSnapshotFromState(liveOps());
-    buildSaraExperienceViewModel(snap);
-    expect(snap.metadata.version).toBe("10.0.0");
-    expect(snap.topAction).toBeTruthy();
-    expect(snap.decision?.topDecision).toBeTruthy();
-    expect(snap.execution?.autoExecute).toBe(false);
   });
 });

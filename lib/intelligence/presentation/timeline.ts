@@ -56,10 +56,14 @@ export function buildTimelineView(snapshot: DrSaraSnapshot): TimelineSegment[] {
             ? "INSUFFICIENT EVIDENCE"
             : "Expected range unavailable",
       evidence: [
+        "SIMULATED",
+        "EXPECTED RANGE",
+        "NOT A GUARANTEE",
         iv.measurement.measurementWindow,
         rel?.note ?? "historical reliability pending",
       ].filter(Boolean),
       insufficientEvidence: insufficient,
+      simulated: true,
     });
   } else if (snapshot.forecasts.length > 0) {
     const f = snapshot.forecasts[0]!;

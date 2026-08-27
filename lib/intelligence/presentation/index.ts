@@ -1,7 +1,4 @@
-/**
- * Dr Sara V11 — Experience presentation layer exports.
- */
-export { EXPERIENCE_VERSION } from "@/lib/intelligence/presentation/experience-model";
+export { EXPERIENCE_VERSION, DESIGN_VERSION } from "@/lib/intelligence/presentation/experience-model";
 export type {
   SaraExperienceViewModel,
   ExperienceSectionId,
@@ -16,6 +13,7 @@ export type {
   OpportunityRadarItem,
   RiskFieldItem,
   AgentNetworkView,
+  ArrivalView,
 } from "@/lib/intelligence/presentation/experience-model";
 export { buildSaraExperienceViewModel } from "@/lib/intelligence/presentation/view-model";
 export { buildTimelineView } from "@/lib/intelligence/presentation/timeline";
@@ -27,3 +25,9 @@ export {
   buildLearningLoopView,
 } from "@/lib/intelligence/presentation/risk-view";
 export { buildAgentNetworkView } from "@/lib/intelligence/presentation/agent-network";
+export {
+  stableHash,
+  opportunityLayout,
+  riskLayout,
+  SYSTEM_NODE_LAYOUT,
+} from "@/lib/intelligence/presentation/design-layout";

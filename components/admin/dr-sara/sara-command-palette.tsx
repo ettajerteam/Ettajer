@@ -32,6 +32,7 @@ const SARA_COMMANDS: SaraCommand[] = [
   { id: "execution", label: "Show execution state", hint: "Governance & sandbox", section: "execution" },
   { id: "outcome", label: "Show timeline", hint: "Past · now · expected", section: "outcome" },
   { id: "why", label: "Show reasoning", hint: "Why chain", section: "why" },
+  { id: "network", label: "Show intelligence network", hint: "Future agents", section: "network" },
 ];
 
 function scrollToSection(section: ExperienceSectionId) {

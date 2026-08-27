@@ -1,25 +1,28 @@
 /**
- * Dr Sara V11 — Experience presentation types (UI only; engine unchanged).
+ * Dr Sara V11 + Design V2 — Experience presentation types (UI only; engine unchanged).
  */
 
 export const EXPERIENCE_VERSION = "11.0.0";
+export const DESIGN_VERSION = "2.0.0";
 
 export type ExperienceSectionId =
   | "now"
   | "why"
   | "system"
+  | "outcome"
   | "scenario"
   | "decision"
   | "execution"
-  | "outcome"
   | "learning"
+  | "risks"
   | "opportunities"
-  | "risks";
+  | "network";
 
 export type WhyChainStep = {
   id: string;
   label: string;
   detail: string;
+  evidence?: string[];
   href?: string;
 };
 
@@ -28,17 +31,23 @@ export type PlatformMapNode = {
   label: string;
   category: string;
   metric: string;
+  metricValue: number | null;
   status: "ok" | "watch" | "attention" | "critical";
   signals: string[];
   risks: string[];
   opportunities: string[];
   connectedDecisions: string[];
+  x: number;
+  y: number;
+  size: number;
+  emphasis: boolean;
 };
 
 export type PlatformMapEdge = {
   from: string;
   to: string;
   label: string;
+  active: boolean;
 };
 
 export type TimelineSegment = {
@@ -48,6 +57,7 @@ export type TimelineSegment = {
   detail: string;
   evidence: string[];
   insufficientEvidence: boolean;
+  simulated?: boolean;
 };
 
 export type ScenarioLabRow = {
@@ -96,6 +106,7 @@ export type ExecutionView = {
 
 export type LearningLoopView = {
   steps: string[];
+  activeStepIndex: number;
   evidenceNotes: string[];
   confidenceAdjustment: {
     before: number;
@@ -116,6 +127,8 @@ export type OpportunityRadarItem = {
   action: string;
   confidence: number;
   href?: string;
+  x: number;
+  y: number;
 };
 
 export type RiskFieldItem = {
@@ -126,16 +139,38 @@ export type RiskFieldItem = {
   scope: string;
   reversibility: string;
   level: string;
+  x: number;
+  y: number;
+  scale: number;
+};
+
+export type AgentNetworkModule = {
+  id: string;
+  label: string;
+  subtitle: string;
+  status: "ACTIVE" | "FUTURE";
+  x: number;
+  y: number;
 };
 
 export type AgentNetworkView = {
   master: { id: string; label: string; status: "ACTIVE" };
   placeholder: string;
   futureModules: string[];
+  modules: AgentNetworkModule[];
+};
+
+export type ArrivalView = {
+  greeting: string;
+  operatorName: string;
+  attentionCount: number;
+  syncLabel: string;
+  headline: string;
 };
 
 export type SaraExperienceViewModel = {
   version: string;
+  designVersion: string;
   generatedAt: Date;
   engineVersion: string;
   cycleId: string | null;
@@ -144,6 +179,7 @@ export type SaraExperienceViewModel = {
   live: boolean;
   autoExecute: false;
   productionMutation: "NONE";
+  arrival: ArrivalView;
   now: {
     headline: string;
     narrative: string[];
@@ -155,6 +191,10 @@ export type SaraExperienceViewModel = {
     approval: string;
     decisionId: string | null;
     interventionType: string | null;
+    domain: string;
+    primaryMetricLabel: string | null;
+    primaryMetricValue: number | null;
+    relatedPath: string[];
   };
   whyChain: WhyChainStep[];
   platformMap: { nodes: PlatformMapNode[]; edges: PlatformMapEdge[] };

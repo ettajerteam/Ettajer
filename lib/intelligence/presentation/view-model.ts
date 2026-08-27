@@ -1,8 +1,9 @@
 /**
- * Dr Sara V11 — Experience view model (presentation only; engine unchanged).
+ * Dr Sara V11 + Design V2 — Experience view model (presentation only).
  */
 import type { DrSaraSnapshot } from "@/lib/intelligence/engine-types";
 import {
+  DESIGN_VERSION,
   EXPERIENCE_VERSION,
   type ExperienceSectionId,
   type OpportunityRadarItem,
@@ -11,6 +12,10 @@ import {
 } from "@/lib/intelligence/presentation/experience-model";
 import { buildAgentNetworkView } from "@/lib/intelligence/presentation/agent-network";
 import { buildDecisionRoomView } from "@/lib/intelligence/presentation/decision-view";
+import {
+  greetingFromHour,
+  opportunityLayout,
+} from "@/lib/intelligence/presentation/design-layout";
 import { buildPlatformMapView } from "@/lib/intelligence/presentation/platform-map";
 import {
   buildLearningLoopView,
@@ -22,14 +27,15 @@ import { buildTimelineView } from "@/lib/intelligence/presentation/timeline";
 const NAVIGATION: { id: ExperienceSectionId; label: string }[] = [
   { id: "now", label: "Now" },
   { id: "why", label: "Why" },
-  { id: "system", label: "Platform map" },
-  { id: "scenario", label: "Scenario lab" },
-  { id: "decision", label: "Decision room" },
-  { id: "execution", label: "Execution" },
-  { id: "outcome", label: "Timeline" },
+  { id: "system", label: "System" },
+  { id: "outcome", label: "Time" },
+  { id: "scenario", label: "Scenarios" },
+  { id: "decision", label: "Decision" },
+  { id: "execution", label: "Governance" },
   { id: "learning", label: "Learning" },
+  { id: "risks", label: "Risks" },
   { id: "opportunities", label: "Opportunities" },
-  { id: "risks", label: "Risk field" },
+  { id: "network", label: "Network" },
 ];
 
 function categorizeOpportunity(
@@ -58,6 +64,30 @@ function categorizeOpportunity(
   return "OPERATIONS";
 }
 
+function decisionDomain(decisionId: string | null, interventionType: string | null): string {
+  const key = `${decisionId ?? ""} ${interventionType ?? ""}`.toUpperCase();
+  if (key.includes("COD") || key.includes("PENDING")) return "OPERATIONS";
+  if (key.includes("DOMAIN") || key.includes("DNS")) return "TECHNICAL";
+  if (key.includes("FIRST_SALE") || key.includes("ACTIVAT")) return "ACTIVATION";
+  if (key.includes("SUPPORT")) return "SUPPORT";
+  if (key.includes("REVENUE") || key.includes("GMV")) return "REVENUE";
+  return "PLATFORM";
+}
+
+function relatedPathForDecision(decisionId: string | null): string[] {
+  if (!decisionId) return [];
+  if (decisionId.includes("COD") || decisionId.includes("PENDING")) {
+    return ["PAYMENTS", "OPERATIONS", "SUPPORT"];
+  }
+  if (decisionId.includes("DOMAIN") || decisionId.includes("DNS")) {
+    return ["DOMAINS", "COMMERCE"];
+  }
+  if (decisionId.includes("FIRST_SALE") || decisionId.includes("ACTIVAT")) {
+    return ["ACTIVATION", "COMMERCE", "REVENUE"];
+  }
+  return ["OPERATIONS"];
+}
+
 function buildWhyChain(snapshot: DrSaraSnapshot): WhyChainStep[] {
   const td = snapshot.decision?.topDecision;
   const iv = snapshot.intervention;
@@ -72,6 +102,9 @@ function buildWhyChain(snapshot: DrSaraSnapshot): WhyChainStep[] {
       id: "signal",
       label: "SIGNAL",
       detail: relatedSignal.title,
+      evidence: relatedSignal.evidence
+        ?.slice(0, 3)
+        .map((e) => `${e.label}: ${String(e.value)}`),
     });
   }
 
@@ -84,6 +117,7 @@ function buildWhyChain(snapshot: DrSaraSnapshot): WhyChainStep[] {
       id: "diagnosis",
       label: "DIAGNOSIS",
       detail: diagnosis.title,
+      evidence: [diagnosis.explanation].filter(Boolean),
     });
   }
 
@@ -92,6 +126,7 @@ function buildWhyChain(snapshot: DrSaraSnapshot): WhyChainStep[] {
       id: "decision",
       label: "DECISION",
       detail: td.selectedAction.title,
+      evidence: td.whyThis.slice(0, 3),
       href: td.selectedAction.route,
     });
   }
@@ -106,6 +141,9 @@ function buildWhyChain(snapshot: DrSaraSnapshot): WhyChainStep[] {
       id: "scenario",
       label: "SCENARIO",
       detail: String(scenarioLabel),
+      evidence: snapshot.topScenario?.whyChosen
+        ? [snapshot.topScenario.whyChosen]
+        : undefined,
     });
   }
 
@@ -114,6 +152,7 @@ function buildWhyChain(snapshot: DrSaraSnapshot): WhyChainStep[] {
       id: "intervention",
       label: "INTERVENTION",
       detail: `${iv.type} · ${iv.approval === "REQUIRED" ? "Approval required" : iv.status}`,
+      evidence: iv.rationale.slice(0, 3),
       href: iv.reviewHref,
     });
   }
@@ -134,6 +173,9 @@ function buildWhyChain(snapshot: DrSaraSnapshot): WhyChainStep[] {
       : expected && base != null
         ? `${primary}: ${base} → [${expected[0]}, ${expected[1]}]`
         : td?.expectedOutcome.note ?? "Outcome projection unavailable",
+    evidence: insufficient
+      ? ["SIMULATED · EXPECTED RANGE · NOT A GUARANTEE"]
+      : ["SIMULATED", "EXPECTED RANGE", "NOT A GUARANTEE"],
   });
 
   return steps;
@@ -143,12 +185,17 @@ function buildNowView(snapshot: DrSaraSnapshot): SaraExperienceViewModel["now"] 
   const td = snapshot.decision?.topDecision;
   const iv = snapshot.intervention;
   const insufficient = snapshot.dataQualityV2?.insufficientEvidence === true;
+  const domain = decisionDomain(
+    td?.selectedAction.id ?? null,
+    iv?.type ?? null
+  );
+  const relatedPath = relatedPathForDecision(td?.selectedAction.id ?? null);
 
   if (!td) {
     return {
       headline: snapshot.headline || "Platform state",
       narrative: snapshot.health.reasons.slice(0, 3),
-      cta: snapshot.topAction?.label ?? "Open console",
+      cta: "Review decision",
       href: snapshot.topAction?.href ?? "/admin",
       confidence: insufficient ? null : snapshot.confidence.overall,
       confidenceLabel: insufficient ? "INSUFFICIENT EVIDENCE" : "Platform confidence",
@@ -156,10 +203,20 @@ function buildNowView(snapshot: DrSaraSnapshot): SaraExperienceViewModel["now"] 
       approval: snapshot.execution?.governor.verdict ?? "REVIEW",
       decisionId: null,
       interventionType: iv?.type ?? null,
+      domain,
+      primaryMetricLabel: null,
+      primaryMetricValue: null,
+      relatedPath,
     };
   }
 
   const conf = td.confidenceAfterMemory ?? td.confidence;
+  const primaryMetric = iv?.measurement.primaryMetric ?? null;
+  const primaryValue =
+    primaryMetric != null
+      ? (iv?.measurement.baseline[primaryMetric] ?? iv?.target.count ?? null)
+      : (iv?.target.count ?? null);
+
   const narrative = [
     td.whyThis[0] ?? "One decision is currently dominant.",
     td.expectedOutcome.note,
@@ -169,7 +226,7 @@ function buildNowView(snapshot: DrSaraSnapshot): SaraExperienceViewModel["now"] 
   return {
     headline: td.selectedAction.title,
     narrative,
-    cta: snapshot.topAction?.label ?? td.selectedAction.title,
+    cta: "Review decision",
     href: td.selectedAction.route,
     confidence: insufficient ? null : conf,
     confidenceLabel:
@@ -183,6 +240,14 @@ function buildNowView(snapshot: DrSaraSnapshot): SaraExperienceViewModel["now"] 
         : snapshot.intelligenceOS?.governance.decision ?? "RECOMMENDED",
     decisionId: td.selectedAction.id,
     interventionType: iv?.type ?? null,
+    domain,
+    primaryMetricLabel: primaryMetric
+      ? primaryMetric.replace(/([A-Z])/g, " $1").trim().toUpperCase()
+      : iv
+        ? "TARGETS"
+        : null,
+    primaryMetricValue: primaryValue,
+    relatedPath,
   };
 }
 
@@ -199,6 +264,8 @@ function buildOpportunities(snapshot: DrSaraSnapshot): OpportunityRadarItem[] {
       affected: o.recommendedAction,
       action: o.recommendedAction,
       confidence: o.confidence,
+      x: 0,
+      y: 0,
     });
   }
 
@@ -214,10 +281,30 @@ function buildOpportunities(snapshot: DrSaraSnapshot): OpportunityRadarItem[] {
       action: o.cta,
       confidence: o.confidence,
       href: o.href,
+      x: 0,
+      y: 0,
     });
   }
 
-  return items.slice(0, 12);
+  const sliced = items.slice(0, 12);
+  const byCategory = new Map<string, OpportunityRadarItem[]>();
+  for (const item of sliced) {
+    const list = byCategory.get(item.category) ?? [];
+    list.push(item);
+    byCategory.set(item.category, list);
+  }
+
+  return sliced.map((item) => {
+    const peers = byCategory.get(item.category) ?? [item];
+    const index = peers.findIndex((p) => p.id === item.id);
+    const layout = opportunityLayout(
+      item.id,
+      item.category,
+      Math.max(index, 0),
+      peers.length
+    );
+    return { ...item, ...layout };
+  });
 }
 
 function buildExecutionView(snapshot: DrSaraSnapshot): SaraExperienceViewModel["execution"] {
@@ -264,6 +351,39 @@ function platformStateSummary(snapshot: DrSaraSnapshot): string {
   return `Platform health ${snapshot.health.score}/100 · ${snapshot.health.status}`;
 }
 
+function buildArrival(snapshot: DrSaraSnapshot): SaraExperienceViewModel["arrival"] {
+  const generatedAt = new Date(snapshot.generatedAt);
+  const hour = generatedAt.getUTCHours();
+  const attentionPlaces = new Set<string>();
+  if (snapshot.decision?.topDecision) attentionPlaces.add("decision");
+  for (const w of snapshot.intelligenceOS?.warnings ?? []) {
+    if (/high|critical/i.test(w.severity)) attentionPlaces.add(w.id);
+  }
+  for (const r of snapshot.risks) {
+    if (r.riskLevel === "high") {
+      attentionPlaces.add(r.id);
+    }
+  }
+  if (snapshot.intervention?.approval === "REQUIRED") {
+    attentionPlaces.add("approval");
+  }
+
+  const count = Math.max(attentionPlaces.size, snapshot.decision?.topDecision ? 1 : 0);
+
+  return {
+    greeting: greetingFromHour(hour),
+    operatorName: "Professor Salah",
+    attentionCount: count,
+    syncLabel: snapshot.dataQualityV2?.insufficientEvidence
+      ? "Evidence degraded"
+      : "Platform state synchronized",
+    headline:
+      count > 0
+        ? `The platform needs your attention in ${count} place${count === 1 ? "" : "s"}.`
+        : "Platform state is stable. No dominant attention signals.",
+  };
+}
+
 export function buildSaraExperienceViewModel(
   snapshot: DrSaraSnapshot
 ): SaraExperienceViewModel {
@@ -272,6 +392,7 @@ export function buildSaraExperienceViewModel(
 
   return {
     version: EXPERIENCE_VERSION,
+    designVersion: DESIGN_VERSION,
     generatedAt: snapshot.generatedAt,
     engineVersion: snapshot.metadata.version,
     cycleId: os?.cycleId ?? snapshot.executionTraceV4?.cycleId ?? null,
@@ -280,6 +401,7 @@ export function buildSaraExperienceViewModel(
     live: !snapshot.dataQualityV2?.insufficientEvidence,
     autoExecute: false,
     productionMutation: "NONE",
+    arrival: buildArrival(snapshot),
     now: buildNowView(snapshot),
     whyChain: buildWhyChain(snapshot),
     platformMap: buildPlatformMapView(snapshot),

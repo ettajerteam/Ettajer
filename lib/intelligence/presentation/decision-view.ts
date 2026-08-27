@@ -72,6 +72,6 @@ export function buildDecisionRoomView(
     },
     beforeExecution,
     href: td.selectedAction.route,
-    cta: snapshot.topAction?.label ?? td.selectedAction.title,
+    cta: "Review decision",
   };
 }
