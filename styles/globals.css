@@ -595,7 +595,8 @@
   }
 
   .sara-glass-nav {
-    @apply border border-white/[0.1] bg-[#0b0d10]/72 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-2xl;
+    @apply border border-white/[0.1] shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-2xl;
+    background-color: rgba(11, 13, 16, 0.72);
   }
 
   .sara-glass-chip {
