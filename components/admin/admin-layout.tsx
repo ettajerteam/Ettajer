@@ -23,18 +23,13 @@ export function AdminLayout({
   children: React.ReactNode;
   immersive?: boolean;
 }) {
-  const { isCollapsed, toggle, setCollapsed } = useSidebarStore();
+  const { isCollapsed, toggle } = useSidebarStore();
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
 
   useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    if (!immersive) return;
-    setCollapsed(false);
-  }, [immersive, setCollapsed]);
 
   const isDark = mounted && resolvedTheme === "dark";
 
@@ -44,14 +39,16 @@ export function AdminLayout({
 
   return (
     <div className={cn("min-h-screen", isDark ? "bg-[#0a0a0a]" : "bg-[#F5F5F7]")}>
-      <Suspense fallback={<SidebarFallback />}>
-        <AdminSidebar />
-      </Suspense>
+      {!immersive ? (
+        <Suspense fallback={<SidebarFallback />}>
+          <AdminSidebar />
+        </Suspense>
+      ) : null}
       <div
         className={cn(
           "min-h-screen transition-[padding] duration-300",
           "[transition-timing-function:cubic-bezier(0.32,0.72,0,1)]",
-          isCollapsed ? "lg:pl-[72px]" : "lg:pl-[220px]"
+          immersive ? "lg:pl-0" : isCollapsed ? "lg:pl-[72px]" : "lg:pl-[220px]"
         )}
       >
         <div
