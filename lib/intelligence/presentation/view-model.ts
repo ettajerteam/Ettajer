@@ -393,7 +393,7 @@ export function buildSaraExperienceViewModel(
   return {
     version: EXPERIENCE_VERSION,
     designVersion: DESIGN_VERSION,
-    generatedAt: snapshot.generatedAt,
+    generatedAt: new Date(snapshot.generatedAt).toISOString(),
     engineVersion: snapshot.metadata.version,
     cycleId: os?.cycleId ?? snapshot.executionTraceV4?.cycleId ?? null,
     cycleStatus: os?.status ?? null,

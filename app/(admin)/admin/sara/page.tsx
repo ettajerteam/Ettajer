@@ -13,7 +13,10 @@ export default async function AdminSaraPage() {
   await requireAdminPage();
   const snapshot = await getDrSaraSnapshot();
   const briefing = snapshotToBriefing(snapshot);
-  const experience = buildSaraExperienceViewModel(snapshot);
+  // JSON round-trip keeps client props fully serializable (no Date/class values).
+  const experience = JSON.parse(
+    JSON.stringify(buildSaraExperienceViewModel(snapshot))
+  ) as ReturnType<typeof buildSaraExperienceViewModel>;
 
   return (
     <AdminLayout immersive>

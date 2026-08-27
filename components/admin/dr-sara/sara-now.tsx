@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
 import { MetaChip, riskTone, SaraLabel } from "@/components/admin/dr-sara/sara-ui";
 
@@ -10,8 +9,6 @@ export function SaraNow({
 }: {
   now: SaraExperienceViewModel["now"];
 }) {
-  const reduce = useReducedMotion();
-
   return (
     <section
       id="sara-section-now"
@@ -20,13 +17,7 @@ export function SaraNow({
     >
       <SaraLabel>Now</SaraLabel>
 
-      <motion.article
-        initial={reduce ? false : { opacity: 0, y: 12 }}
-        whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mt-4 overflow-hidden rounded-[28px] border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent px-6 py-10 text-center sm:px-12 sm:py-14"
-      >
+      <article className="relative mt-4 overflow-hidden rounded-[28px] border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent px-6 py-10 text-center motion-safe:animate-[saraFadeUp_0.5s_ease-out_both] sm:px-12 sm:py-14">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent"
@@ -96,7 +87,7 @@ export function SaraNow({
             {now.relatedPath.join(" → ")}
           </p>
         ) : null}
-      </motion.article>
+      </article>
     </section>
   );
 }

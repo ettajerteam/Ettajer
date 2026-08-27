@@ -171,7 +171,7 @@ export type ArrivalView = {
 export type SaraExperienceViewModel = {
   version: string;
   designVersion: string;
-  generatedAt: Date;
+  generatedAt: string;
   engineVersion: string;
   cycleId: string | null;
   cycleStatus: string | null;

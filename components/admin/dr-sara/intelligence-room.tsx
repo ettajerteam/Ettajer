@@ -92,7 +92,7 @@ export function IntelligenceRoom({
   }, [vm.navigation]);
 
   const updatedLabel = mounted
-    ? new Date(vm.generatedAt as string | Date).toLocaleString()
+    ? new Date(vm.generatedAt).toLocaleString()
     : "—";
 
   return (

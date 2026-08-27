@@ -1,9 +1,8 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
 import { SaraLabel, SaraPanel } from "@/components/admin/dr-sara/sara-ui";
-import { cn } from "@/lib/utils";
 
 function statusColor(status: string) {
   if (status === "critical") return "#f87171";
@@ -20,18 +19,35 @@ export function SaraSystemMap({
   const [active, setActive] = useState<string | null>(
     platformMap.nodes.find((n) => n.emphasis)?.id ?? null
   );
+  const [animateFlow, setAnimateFlow] = useState(false);
   const gid = useId();
   const node = platformMap.nodes.find((n) => n.id === active);
   const byId = new Map(platformMap.nodes.map((n) => [n.id, n]));
 
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setAnimateFlow(!media.matches);
+    const onChange = () => setAnimateFlow(!media.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
   return (
-    <section id="sara-section-system" className="scroll-mt-28 py-10" aria-labelledby="sara-system-heading">
+    <section
+      id="sara-section-system"
+      className="scroll-mt-28 py-10"
+      aria-labelledby="sara-system-heading"
+    >
       <SaraLabel>System</SaraLabel>
-      <h2 id="sara-system-heading" className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-white">
+      <h2
+        id="sara-system-heading"
+        className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-white"
+      >
         Platform map
       </h2>
       <p className="mt-1 text-[13px] text-white/40">
-        Living system relationships. Emphasized path follows the current top decision.
+        Living system relationships. Emphasized path follows the current top
+        decision.
       </p>
 
       <SaraPanel className="mt-5 overflow-x-auto">
@@ -42,7 +58,13 @@ export function SaraSystemMap({
           aria-label="Ettajer platform system map"
         >
           <defs>
-            <filter id={`${gid}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+            <filter
+              id={`${gid}-glow`}
+              x="-50%"
+              y="-50%"
+              width="200%"
+              height="200%"
+            >
               <feGaussianBlur stdDeviation="1.2" result="coloredBlur" />
               <feMerge>
                 <feMergeNode in="coloredBlur" />
@@ -62,11 +84,15 @@ export function SaraSystemMap({
                   y1={a.y}
                   x2={b.x}
                   y2={b.y}
-                  stroke={edge.active ? "rgba(56,189,248,0.55)" : "rgba(255,255,255,0.12)"}
+                  stroke={
+                    edge.active
+                      ? "rgba(56,189,248,0.55)"
+                      : "rgba(255,255,255,0.12)"
+                  }
                   strokeWidth={edge.active ? 0.45 : 0.25}
                 />
-                {edge.active ? (
-                  <circle r="0.7" fill="#38bdf8" className="motion-safe:opacity-80">
+                {edge.active && animateFlow ? (
+                  <circle r="0.7" fill="#38bdf8">
                     <animateMotion
                       dur="3.5s"
                       repeatCount="indefinite"
@@ -99,13 +125,16 @@ export function SaraSystemMap({
                   fill="transparent"
                   stroke={n.emphasis ? "rgba(56,189,248,0.35)" : "transparent"}
                   strokeWidth={0.4}
-                  className={cn(n.emphasis && "motion-safe:opacity-90")}
                 />
                 <circle
                   cx={n.x}
                   cy={n.y}
                   r={r}
-                  fill={selected || n.emphasis ? "rgba(14,165,233,0.18)" : "rgba(255,255,255,0.04)"}
+                  fill={
+                    selected || n.emphasis
+                      ? "rgba(14,165,233,0.18)"
+                      : "rgba(255,255,255,0.04)"
+                  }
                   stroke={statusColor(n.status)}
                   strokeWidth={selected ? 0.55 : 0.35}
                   filter={n.emphasis ? `url(#${gid}-glow)` : undefined}
