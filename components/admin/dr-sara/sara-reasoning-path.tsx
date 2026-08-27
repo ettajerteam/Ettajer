@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { SaraLabel, SaraPanel } from "@/components/admin/dr-sara/sara-ui";
-import { cn } from "@/lib/utils";
+import { SaraLabel } from "@/components/admin/dr-sara/sara-ui";
 
 export function SaraReasoningPath({
   whyChain,
@@ -15,80 +13,75 @@ export function SaraReasoningPath({
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <section id="sara-section-why" className="scroll-mt-28 py-10" aria-labelledby="sara-why-heading">
-      <SaraLabel>Why</SaraLabel>
-      <h2 id="sara-why-heading" className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-white">
-        Structured reasoning path
-      </h2>
-      <p className="mt-1 text-[13px] text-white/40">
-        Auditable chain from engine outputs — not hidden thought.
-      </p>
+    <section
+      id="sara-section-why"
+      className="scroll-mt-28 py-16"
+      aria-labelledby="sara-why-heading"
+    >
+      <div className="mx-auto max-w-2xl">
+        <SaraLabel>Why</SaraLabel>
+        <h2
+          id="sara-why-heading"
+          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
+        >
+          Reasoning path
+        </h2>
+        <p className="mt-2 text-[14px] text-white/40">
+          Auditable reasoning path from engine outputs.
+        </p>
 
-      <SaraPanel className="mt-5">
-        <ol className="space-y-0">
+        <ol className="mt-10 space-y-0">
           {whyChain.map((step, i) => {
             const open = openId === step.id;
+            const hasEvidence = Boolean(step.evidence?.length);
             return (
-              <li key={step.id} className="relative pl-1">
+              <li key={step.id} className="relative pl-12">
                 {i < whyChain.length - 1 ? (
                   <span
                     aria-hidden
-                    className="absolute left-[15px] top-8 h-[calc(100%-8px)] w-px bg-white/[0.08]"
+                    className="absolute left-[15px] top-8 h-[calc(100%-12px)] w-px bg-white/[0.08]"
                   />
                 ) : null}
-                <div className="flex gap-3 pb-5">
-                  <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-sky-400/30 bg-sky-400/10 text-[10px] font-medium text-sky-300">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
+                <span className="absolute left-0 top-1 font-mono text-[11px] text-white/25">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="pb-8">
+                  <p className="text-[10px] font-medium tracking-[0.16em] text-sky-300/70">
+                    {step.label}
+                  </p>
+                  {step.href ? (
+                    <Link
+                      href={step.href}
+                      className="mt-1 block text-[16px] text-white hover:text-sky-200"
+                    >
+                      {step.detail}
+                    </Link>
+                  ) : (
+                    <p className="mt-1 text-[16px] text-white/90">{step.detail}</p>
+                  )}
+                  {hasEvidence ? (
                     <button
                       type="button"
                       onClick={() => setOpenId(open ? null : step.id)}
-                      className="flex w-full items-start justify-between gap-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                      className="mt-2 text-[11px] text-white/35 underline-offset-2 hover:text-white/60 hover:underline"
                       aria-expanded={open}
                     >
-                      <div>
-                        <p className="text-[10px] font-medium tracking-[0.14em] text-sky-300/80">
-                          {step.label}
-                        </p>
-                        {step.href ? (
-                          <Link
-                            href={step.href}
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-1 block text-[14px] text-white hover:text-sky-300"
-                          >
-                            {step.detail}
-                          </Link>
-                        ) : (
-                          <p className="mt-1 text-[14px] text-white">{step.detail}</p>
-                        )}
-                      </div>
-                      {step.evidence && step.evidence.length > 0 ? (
-                        open ? (
-                          <ChevronDown className="mt-1 h-4 w-4 shrink-0 text-white/30" />
-                        ) : (
-                          <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-white/30" />
-                        )
-                      ) : null}
+                      {open ? "Hide evidence" : "View engine evidence"}
                     </button>
-                    {open && step.evidence && step.evidence.length > 0 ? (
-                      <ul
-                        className={cn(
-                          "mt-2 space-y-1 rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-[12px] text-white/50"
-                        )}
-                      >
-                        {step.evidence.map((e) => (
-                          <li key={e}>· {e}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
+                  ) : null}
+                  {open && step.evidence ? (
+                    <ul className="mt-3 space-y-1 text-[12px] text-white/40">
+                      {step.evidence.map((e) => (
+                        <li key={e}>· {e}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               </li>
             );
           })}
         </ol>
-      </SaraPanel>
+      </div>
     </section>
   );
 }

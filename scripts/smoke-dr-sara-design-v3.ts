@@ -1,13 +1,10 @@
 /**
- * Smoke: Dr Sara Design V2 Experience — presentation only.
- * Run: npx tsx scripts/smoke-dr-sara-design-v2.ts
- * DO NOT deploy / push / mutate production.
+ * Smoke: Dr Sara Design V3 Living Intelligence Room.
+ * Run: npx tsx scripts/smoke-dr-sara-design-v3.ts
+ * DO NOT deploy / push.
  */
 import fs from "fs";
-import {
-  getDrSaraSnapshot,
-  snapshotToBriefing,
-} from "../lib/intelligence";
+import { getDrSaraSnapshot, snapshotToBriefing } from "../lib/intelligence";
 import {
   buildSaraExperienceViewModel,
   EXPERIENCE_VERSION,
@@ -47,21 +44,16 @@ async function main() {
   const determinism = JSON.stringify(vm) === JSON.stringify(vm2);
 
   console.log("========================================");
-  console.log("DR SARA DESIGN V2 EXPERIENCE VALIDATION");
+  console.log("DR SARA DESIGN V3 LIVING INTELLIGENCE ROOM");
   console.log("========================================");
   console.log(`experienceVersion: ${EXPERIENCE_VERSION}`);
   console.log(`designVersion: ${DESIGN_VERSION}`);
   console.log(`engineVersion: ${snapshot.metadata.version}`);
   console.log(`arrival: ${vm.arrival.greeting}, ${vm.arrival.operatorName}`);
+  console.log(`observation: ${vm.arrival.observationLine}`);
+  console.log(`presence: ${vm.presence.label}`);
   console.log(`attention: ${vm.arrival.attentionCount}`);
   console.log(`NOW: ${vm.now.headline}`);
-  console.log(`domain: ${vm.now.domain}`);
-  console.log(`relatedPath: ${vm.now.relatedPath.join(" → ")}`);
-  console.log(`map nodes: ${vm.platformMap.nodes.length}`);
-  console.log(`map emphasis: ${vm.platformMap.nodes.filter((n) => n.emphasis).map((n) => n.id).join(",")}`);
-  console.log(`opportunities positioned: ${vm.opportunities.length}`);
-  console.log(`risks positioned: ${vm.riskField.length}`);
-  console.log(`agents: ${vm.agentNetwork.modules.map((m) => `${m.id}:${m.status}`).join(" | ")}`);
   console.log(`cta: ${vm.now.cta}`);
   console.log(`autoExecute: ${vm.autoExecute}`);
   console.log(`productionMutation: ${vm.productionMutation}`);
@@ -70,9 +62,7 @@ async function main() {
   console.log(`LLM/ML: NONE`);
   console.log("========================================");
 
-  if (!String(vm.designVersion).startsWith("2.") && vm.designVersion !== "3.0.0") {
-    process.exit(1);
-  }
+  if (vm.designVersion !== "3.0.0") process.exit(1);
   if (snapshot.metadata.version !== "10.0.0") process.exit(1);
   if (vm.autoExecute !== false) process.exit(1);
   if (vm.productionMutation !== "NONE") process.exit(1);

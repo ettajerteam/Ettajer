@@ -1,67 +1,132 @@
 "use client";
 
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { MetaChip, SaraLabel, SaraPanel } from "@/components/admin/dr-sara/sara-ui";
+import { MetaChip, SaraLabel } from "@/components/admin/dr-sara/sara-ui";
+
+function hasPayload(value: Record<string, unknown>): boolean {
+  return Object.keys(value).length > 0;
+}
+
+function formatPayload(value: Record<string, number | string | [number, number]>): string {
+  return Object.entries(value)
+    .map(([k, v]) => {
+      if (Array.isArray(v)) return `${k}: [${v[0]}, ${v[1]}]`;
+      return `${k}: ${v}`;
+    })
+    .join(" · ");
+}
 
 export function SaraScenarioLab({
   scenarioLab,
 }: {
   scenarioLab: SaraExperienceViewModel["scenarioLab"];
 }) {
-  return (
-    <section id="sara-section-scenario" className="scroll-mt-28 py-10" aria-labelledby="sara-scenario-heading">
-      <SaraLabel>Scenarios</SaraLabel>
-      <h2 id="sara-scenario-heading" className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-white">
-        Scenario lab
-      </h2>
-      <p className="mt-1 text-[13px] text-white/40">
-        Baseline vs simulated action vs expected range
-      </p>
+  const primary = scenarioLab[0] ?? null;
 
-      <div className="mt-5 space-y-3">
-        {scenarioLab.length === 0 ? (
-          <p className="text-[13px] text-white/40">No scenarios available.</p>
+  return (
+    <section
+      id="sara-section-scenario"
+      className="scroll-mt-28 py-16"
+      aria-labelledby="sara-scenario-heading"
+    >
+      <div className="mx-auto max-w-3xl">
+        <SaraLabel>Scenarios</SaraLabel>
+        <h2
+          id="sara-scenario-heading"
+          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
+        >
+          Scenario space
+        </h2>
+        <p className="mt-2 text-[14px] text-white/40">
+          Alternate paths from the current platform state.
+        </p>
+
+        {!primary ? (
+          <p className="mt-10 text-[14px] text-white/40">No scenarios available.</p>
         ) : (
-          scenarioLab.map((row) => (
-            <SaraPanel key={row.scenarioId}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-mono text-[10px] text-sky-300/80">{row.scenarioId}</p>
-                  <p className="mt-1 text-[15px] font-semibold text-white">{row.label}</p>
-                </div>
-                <MetaChip
-                  label="Confidence"
-                  value={`${Math.round(row.confidence * 100)}%`}
-                  tone="blue"
-                />
+          <div className="mt-10">
+            <p className="font-mono text-[11px] text-sky-300/70">{primary.scenarioId}</p>
+            <p className="mt-2 text-[20px] font-semibold text-white">{primary.label}</p>
+
+            <div className="mt-10 grid gap-6 sm:grid-cols-[1fr_auto_1fr] sm:items-start">
+              <Branch
+                title="No action"
+                body={
+                  hasPayload(primary.baseline)
+                    ? formatPayload(primary.baseline)
+                    : "No measurable projection available from current evidence."
+                }
+              />
+              <div className="hidden pt-8 text-center text-white/20 sm:block" aria-hidden>
+                │
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-lg bg-black/20 p-3">
-                  <p className="text-[9px] font-medium tracking-[0.14em] text-white/35">BASELINE</p>
-                  <pre className="mt-2 whitespace-pre-wrap font-mono text-[11px] text-white/60">
-                    {JSON.stringify(row.baseline) || "—"}
-                  </pre>
-                </div>
-                <div className="rounded-lg border border-sky-400/20 bg-sky-400/[0.06] p-3">
-                  <p className="text-[9px] font-medium tracking-[0.14em] text-sky-300">SIMULATED</p>
-                  <p className="mt-2 text-[13px] text-white">{row.simulated}</p>
-                </div>
-                <div className="rounded-lg bg-black/20 p-3">
-                  <p className="text-[9px] font-medium tracking-[0.14em] text-white/35">EXPECTED RANGE</p>
-                  <pre className="mt-2 whitespace-pre-wrap font-mono text-[11px] text-white/60">
-                    {JSON.stringify(row.expectedRange) || "—"}
-                  </pre>
-                  <p className="mt-2 text-[10px] text-white/30">NOT A GUARANTEE</p>
-                </div>
+              <Branch
+                title="Intervention"
+                accent
+                body={primary.simulated}
+                footer={
+                  hasPayload(primary.expectedRange)
+                    ? formatPayload(
+                        primary.expectedRange as Record<
+                          string,
+                          number | string | [number, number]
+                        >
+                      )
+                    : "No measurable projection available from current evidence."
+                }
+                note="SIMULATED · EXPECTED RANGE · NOT A GUARANTEE"
+              />
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-4">
+              <MetaChip
+                label="Confidence"
+                value={`${Math.round(primary.confidence * 100)}%`}
+                tone="blue"
+              />
+              <MetaChip label="Risk" value={primary.risk} />
+              <MetaChip label="Uncertainty" value={primary.uncertainty} />
+            </div>
+
+            {scenarioLab.length > 1 ? (
+              <div className="mt-10 space-y-3 border-t border-white/[0.06] pt-6">
+                <p className="text-[10px] tracking-[0.14em] text-white/30">
+                  OTHER PATHS
+                </p>
+                {scenarioLab.slice(1, 4).map((row) => (
+                  <div key={row.scenarioId} className="flex items-baseline justify-between gap-3">
+                    <p className="text-[13px] text-white/70">{row.label}</p>
+                    <p className="font-mono text-[10px] text-white/25">{row.scenarioId}</p>
+                  </div>
+                ))}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <MetaChip label="Risk" value={row.risk} />
-                <MetaChip label="Uncertainty" value={row.uncertainty} />
-              </div>
-            </SaraPanel>
-          ))
+            ) : null}
+          </div>
         )}
       </div>
     </section>
+  );
+}
+
+function Branch({
+  title,
+  body,
+  footer,
+  note,
+  accent,
+}: {
+  title: string;
+  body: string;
+  footer?: string;
+  note?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className={accent ? "rounded-2xl bg-sky-400/[0.06] px-4 py-5" : "px-1 py-5"}>
+      <p className="text-[10px] tracking-[0.14em] text-white/30">{title}</p>
+      <p className="mt-3 text-[14px] text-white/80">{body}</p>
+      {footer ? <p className="mt-3 text-[13px] text-white/50">{footer}</p> : null}
+      {note ? <p className="mt-3 text-[10px] tracking-[0.08em] text-white/25">{note}</p> : null}
+    </div>
   );
 }

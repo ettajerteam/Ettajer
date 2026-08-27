@@ -2,13 +2,13 @@
 
 import { useEffect, useId, useState } from "react";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { SaraLabel, SaraPanel } from "@/components/admin/dr-sara/sara-ui";
+import { SaraLabel, SoftDivider } from "@/components/admin/dr-sara/sara-ui";
 
 function statusColor(status: string) {
   if (status === "critical") return "#f87171";
   if (status === "attention") return "#fb923c";
   if (status === "watch") return "#fbbf24";
-  return "#38bdf8";
+  return "#7dd3fc";
 }
 
 export function SaraSystemMap({
@@ -35,154 +35,152 @@ export function SaraSystemMap({
   return (
     <section
       id="sara-section-system"
-      className="scroll-mt-28 py-10"
+      className="scroll-mt-28 py-16"
       aria-labelledby="sara-system-heading"
     >
-      <SaraLabel>System</SaraLabel>
-      <h2
-        id="sara-system-heading"
-        className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-white"
-      >
-        Platform map
-      </h2>
-      <p className="mt-1 text-[13px] text-white/40">
-        Living system relationships. Emphasized path follows the current top
-        decision.
-      </p>
-
-      <SaraPanel className="mt-5 overflow-x-auto">
-        <svg
-          viewBox="0 0 100 100"
-          className="mx-auto h-auto w-full min-w-[320px] max-w-3xl"
-          role="img"
-          aria-label="Ettajer platform system map"
+      <div className="mx-auto max-w-4xl">
+        <SaraLabel>System</SaraLabel>
+        <h2
+          id="sara-system-heading"
+          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
         >
-          <defs>
-            <filter
-              id={`${gid}-glow`}
-              x="-50%"
-              y="-50%"
-              width="200%"
-              height="200%"
-            >
-              <feGaussianBlur stdDeviation="1.2" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
+          Platform field
+        </h2>
+        <p className="mt-2 max-w-xl text-[14px] text-white/40">
+          Ettajer as a living system. The active path follows the current top
+          decision.
+        </p>
 
-          {platformMap.edges.map((edge) => {
-            const a = byId.get(edge.from);
-            const b = byId.get(edge.to);
-            if (!a || !b) return null;
-            return (
-              <g key={`${edge.from}-${edge.to}-${edge.label}`}>
-                <line
-                  x1={a.x}
-                  y1={a.y}
-                  x2={b.x}
-                  y2={b.y}
-                  stroke={
-                    edge.active
-                      ? "rgba(56,189,248,0.55)"
-                      : "rgba(255,255,255,0.12)"
-                  }
-                  strokeWidth={edge.active ? 0.45 : 0.25}
-                />
-                {edge.active && animateFlow ? (
-                  <circle r="0.7" fill="#38bdf8">
-                    <animateMotion
-                      dur="3.5s"
-                      repeatCount="indefinite"
-                      path={`M ${a.x},${a.y} L ${b.x},${b.y}`}
+        <div className="mt-8 overflow-x-auto">
+          <svg
+            viewBox="0 0 100 100"
+            className="mx-auto h-auto w-full min-w-[340px] max-w-3xl"
+            role="img"
+            aria-label="Ettajer platform system map"
+          >
+            <defs>
+              <filter id={`${gid}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="1.1" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {platformMap.edges.map((edge) => {
+              const a = byId.get(edge.from);
+              const b = byId.get(edge.to);
+              if (!a || !b) return null;
+              return (
+                <g key={`${edge.from}-${edge.to}-${edge.label}`}>
+                  <line
+                    x1={a.x}
+                    y1={a.y}
+                    x2={b.x}
+                    y2={b.y}
+                    stroke={
+                      edge.active
+                        ? "rgba(125,211,252,0.45)"
+                        : "rgba(255,255,255,0.08)"
+                    }
+                    strokeWidth={edge.active ? 0.4 : 0.2}
+                  />
+                  {edge.active && animateFlow ? (
+                    <circle r="0.65" fill="#7dd3fc">
+                      <animateMotion
+                        dur="3.8s"
+                        repeatCount="indefinite"
+                        path={`M ${a.x},${a.y} L ${b.x},${b.y}`}
+                      />
+                    </circle>
+                  ) : null}
+                </g>
+              );
+            })}
+
+            {platformMap.nodes.map((n) => {
+              const r = 2.8 * n.size;
+              const selected = active === n.id;
+              return (
+                <g
+                  key={n.id}
+                  className="cursor-pointer"
+                  onMouseEnter={() => setActive(n.id)}
+                  onFocus={() => setActive(n.id)}
+                  onClick={() => setActive(n.id)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`${n.label}: ${n.metric}, status ${n.status}`}
+                >
+                  {n.emphasis ? (
+                    <circle
+                      cx={n.x}
+                      cy={n.y}
+                      r={r + 1.6}
+                      fill="none"
+                      stroke="rgba(125,211,252,0.25)"
+                      strokeWidth={0.35}
+                      className="motion-safe:opacity-90"
                     />
-                  </circle>
-                ) : null}
-              </g>
-            );
-          })}
-
-          {platformMap.nodes.map((n) => {
-            const r = 3.2 * n.size;
-            const selected = active === n.id;
-            return (
-              <g
-                key={n.id}
-                className="cursor-pointer"
-                onMouseEnter={() => setActive(n.id)}
-                onFocus={() => setActive(n.id)}
-                onClick={() => setActive(n.id)}
-                tabIndex={0}
-                role="button"
-                aria-label={`${n.label}: ${n.metric}, status ${n.status}`}
-              >
-                <circle
-                  cx={n.x}
-                  cy={n.y}
-                  r={r + 1.2}
-                  fill="transparent"
-                  stroke={n.emphasis ? "rgba(56,189,248,0.35)" : "transparent"}
-                  strokeWidth={0.4}
-                />
-                <circle
-                  cx={n.x}
-                  cy={n.y}
-                  r={r}
-                  fill={
-                    selected || n.emphasis
-                      ? "rgba(14,165,233,0.18)"
-                      : "rgba(255,255,255,0.04)"
-                  }
-                  stroke={statusColor(n.status)}
-                  strokeWidth={selected ? 0.55 : 0.35}
-                  filter={n.emphasis ? `url(#${gid}-glow)` : undefined}
-                />
-                <text
-                  x={n.x}
-                  y={n.y - r - 1.8}
-                  textAnchor="middle"
-                  fill="rgba(255,255,255,0.7)"
-                  fontSize="2.4"
-                  fontFamily="Inter, system-ui, sans-serif"
-                >
-                  {n.label}
-                </text>
-                <text
-                  x={n.x}
-                  y={n.y + 0.9}
-                  textAnchor="middle"
-                  fill="white"
-                  fontSize="2.8"
-                  fontWeight="600"
-                  fontFamily="Inter, system-ui, sans-serif"
-                >
-                  {n.metric}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+                  ) : null}
+                  <circle
+                    cx={n.x}
+                    cy={n.y}
+                    r={r}
+                    fill={
+                      selected || n.emphasis
+                        ? "rgba(14,165,233,0.16)"
+                        : "rgba(255,255,255,0.03)"
+                    }
+                    stroke={statusColor(n.status)}
+                    strokeWidth={selected ? 0.5 : 0.28}
+                    filter={n.emphasis ? `url(#${gid}-glow)` : undefined}
+                  />
+                  <text
+                    x={n.x}
+                    y={n.y - r - 1.6}
+                    textAnchor="middle"
+                    fill="rgba(255,255,255,0.55)"
+                    fontSize="2.2"
+                    fontFamily="Inter, system-ui, sans-serif"
+                  >
+                    {n.label}
+                  </text>
+                  <text
+                    x={n.x}
+                    y={n.y + 0.85}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize="2.6"
+                    fontWeight="600"
+                    fontFamily="Inter, system-ui, sans-serif"
+                  >
+                    {n.metric}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
 
         {node ? (
-          <div className="mt-4 rounded-xl border border-white/[0.06] bg-black/20 p-4 text-[12px] text-white/60">
-            <p className="text-[13px] font-medium text-white">
-              {node.label} · {node.status}
+          <div className="mx-auto mt-6 max-w-lg text-center text-[13px] text-white/45">
+            <p className="text-[14px] text-white/80">
+              {node.label}
+              <span className="text-white/30"> · </span>
+              {node.status}
             </p>
-            {node.signals.length > 0 ? (
-              <p className="mt-2">Signals: {node.signals.join(" · ")}</p>
-            ) : null}
-            {node.risks.length > 0 ? (
-              <p className="mt-1">Risks: {node.risks.join(" · ")}</p>
-            ) : null}
+            {node.signals[0] ? <p className="mt-2">{node.signals[0]}</p> : null}
             {node.connectedDecisions.length > 0 ? (
-              <p className="mt-1 text-sky-300">
-                Decisions: {node.connectedDecisions.join(", ")}
+              <p className="mt-2 text-sky-300/70">
+                Connected decision · {node.connectedDecisions.join(", ")}
               </p>
             ) : null}
           </div>
         ) : null}
+
+        <SoftDivider className="mx-auto mt-10 max-w-xs" />
 
         <ul className="sr-only">
           {platformMap.nodes.map((n) => (
@@ -191,7 +189,7 @@ export function SaraSystemMap({
             </li>
           ))}
         </ul>
-      </SaraPanel>
+      </div>
     </section>
   );
 }

@@ -376,11 +376,34 @@ function buildArrival(snapshot: DrSaraSnapshot): SaraExperienceViewModel["arriva
     attentionCount: count,
     syncLabel: snapshot.dataQualityV2?.insufficientEvidence
       ? "Evidence degraded"
-      : "Platform state synchronized",
+      : "Platform synchronized",
+    observationLine: "I've been observing Ettajer.",
     headline:
       count > 0
-        ? `The platform needs your attention in ${count} place${count === 1 ? "" : "s"}.`
-        : "Platform state is stable. No dominant attention signals.",
+        ? `${count} thing${count === 1 ? "" : "s"} require attention.`
+        : "No dominant attention signals right now.",
+  };
+}
+
+function buildPresence(snapshot: DrSaraSnapshot): SaraExperienceViewModel["presence"] {
+  const needsApproval =
+    snapshot.intervention?.approval === "REQUIRED" ||
+    snapshot.execution?.approval?.requiresApproval === true;
+  if (needsApproval && snapshot.decision?.topDecision) {
+    return {
+      status: "AWAITING_HUMAN_DECISION",
+      label: "AWAITING HUMAN DECISION",
+    };
+  }
+  if (snapshot.decision?.topDecision) {
+    return {
+      status: "PRIORITY_IDENTIFIED",
+      label: "PRIORITY IDENTIFIED",
+    };
+  }
+  return {
+    status: "OBSERVING",
+    label: "OBSERVING",
   };
 }
 
@@ -402,6 +425,7 @@ export function buildSaraExperienceViewModel(
     autoExecute: false,
     productionMutation: "NONE",
     arrival: buildArrival(snapshot),
+    presence: buildPresence(snapshot),
     now: buildNowView(snapshot),
     whyChain: buildWhyChain(snapshot),
     platformMap: buildPlatformMapView(snapshot),

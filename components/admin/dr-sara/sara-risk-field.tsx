@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { SaraLabel, SaraPanel } from "@/components/admin/dr-sara/sara-ui";
+import { SaraLabel } from "@/components/admin/dr-sara/sara-ui";
 import { cn } from "@/lib/utils";
 
-function levelColor(level: string) {
-  if (/critical|high/i.test(level)) return "border-red-400/40 bg-red-400/10 text-red-200";
-  if (/medium/i.test(level)) return "border-amber-400/35 bg-amber-400/10 text-amber-200";
-  return "border-white/15 bg-white/[0.04] text-white/70";
+function levelTone(level: string) {
+  if (/critical|high/i.test(level)) return "bg-red-300 text-red-100";
+  if (/medium/i.test(level)) return "bg-amber-300 text-amber-100";
+  return "bg-white/40 text-white/70";
 }
 
 export function SaraRiskField({
@@ -20,20 +20,26 @@ export function SaraRiskField({
   const selected = riskField.find((r) => r.id === active);
 
   return (
-    <section id="sara-section-risks" className="scroll-mt-28 py-10" aria-labelledby="sara-risk-heading">
-      <SaraLabel>Risks</SaraLabel>
-      <h2 id="sara-risk-heading" className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-white">
-        Risk field
-      </h2>
-      <p className="mt-1 text-[13px] text-white/40">
-        What can hurt Ettajer right now — monitored, not alarming for noise.
-      </p>
+    <section
+      id="sara-section-risks"
+      className="scroll-mt-28 py-16"
+      aria-labelledby="sara-risk-heading"
+    >
+      <div className="mx-auto max-w-3xl">
+        <SaraLabel>Risks</SaraLabel>
+        <h2
+          id="sara-risk-heading"
+          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
+        >
+          Risk field
+        </h2>
+        <p className="mt-2 text-[14px] text-white/40">
+          Points of pressure around the platform — not an alert dump.
+        </p>
 
-      <SaraPanel className="mt-5">
-        <div className="relative mx-auto aspect-square w-full max-w-md">
-          <div className="pointer-events-none absolute inset-[12%] rounded-full border border-white/[0.04]" />
-          <div className="pointer-events-none absolute inset-[28%] rounded-full border border-white/[0.05]" />
-          <div className="pointer-events-none absolute inset-[44%] rounded-full border border-white/[0.06]" />
+        <div className="relative mx-auto mt-10 aspect-square w-full max-w-md">
+          <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/[0.04]" />
+          <div className="pointer-events-none absolute inset-[36%] rounded-full border border-white/[0.05]" />
 
           {riskField.map((r) => (
             <button
@@ -42,9 +48,8 @@ export function SaraRiskField({
               onClick={() => setActive(r.id)}
               onMouseEnter={() => setActive(r.id)}
               className={cn(
-                "absolute -translate-x-1/2 -translate-y-1/2 rounded-full border px-2.5 py-1.5 text-[10px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300",
-                levelColor(r.level),
-                active === r.id && "ring-1 ring-white/30"
+                "absolute -translate-x-1/2 -translate-y-1/2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300",
+                active === r.id ? "opacity-100" : "opacity-70 hover:opacity-100"
               )}
               style={{
                 left: `${r.x * 100}%`,
@@ -53,23 +58,28 @@ export function SaraRiskField({
               }}
               aria-label={`${r.title}, ${r.level}`}
             >
-              {r.title.length > 22 ? `${r.title.slice(0, 20)}…` : r.title}
+              <span className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    levelTone(r.level).split(" ")[0]
+                  )}
+                />
+                <span className="max-w-[140px] truncate text-[11px] text-white/75">
+                  {r.title}
+                </span>
+              </span>
             </button>
           ))}
         </div>
 
         {selected ? (
-          <div className="mt-5 rounded-xl border border-white/[0.06] bg-black/20 p-4 text-[12px] text-white/55">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[14px] font-medium text-white">{selected.title}</p>
-              <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-amber-300">
-                {selected.level}
-              </span>
-            </div>
-            <p className="mt-2">{selected.evidence}</p>
-            <p className="mt-2 text-white/35">
-              Scope: {selected.scope} · Reversibility: {selected.reversibility}
+          <div className="mx-auto mt-8 max-w-lg text-center">
+            <p className="text-[15px] text-white">{selected.title}</p>
+            <p className="mt-1 text-[10px] tracking-[0.14em] text-amber-200/70">
+              {selected.level}
             </p>
+            <p className="mt-3 text-[13px] text-white/45">{selected.evidence}</p>
           </div>
         ) : null}
 
@@ -80,7 +90,7 @@ export function SaraRiskField({
             </li>
           ))}
         </ul>
-      </SaraPanel>
+      </div>
     </section>
   );
 }

@@ -12,7 +12,7 @@ export function SaraLabel({
   return (
     <p
       className={cn(
-        "text-[10px] font-medium uppercase tracking-[0.16em] text-white/35",
+        "text-[10px] font-medium uppercase tracking-[0.2em] text-white/30",
         className
       )}
     >
@@ -21,31 +21,29 @@ export function SaraLabel({
   );
 }
 
-export function SaraPanel({
-  children,
-  className,
+export function PresenceDot({
+  label,
+  tone = "sky",
 }: {
-  children: React.ReactNode;
-  className?: string;
+  label: string;
+  tone?: "sky" | "amber" | "emerald";
 }) {
+  const color =
+    tone === "amber"
+      ? "bg-amber-300"
+      : tone === "emerald"
+        ? "bg-emerald-300"
+        : "bg-sky-300";
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 sm:p-6",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
-export function LivePulse({ label = "LIVE" }: { label?: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-medium tracking-[0.12em] text-emerald-300">
+    <span className="inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.14em] text-white/55">
       <span className="relative flex h-1.5 w-1.5">
-        <span className="absolute inset-0 rounded-full bg-emerald-400 motion-safe:animate-ping opacity-40" />
-        <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        <span
+          className={cn(
+            "absolute inset-0 rounded-full opacity-40 motion-safe:animate-ping",
+            color
+          )}
+        />
+        <span className={cn("relative h-1.5 w-1.5 rounded-full", color)} />
       </span>
       {label}
     </span>
@@ -63,24 +61,19 @@ export function MetaChip({
 }) {
   const toneClass =
     tone === "blue"
-      ? "text-sky-300 border-sky-400/20 bg-sky-400/10"
+      ? "text-sky-200/90"
       : tone === "amber"
-        ? "text-amber-300 border-amber-400/20 bg-amber-400/10"
+        ? "text-amber-200/90"
         : tone === "red"
-          ? "text-red-300 border-red-400/20 bg-red-400/10"
+          ? "text-red-200/90"
           : tone === "green"
-            ? "text-emerald-300 border-emerald-400/20 bg-emerald-400/10"
-            : "text-white/70 border-white/[0.08] bg-white/[0.03]";
+            ? "text-emerald-200/90"
+            : "text-white/65";
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px]",
-        toneClass
-      )}
-    >
-      <span className="opacity-60">{label}</span>
-      <span className="font-medium">{value}</span>
+    <span className="inline-flex items-baseline gap-1.5 text-[11px]">
+      <span className="text-white/30">{label}</span>
+      <span className={cn("font-medium tracking-wide", toneClass)}>{value}</span>
     </span>
   );
 }
@@ -89,4 +82,13 @@ export function riskTone(level: string): "red" | "amber" | "neutral" {
   if (/critical|high/i.test(level)) return "red";
   if (/medium|watch|attention/i.test(level)) return "amber";
   return "neutral";
+}
+
+export function SoftDivider({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cn("h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent", className)}
+    />
+  );
 }

@@ -3,7 +3,7 @@
  */
 
 export const EXPERIENCE_VERSION = "11.0.0";
-export const DESIGN_VERSION = "2.0.0";
+export const DESIGN_VERSION = "3.0.0";
 
 export type ExperienceSectionId =
   | "now"
@@ -166,6 +166,12 @@ export type ArrivalView = {
   attentionCount: number;
   syncLabel: string;
   headline: string;
+  observationLine: string;
+};
+
+export type PresenceView = {
+  status: "OBSERVING" | "PRIORITY_IDENTIFIED" | "AWAITING_HUMAN_DECISION";
+  label: string;
 };
 
 export type SaraExperienceViewModel = {
@@ -180,6 +186,7 @@ export type SaraExperienceViewModel = {
   autoExecute: false;
   productionMutation: "NONE";
   arrival: ArrivalView;
+  presence: PresenceView;
   now: {
     headline: string;
     narrative: string[];

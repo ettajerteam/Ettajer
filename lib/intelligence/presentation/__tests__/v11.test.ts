@@ -61,9 +61,12 @@ describe("Design V2 experience model", () => {
     const vm = buildSaraExperienceViewModel(snap);
     expect(vm.version).toBe(EXPERIENCE_VERSION);
     expect(vm.designVersion).toBe(DESIGN_VERSION);
+    expect(vm.designVersion).toBe("3.0.0");
     expect(vm.arrival.operatorName).toBe("Professor Salah");
     expect(vm.arrival.greeting.length).toBeGreaterThan(0);
+    expect(vm.arrival.observationLine).toContain("observing");
     expect(vm.arrival.attentionCount).toBeGreaterThan(0);
+    expect(vm.presence.label.length).toBeGreaterThan(0);
   });
 
   it("is deterministic including radar and risk positions", () => {
