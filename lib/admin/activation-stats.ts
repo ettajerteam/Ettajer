@@ -34,6 +34,8 @@ export type ActivationGapData = {
   };
   hotEmpty: ActivationStoreRow[];
   emptyRecent: ActivationStoreRow[];
+  /** All empty stores, prioritized by login recency */
+  emptyAll: ActivationStoreRow[];
   draftOnly: ActivationStoreRow[];
   activeNoOrders: ActivationStoreRow[];
   hotEmptyCount: number;
@@ -167,16 +169,16 @@ export async function getActivationGap(): Promise<ActivationGapData> {
     emptyRecent: [...noProducts]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 25),
+    emptyAll: [...noProducts].sort(byLoginThenAge),
     draftOnly: [...draftOnly].sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     ),
-    activeNoOrders: [...activeNoOrders]
-      .sort(
-        (a, b) =>
-          b.activeProducts - a.activeProducts ||
-          b.createdAt.getTime() - a.createdAt.getTime(),
-      )
-      .slice(0, 25),
+    activeNoOrders: [...activeNoOrders].sort(
+      (a, b) =>
+        b.activeProducts - a.activeProducts ||
+        (b.lastLoginAt?.getTime() ?? 0) - (a.lastLoginAt?.getTime() ?? 0) ||
+        b.createdAt.getTime() - a.createdAt.getTime(),
+    ),
     hotEmptyCount: hotEmpty.length,
     loggedInEmpty7d,
   };

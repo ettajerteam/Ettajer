@@ -19,6 +19,7 @@ import {
   dashboardKicker,
 } from "@/lib/dashboard-ui";
 import { parsePaymentGateways } from "@/lib/store-settings";
+import { scoreMerchantHealth } from "@/lib/admin/merchant-health";
 
 export const metadata = { title: "Store details — Platform Admin" };
 
@@ -67,6 +68,54 @@ export default async function AdminStoreDetailPage({
 
   const gateways = parsePaymentGateways(store.settings?.paymentGateways);
   const owner = store.user;
+  const health = scoreMerchantHealth({
+    hasStore: true,
+    storeCreatedAt: store.createdAt,
+    lastLoginAt: owner.lastLoginAt,
+    productCount: store.stats.products,
+    activeProductCount: store.stats.activeProducts,
+    hasThemeCustomized: store.lifecycle.themeConfigured,
+    hasCustomDomain: Boolean(store.settings?.customDomain),
+    realOrders: store.stats.realOrders,
+    realGmv: store.stats.realGmv,
+  });
+  const lifecycleSteps = [
+    {
+      label: "Account created",
+      at: formatDate(store.lifecycle.accountCreatedAt, true),
+      done: true,
+    },
+    {
+      label: "Store created",
+      at: formatDate(store.lifecycle.storeCreatedAt, true),
+      done: true,
+    },
+    {
+      label: "Theme configured",
+      at: store.lifecycle.themeConfigured ? "Detected" : "Not detected",
+      done: store.lifecycle.themeConfigured,
+    },
+    {
+      label: "Product added",
+      at: formatDate(store.lifecycle.firstProductAt, true),
+      done: Boolean(store.lifecycle.firstProductAt),
+    },
+    {
+      label: "Product published",
+      at: store.lifecycle.hasPublishedProducts ? "Live products" : "None live",
+      done: store.lifecycle.hasPublishedProducts,
+    },
+    {
+      label: "First real order",
+      at: formatDate(store.lifecycle.firstRealOrderAt, true),
+      done: Boolean(store.lifecycle.firstRealOrderAt),
+    },
+    {
+      label: "First delivery",
+      at: formatDate(store.lifecycle.firstDeliveryAt, true),
+      done: Boolean(store.lifecycle.firstDeliveryAt),
+    },
+  ];
   const initials = (owner.name || owner.email)
     .split(/\s+/)
     .map((p) => p[0])
@@ -144,12 +193,123 @@ export default async function AdminStoreDetailPage({
           <AdminStatCard
             label="Products"
             value={store.stats.products}
-            hint={`${store.stats.customers} customers`}
+            hint={`${store.stats.activeProducts} live · ${store.stats.draftProducts} draft`}
           />
           <AdminStatCard
-            label="Avg real order"
-            value={`${Math.round(store.stats.avgRealOrder).toLocaleString()} ${store.currency}`}
+            label="Health score"
+            value={`${health.score}/100`}
+            hint={health.bandLabel}
+            accent={
+              health.band === "healthy"
+                ? "emerald"
+                : health.band === "risk"
+                  ? "rose"
+                  : health.band === "attention"
+                    ? "amber"
+                    : "blue"
+            }
           />
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className={cn(dashboardCard, dashboardCardPad)}>
+            <p className="mb-1 text-[13px] font-semibold tracking-[-0.01em] text-neutral-900 dark:text-white">
+              Health score
+            </p>
+            <p className="text-[28px] font-semibold tracking-tight tabular-nums text-neutral-900 dark:text-white">
+              {health.score}
+              <span className="text-[14px] font-medium text-neutral-400">
+                {" "}
+                / 100
+              </span>
+            </p>
+            <p className={cn("mt-0.5", dashboardKicker)}>{health.bandLabel}</p>
+            <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.06em] text-neutral-400">
+              Why
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {health.why.map((line) => (
+                <li
+                  key={line}
+                  className="text-[12px] text-neutral-600 dark:text-neutral-300"
+                >
+                  {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.06em] text-neutral-400">
+              Recommended next action
+            </p>
+            <p className="mt-1 text-[12px] leading-relaxed text-neutral-700 dark:text-neutral-200">
+              {health.recommendedAction}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={`/admin/users/${owner.id}`}
+                className="text-[12px] font-medium text-[#007AFF] hover:underline"
+              >
+                Open merchant
+              </Link>
+              <Link
+                href={`/store/${store.slug}`}
+                target="_blank"
+                className="text-[12px] font-medium text-[#007AFF] hover:underline"
+              >
+                View storefront
+              </Link>
+              <Link
+                href="/admin/messages"
+                className="text-[12px] font-medium text-[#007AFF] hover:underline"
+              >
+                Send message
+              </Link>
+            </div>
+          </div>
+
+          <div className={cn(dashboardCard, dashboardCardPad)}>
+            <p className="mb-2 text-[13px] font-semibold tracking-[-0.01em] text-neutral-900 dark:text-white">
+              Lifecycle
+            </p>
+            <ol className="space-y-2">
+              {lifecycleSteps.map((step) => (
+                <li key={step.label} className="flex items-start gap-2">
+                  <span
+                    className={cn(
+                      "mt-0.5 text-[12px]",
+                      step.done
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-neutral-300"
+                    )}
+                  >
+                    {step.done ? "✓" : "○"}
+                  </span>
+                  <div>
+                    <p
+                      className={cn(
+                        "text-[12px] font-medium",
+                        step.done
+                          ? "text-neutral-900 dark:text-white"
+                          : "text-neutral-400"
+                      )}
+                    >
+                      {step.label}
+                    </p>
+                    <p className="text-[11px] text-neutral-400">{step.at}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            {health.bottleneck !== "none" ? (
+              <div className="mt-4 rounded-lg border border-amber-200/80 bg-amber-50/70 px-2.5 py-2 dark:border-amber-500/20 dark:bg-amber-500/10">
+                <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-amber-800 dark:text-amber-300">
+                  Current bottleneck: {health.bottleneck.replace("_", " ")}
+                </p>
+                <p className="mt-1 text-[12px] text-amber-900/90 dark:text-amber-100/90">
+                  {health.recommendedAction}
+                </p>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
