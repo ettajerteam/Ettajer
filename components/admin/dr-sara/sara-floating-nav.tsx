@@ -31,7 +31,7 @@ export function SaraFloatingNav({
           : "pointer-events-none translate-y-3 opacity-0"
       )}
     >
-      <div className="overflow-x-auto rounded-full border border-white/[0.08] bg-[#0b0c0e]/85 px-2 py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+      <div className="sara-glass-nav overflow-x-auto rounded-full px-2 py-1.5">
         <div className="flex min-w-max items-center gap-0.5">
           {navigation.map((item) => (
             <button
@@ -39,10 +39,10 @@ export function SaraFloatingNav({
               type="button"
               onClick={() => scrollToSection(item.id)}
               className={cn(
-                "rounded-full px-3 py-1.5 text-[11px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300",
+                "rounded-full px-3.5 py-1.5 text-[12px] font-medium tracking-[-0.01em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5AC8FA]",
                 active === item.id
-                  ? "bg-white text-neutral-950"
-                  : "text-white/45 hover:text-white/80"
+                  ? "bg-[#007AFF] text-white shadow-[0_6px_18px_-6px_rgba(0,122,255,0.65)]"
+                  : "text-white/45 hover:bg-white/[0.06] hover:text-white/85"
               )}
             >
               {item.label}

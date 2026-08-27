@@ -22,38 +22,44 @@ export function SaraArrival({
   return (
     <section
       id="sara-section-arrival"
-      className="relative pb-16 pt-10 text-center sm:pb-20 sm:pt-14"
+      className="relative pb-14 pt-10 text-center sm:pb-16 sm:pt-14"
       aria-label="Dr Sara arrival"
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-56 w-[min(720px,90%)] rounded-full bg-sky-500/[0.06] blur-3xl motion-reduce:opacity-30"
+        className="pointer-events-none absolute left-1/2 top-8 h-40 w-40 -translate-x-1/2 rounded-full sara-ai-orb blur-xl motion-reduce:animate-none"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-16 h-24 w-24 -translate-x-1/2 rounded-full border border-[#007AFF]/20 sara-ai-ring motion-reduce:animate-none"
       />
 
-      <div className="relative mx-auto max-w-2xl space-y-8 motion-safe:animate-[saraFadeUp_0.55s_ease-out_both]">
+      <div className="relative mx-auto max-w-2xl space-y-7 motion-safe:animate-[saraFadeUp_0.55s_ease-out_both]">
         <div className="space-y-3">
-          <SaraLabel className="text-white/40">Dr Sara</SaraLabel>
-          <p className="text-[12px] font-medium tracking-[0.22em] text-white/55">
-            MASTER INTELLIGENCE
+          <SaraLabel className="text-white/50">Dr Sara</SaraLabel>
+          <p className="text-[13px] font-semibold tracking-tight text-white/70">
+            Platform Intelligence
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <PresenceDot
               label={live ? "LIVE" : "DEGRADED"}
               tone={live ? "emerald" : "amber"}
             />
-            <span className="text-[10px] tracking-[0.16em] text-white/30">
-              {arrival.syncLabel.toUpperCase()}
+            <span className="sara-glass-chip text-[11px] text-white/40">
+              {arrival.syncLabel}
             </span>
           </div>
         </div>
 
         <div className="space-y-3 motion-safe:animate-[saraFadeUp_0.55s_ease-out_0.12s_both]">
-          <p className="text-[13px] text-white/45">
+          <p className="text-[14px] text-white/45">
             {arrival.greeting},
-            <span className="text-white/80"> {arrival.operatorName}</span>.
+            <span className="text-white/85"> {arrival.operatorName}</span>.
           </p>
-          <p className="text-[15px] text-white/50">{arrival.observationLine}</p>
-          <p className="text-[28px] font-semibold leading-tight tracking-[-0.03em] text-white sm:text-[36px]">
+          <p className="text-[15px] leading-relaxed text-white/50">
+            {arrival.observationLine}
+          </p>
+          <p className="text-[32px] font-semibold leading-[1.08] tracking-tight text-white sm:text-[40px]">
             {arrival.headline}
           </p>
         </div>
@@ -63,7 +69,7 @@ export function SaraArrival({
         </div>
 
         <p
-          className="text-[11px] tracking-[0.2em] text-white/25 motion-safe:animate-[saraFadeUp_0.55s_ease-out_0.34s_both]"
+          className="text-[11px] text-white/25 motion-safe:animate-[saraFadeUp_0.55s_ease-out_0.34s_both]"
           aria-hidden
         >
           ↓

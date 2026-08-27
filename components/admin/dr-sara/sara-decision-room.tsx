@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { MetaChip, riskTone, SaraLabel, SoftDivider } from "@/components/admin/dr-sara/sara-ui";
+import {
+  MetaChip,
+  riskTone,
+  SaraCta,
+  SaraGlass,
+  SaraLabel,
+  SaraSectionHeading,
+  SoftDivider,
+} from "@/components/admin/dr-sara/sara-ui";
 
 export function SaraDecisionRoom({
   decisionRoom,
@@ -14,13 +21,13 @@ export function SaraDecisionRoom({
 
   if (!decisionRoom) {
     return (
-      <section id="sara-section-decision" className="scroll-mt-28 py-16">
-        <div className="mx-auto max-w-3xl">
+      <section id="sara-section-decision" className="scroll-mt-28 py-14">
+        <SaraGlass className="mx-auto max-w-3xl px-6 py-8 sm:px-8">
           <SaraLabel>Decision</SaraLabel>
-          <p className="mt-4 text-[14px] text-white/40">
+          <p className="mt-4 text-[14px] text-white/45">
             No dominant decision in the current snapshot.
           </p>
-        </div>
+        </SaraGlass>
       </section>
     );
   }
@@ -30,21 +37,20 @@ export function SaraDecisionRoom({
   return (
     <section
       id="sara-section-decision"
-      className="scroll-mt-28 py-16"
+      className="scroll-mt-28 py-14"
       aria-labelledby="sara-decision-heading"
     >
-      <div className="mx-auto max-w-3xl">
+      <SaraGlass strong className="mx-auto max-w-3xl px-6 py-8 sm:px-8 sm:py-10">
         <SaraLabel>Decision</SaraLabel>
-        <p className="mt-3 text-[10px] tracking-[0.16em] text-white/30">TOP DECISION</p>
-        <p className="mt-2 font-mono text-[12px] text-sky-300/80">{d.decisionId}</p>
-        <h2
-          id="sara-decision-heading"
-          className="mt-3 text-[28px] font-semibold tracking-[-0.03em] text-white sm:text-[34px]"
-        >
+        <p className="mt-2 text-[11px] font-medium text-[#5AC8FA]/80">
+          Top decision
+        </p>
+        <p className="mt-2 font-mono text-[12px] text-white/40">{d.decisionId}</p>
+        <SaraSectionHeading id="sara-decision-heading" className="sm:text-[32px]">
           {d.title}
-        </h2>
+        </SaraSectionHeading>
 
-        <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3">
+        <div className="mt-6 flex flex-wrap gap-2">
           <MetaChip label="Confidence" value={d.confidenceLabel} tone="blue" />
           <MetaChip label="Risk" value={d.risk} tone={riskTone(d.risk)} />
           <MetaChip label="Mode" value={d.mode} />
@@ -53,12 +59,12 @@ export function SaraDecisionRoom({
           <MetaChip label="Score" value={String(d.score)} />
         </div>
 
-        <SoftDivider className="my-10" />
+        <SoftDivider className="my-8" />
 
-        <div className="grid gap-10 sm:grid-cols-2">
+        <div className="grid gap-8 sm:grid-cols-2">
           <div>
-            <p className="text-[10px] tracking-[0.14em] text-white/30">WHY THIS</p>
-            <ul className="mt-3 space-y-2 text-[14px] text-white/55">
+            <p className="text-[12px] font-medium text-white/40">Why this</p>
+            <ul className="mt-3 space-y-2 text-[14px] leading-relaxed text-white/60">
               {d.whyThis.slice(0, 4).map((w) => (
                 <li key={w}>{w}</li>
               ))}
@@ -66,7 +72,7 @@ export function SaraDecisionRoom({
             <button
               type="button"
               onClick={() => setShowEvidence((v) => !v)}
-              className="mt-4 text-[11px] text-white/35 underline-offset-2 hover:text-white/60 hover:underline"
+              className="mt-4 text-[12px] text-white/40 underline-offset-2 hover:text-white/70 hover:underline"
             >
               {showEvidence ? "Hide engine evidence" : "View engine evidence"}
             </button>
@@ -83,12 +89,12 @@ export function SaraDecisionRoom({
               </ul>
             ) : null}
           </div>
-          <div className="space-y-6">
-            <div>
-              <p className="text-[10px] tracking-[0.14em] text-white/30">
-                IF WE DO NOTHING
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-4 backdrop-blur-md">
+              <p className="text-[12px] font-medium text-white/40">
+                If we do nothing
               </p>
-              <p className="mt-2 text-[14px] text-white/60">
+              <p className="mt-2 text-[14px] leading-relaxed text-white/65">
                 {Object.keys(d.ifNothing.baseline).length
                   ? Object.entries(d.ifNothing.baseline)
                       .map(([k, v]) => `${k}: ${v}`)
@@ -96,11 +102,9 @@ export function SaraDecisionRoom({
                   : "Baseline held at current levels."}
               </p>
             </div>
-            <div>
-              <p className="text-[10px] tracking-[0.14em] text-sky-300/70">
-                IF WE ACT
-              </p>
-              <p className="mt-2 text-[14px] text-white/70">
+            <div className="rounded-2xl border border-[#007AFF]/20 bg-[#007AFF]/[0.06] px-4 py-4 backdrop-blur-md">
+              <p className="text-[12px] font-medium text-[#5AC8FA]">If we act</p>
+              <p className="mt-2 text-[14px] leading-relaxed text-white/75">
                 {Object.keys(d.ifAct.expected).length
                   ? Object.entries(d.ifAct.expected)
                       .map(([k, v]) =>
@@ -109,20 +113,17 @@ export function SaraDecisionRoom({
                       .join(" · ")
                   : "No measurable projection available from current evidence."}
               </p>
-              <p className="mt-2 text-[10px] tracking-[0.08em] text-white/25">
-                SIMULATED · NOT A GUARANTEE
+              <p className="mt-2 text-[11px] text-white/30">
+                Simulated · not a guarantee
               </p>
             </div>
           </div>
         </div>
 
-        <Link
-          href={d.href}
-          className="mt-10 inline-flex rounded-full bg-white px-6 py-3 text-[13px] font-medium text-neutral-950 transition hover:bg-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
-        >
+        <SaraCta href={d.href} className="mt-9">
           {d.cta}
-        </Link>
-      </div>
+        </SaraCta>
+      </SaraGlass>
     </section>
   );
 }

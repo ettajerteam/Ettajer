@@ -1,7 +1,12 @@
 "use client";
 
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { SaraLabel } from "@/components/admin/dr-sara/sara-ui";
+import {
+  SaraGlass,
+  SaraLabel,
+  SaraSectionHeading,
+  SaraSectionLead,
+} from "@/components/admin/dr-sara/sara-ui";
 import { cn } from "@/lib/utils";
 
 export function SaraLearningLoop({
@@ -14,22 +19,19 @@ export function SaraLearningLoop({
   return (
     <section
       id="sara-section-learning"
-      className="scroll-mt-28 py-16"
+      className="scroll-mt-28 py-14"
       aria-labelledby="sara-learn-heading"
     >
-      <div className="mx-auto max-w-4xl">
+      <SaraGlass className="mx-auto max-w-4xl px-6 py-8 sm:px-8">
         <SaraLabel>Learning</SaraLabel>
-        <h2
-          id="sara-learn-heading"
-          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
-        >
+        <SaraSectionHeading id="sara-learn-heading">
           Learning loop
-        </h2>
-        <p className="mt-2 text-[14px] text-white/40">
+        </SaraSectionHeading>
+        <SaraSectionLead>
           Restraint is a feature. Unproven history stays unmarked.
-        </p>
+        </SaraSectionLead>
 
-        <div className="mt-10 flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
+        <div className="mt-8 flex flex-wrap items-center gap-2 overflow-x-auto pb-1">
           {l.steps.map((step, i) => {
             const active = i === l.activeStepIndex;
             return (
@@ -41,10 +43,10 @@ export function SaraLearningLoop({
                 ) : null}
                 <span
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-[10px] font-medium tracking-[0.1em]",
+                    "rounded-full px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em]",
                     active
-                      ? "bg-white/10 text-sky-100"
-                      : "text-white/30"
+                      ? "border border-[#007AFF]/30 bg-[#007AFF]/15 text-[#5AC8FA]"
+                      : "border border-white/[0.06] bg-white/[0.03] text-white/35"
                   )}
                 >
                   {step}
@@ -56,23 +58,23 @@ export function SaraLearningLoop({
 
         {l.insufficientHistory ? (
           <p className="mt-8 text-[15px] font-medium text-amber-200/85">
-            NOT ENOUGH HISTORY
+            Not enough history
           </p>
         ) : null}
 
-        <ul className="mt-5 space-y-1 text-[13px] text-white/40">
+        <ul className="mt-5 space-y-1 text-[13px] text-white/45">
           {l.evidenceNotes.slice(0, 4).map((n) => (
             <li key={n}>{n}</li>
           ))}
         </ul>
 
         {l.confidenceAdjustment ? (
-          <p className="mt-6 font-mono text-[13px] text-white/60">
+          <p className="mt-6 font-mono text-[13px] text-white/65">
             Confidence {Math.round(l.confidenceAdjustment.before * 100)}% →{" "}
             {Math.round(l.confidenceAdjustment.after * 100)}%
           </p>
         ) : null}
-      </div>
+      </SaraGlass>
     </section>
   );
 }

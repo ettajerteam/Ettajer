@@ -61,25 +61,26 @@ export function IntelligenceRoomV3({
     : "—";
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#060708] font-sans text-white antialiased">
+    <div className="sara-canvas relative min-h-screen overflow-x-hidden font-[family-name:var(--font-inter),ui-sans-serif,system-ui,sans-serif] text-white antialiased">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 overflow-hidden"
       >
-        <div className="absolute left-1/2 top-[-10%] h-[520px] w-[720px] -translate-x-1/2 rounded-full bg-sky-500/[0.045] blur-[100px] motion-reduce:opacity-40" />
-        <div className="absolute bottom-[-20%] right-[-10%] h-[420px] w-[420px] rounded-full bg-white/[0.02] blur-[90px]" />
+        <div className="absolute left-1/2 top-[8%] h-[280px] w-[280px] -translate-x-1/2 rounded-full sara-ai-orb blur-2xl motion-reduce:animate-none" />
+        <div className="absolute bottom-[-15%] right-[-8%] h-[380px] w-[380px] rounded-full bg-[#007AFF]/[0.05] blur-[100px]" />
+        <div className="absolute left-[-10%] top-[42%] h-[320px] w-[320px] rounded-full bg-white/[0.02] blur-[90px]" />
       </div>
 
       <div className="relative mx-auto max-w-5xl px-4 pb-28 sm:px-6 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3 pt-6">
           <Link
             href="/admin"
-            className="inline-flex items-center gap-1.5 text-[12px] text-white/40 transition hover:text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+            className="group inline-flex items-center gap-1.5 text-[12px] font-medium text-white/40 transition hover:text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5AC8FA]"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
+            <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5 motion-reduce:transition-none" />
             Back to Console
           </Link>
-          <div className="flex items-center gap-3 text-[10px] tracking-[0.08em] text-white/25">
+          <div className="flex items-center gap-3 text-[11px] tracking-[-0.01em] text-white/30">
             <span>
               v{vm.engineVersion} · exp {vm.version} · design {vm.designVersion}
             </span>
@@ -108,7 +109,7 @@ export function IntelligenceRoomV3({
         <SaraOpportunityRadar opportunities={vm.opportunities} />
         <SaraAgentNetwork agentNetwork={vm.agentNetwork} />
 
-        <footer className="mt-10 border-t border-white/[0.05] py-10 text-[11px] text-white/25">
+        <footer className="mt-10 border-t border-white/[0.06] py-10 text-[11px] text-white/30">
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             <span>Cycle · {vm.cycleId ?? "—"}</span>
             <span>Updated · {updatedLabel}</span>

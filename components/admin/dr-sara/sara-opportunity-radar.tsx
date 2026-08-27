@@ -3,7 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { SaraLabel } from "@/components/admin/dr-sara/sara-ui";
+import {
+  SaraGlass,
+  SaraLabel,
+  SaraSectionHeading,
+  SaraSectionLead,
+} from "@/components/admin/dr-sara/sara-ui";
 import { cn } from "@/lib/utils";
 
 export function SaraOpportunityRadar({
@@ -17,25 +22,22 @@ export function SaraOpportunityRadar({
   return (
     <section
       id="sara-section-opportunities"
-      className="scroll-mt-28 py-16"
+      className="scroll-mt-28 py-14"
       aria-labelledby="sara-opp-heading"
     >
-      <div className="mx-auto max-w-3xl">
+      <SaraGlass className="mx-auto max-w-3xl px-6 py-8 sm:px-8">
         <SaraLabel>Opportunities</SaraLabel>
-        <h2
-          id="sara-opp-heading"
-          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
-        >
+        <SaraSectionHeading id="sara-opp-heading">
           Opportunity constellation
-        </h2>
-        <p className="mt-2 text-[14px] text-white/40">
+        </SaraSectionHeading>
+        <SaraSectionLead>
           Actionable points derived from stable opportunity IDs.
-        </p>
+        </SaraSectionLead>
 
-        <div className="relative mx-auto mt-10 aspect-square w-full max-w-md">
-          <div className="pointer-events-none absolute inset-[12%] rounded-full border border-dashed border-white/[0.05]" />
-          <div className="pointer-events-none absolute inset-[34%] rounded-full border border-dashed border-white/[0.06]" />
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-300/60" />
+        <div className="relative mx-auto mt-8 aspect-square w-full max-w-md">
+          <div className="pointer-events-none absolute inset-[12%] rounded-full border border-dashed border-white/[0.06]" />
+          <div className="pointer-events-none absolute inset-[34%] rounded-full border border-dashed border-[#007AFF]/15" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#007AFF]/70 shadow-[0_0_16px_rgba(0,122,255,0.45)]" />
 
           {opportunities.map((o) => (
             <button
@@ -44,8 +46,10 @@ export function SaraOpportunityRadar({
               onClick={() => setActive(o.id)}
               onMouseEnter={() => setActive(o.id)}
               className={cn(
-                "absolute max-w-[130px] -translate-x-1/2 -translate-y-1/2 truncate text-[11px] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300",
-                active === o.id ? "text-sky-100" : "text-white/45 hover:text-white/75"
+                "absolute max-w-[130px] -translate-x-1/2 -translate-y-1/2 truncate text-[11px] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5AC8FA]",
+                active === o.id
+                  ? "text-[#5AC8FA]"
+                  : "text-white/45 hover:text-white/80"
               )}
               style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%` }}
               aria-label={`${o.category}: ${o.title}`}
@@ -57,20 +61,24 @@ export function SaraOpportunityRadar({
         </div>
 
         {selected ? (
-          <div className="mx-auto mt-8 max-w-lg text-center">
-            <p className="text-[10px] tracking-[0.14em] text-sky-300/70">
+          <div className="mx-auto mt-8 max-w-lg rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-5 text-center backdrop-blur-md">
+            <p className="text-[12px] font-medium text-[#5AC8FA]/80">
               {selected.category}
             </p>
-            <p className="mt-2 text-[16px] text-white">{selected.title}</p>
-            <p className="mt-2 text-[13px] text-white/45">{selected.signal}</p>
-            <p className="mt-2 text-[12px] text-white/30">
+            <p className="mt-2 text-[16px] font-medium tracking-tight text-white">
+              {selected.title}
+            </p>
+            <p className="mt-2 text-[13px] leading-relaxed text-white/50">
+              {selected.signal}
+            </p>
+            <p className="mt-2 text-[12px] text-white/35">
               {selected.impact} · {selected.affected} ·{" "}
               {Math.round(selected.confidence * 100)}%
             </p>
             {selected.href ? (
               <Link
                 href={selected.href}
-                className="mt-4 inline-flex text-[12px] text-sky-200 hover:underline"
+                className="mt-4 inline-flex text-[12px] font-medium text-[#007AFF] hover:underline"
               >
                 {selected.action}
               </Link>
@@ -87,7 +95,7 @@ export function SaraOpportunityRadar({
             </li>
           ))}
         </ul>
-      </div>
+      </SaraGlass>
     </section>
   );
 }

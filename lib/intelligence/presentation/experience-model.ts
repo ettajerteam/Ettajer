@@ -1,9 +1,10 @@
 /**
- * Dr Sara V11 + Design V2 — Experience presentation types (UI only; engine unchanged).
+ * Dr Sara V11 + Design V4 — Experience presentation types (UI only; engine unchanged).
+ * Design V4: glass morphism · Academy-aligned · quiet AI atmosphere.
  */
 
 export const EXPERIENCE_VERSION = "11.0.0";
-export const DESIGN_VERSION = "3.0.0";
+export const DESIGN_VERSION = "4.0.0";
 
 export type ExperienceSectionId =
   | "now"

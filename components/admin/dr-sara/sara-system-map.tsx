@@ -2,7 +2,13 @@
 
 import { useEffect, useId, useState } from "react";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { SaraLabel, SoftDivider } from "@/components/admin/dr-sara/sara-ui";
+import {
+  SaraGlass,
+  SaraLabel,
+  SaraSectionHeading,
+  SaraSectionLead,
+  SoftDivider,
+} from "@/components/admin/dr-sara/sara-ui";
 
 function statusColor(status: string) {
   if (status === "critical") return "#f87171";
@@ -38,18 +44,15 @@ export function SaraSystemMap({
       className="scroll-mt-28 py-16"
       aria-labelledby="sara-system-heading"
     >
-      <div className="mx-auto max-w-4xl">
+      <SaraGlass className="mx-auto max-w-4xl px-5 py-8 sm:px-8">
         <SaraLabel>System</SaraLabel>
-        <h2
-          id="sara-system-heading"
-          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
-        >
+        <SaraSectionHeading id="sara-system-heading">
           Platform field
-        </h2>
-        <p className="mt-2 max-w-xl text-[14px] text-white/40">
+        </SaraSectionHeading>
+        <SaraSectionLead>
           Ettajer as a living system. The active path follows the current top
           decision.
-        </p>
+        </SaraSectionLead>
 
         <div className="mt-8 overflow-x-auto">
           <svg
@@ -165,15 +168,15 @@ export function SaraSystemMap({
         </div>
 
         {node ? (
-          <div className="mx-auto mt-6 max-w-lg text-center text-[13px] text-white/45">
-            <p className="text-[14px] text-white/80">
+          <div className="mx-auto mt-6 max-w-lg rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-4 text-center text-[13px] text-white/45 backdrop-blur-md">
+            <p className="text-[14px] text-white/85">
               {node.label}
               <span className="text-white/30"> · </span>
               {node.status}
             </p>
             {node.signals[0] ? <p className="mt-2">{node.signals[0]}</p> : null}
             {node.connectedDecisions.length > 0 ? (
-              <p className="mt-2 text-sky-300/70">
+              <p className="mt-2 text-[#5AC8FA]/80">
                 Connected decision · {node.connectedDecisions.join(", ")}
               </p>
             ) : null}
@@ -189,7 +192,7 @@ export function SaraSystemMap({
             </li>
           ))}
         </ul>
-      </div>
+      </SaraGlass>
     </section>
   );
 }

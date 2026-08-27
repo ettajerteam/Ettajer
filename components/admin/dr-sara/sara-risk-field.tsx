@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import type { SaraExperienceViewModel } from "@/lib/intelligence/presentation/experience-model";
-import { SaraLabel } from "@/components/admin/dr-sara/sara-ui";
+import {
+  SaraGlass,
+  SaraLabel,
+  SaraSectionHeading,
+  SaraSectionLead,
+} from "@/components/admin/dr-sara/sara-ui";
 import { cn } from "@/lib/utils";
 
 function levelTone(level: string) {
@@ -22,24 +27,25 @@ export function SaraRiskField({
   return (
     <section
       id="sara-section-risks"
-      className="scroll-mt-28 py-16"
+      className="scroll-mt-28 py-14"
       aria-labelledby="sara-risk-heading"
     >
-      <div className="mx-auto max-w-3xl">
+      <SaraGlass className="mx-auto max-w-3xl px-6 py-8 sm:px-8">
         <SaraLabel>Risks</SaraLabel>
-        <h2
-          id="sara-risk-heading"
-          className="mt-3 text-[22px] font-semibold tracking-[-0.02em] text-white"
-        >
+        <SaraSectionHeading id="sara-risk-heading">
           Risk field
-        </h2>
-        <p className="mt-2 text-[14px] text-white/40">
+        </SaraSectionHeading>
+        <SaraSectionLead>
           Points of pressure around the platform — not an alert dump.
-        </p>
+        </SaraSectionLead>
 
-        <div className="relative mx-auto mt-10 aspect-square w-full max-w-md">
-          <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/[0.04]" />
-          <div className="pointer-events-none absolute inset-[36%] rounded-full border border-white/[0.05]" />
+        <div className="relative mx-auto mt-8 aspect-square w-full max-w-md">
+          <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/[0.06]" />
+          <div className="pointer-events-none absolute inset-[36%] rounded-full border border-[#007AFF]/15" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#007AFF]/[0.06] blur-2xl"
+          />
 
           {riskField.map((r) => (
             <button
@@ -48,7 +54,7 @@ export function SaraRiskField({
               onClick={() => setActive(r.id)}
               onMouseEnter={() => setActive(r.id)}
               className={cn(
-                "absolute -translate-x-1/2 -translate-y-1/2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300",
+                "absolute -translate-x-1/2 -translate-y-1/2 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5AC8FA]",
                 active === r.id ? "opacity-100" : "opacity-70 hover:opacity-100"
               )}
               style={{
@@ -58,14 +64,14 @@ export function SaraRiskField({
               }}
               aria-label={`${r.title}, ${r.level}`}
             >
-              <span className="flex items-center gap-2">
+              <span className="sara-glass-chip max-w-[160px]">
                 <span
                   className={cn(
-                    "h-1.5 w-1.5 rounded-full",
+                    "h-1.5 w-1.5 shrink-0 rounded-full",
                     levelTone(r.level).split(" ")[0]
                   )}
                 />
-                <span className="max-w-[140px] truncate text-[11px] text-white/75">
+                <span className="truncate text-[11px] text-white/80">
                   {r.title}
                 </span>
               </span>
@@ -74,12 +80,16 @@ export function SaraRiskField({
         </div>
 
         {selected ? (
-          <div className="mx-auto mt-8 max-w-lg text-center">
-            <p className="text-[15px] text-white">{selected.title}</p>
-            <p className="mt-1 text-[10px] tracking-[0.14em] text-amber-200/70">
+          <div className="mx-auto mt-8 max-w-lg rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-4 text-center backdrop-blur-md">
+            <p className="text-[15px] font-medium tracking-tight text-white">
+              {selected.title}
+            </p>
+            <p className="mt-1 text-[12px] font-medium text-amber-200/75">
               {selected.level}
             </p>
-            <p className="mt-3 text-[13px] text-white/45">{selected.evidence}</p>
+            <p className="mt-3 text-[13px] leading-relaxed text-white/50">
+              {selected.evidence}
+            </p>
           </div>
         ) : null}
 
@@ -90,7 +100,7 @@ export function SaraRiskField({
             </li>
           ))}
         </ul>
-      </div>
+      </SaraGlass>
     </section>
   );
 }

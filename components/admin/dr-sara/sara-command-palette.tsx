@@ -119,23 +119,23 @@ export function SaraCommandPalette({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-7 items-center gap-1.5 rounded-md border border-black/[0.06] bg-black/[0.02] px-2 text-[10px] text-neutral-500 transition-colors hover:bg-black/[0.04] dark:border-white/10 dark:bg-white/[0.04]"
+        className="inline-flex h-7 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-2.5 text-[10px] text-white/55 backdrop-blur-md transition-colors hover:bg-white/[0.08] hover:text-white/80"
         aria-label="Open Dr Sara command palette"
       >
         <Search className="h-3 w-3" />
         <span className="hidden sm:inline">Sara</span>
         <kbd
           suppressHydrationWarning
-          className="rounded border border-black/[0.06] bg-white px-1 py-0.5 font-mono text-[9px] dark:border-white/10 dark:bg-black/30"
+          className="rounded border border-white/10 bg-black/30 px-1 py-0.5 font-mono text-[9px] text-white/50"
         >
           {shortcutLabel}
         </kbd>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:rounded-xl">
+        <DialogContent className="max-w-lg gap-0 overflow-hidden border-white/10 bg-[#0b0d10]/92 p-0 shadow-[0_24px_80px_-20px_rgba(0,0,0,0.8)] backdrop-blur-2xl sm:rounded-2xl">
           <DialogTitle className="sr-only">Dr Sara command palette</DialogTitle>
-          <div className="flex items-center gap-2 border-b border-black/[0.06] px-3 dark:border-white/10">
+          <div className="flex items-center gap-2 border-b border-white/10 px-3">
             <Search className="h-4 w-4 shrink-0 text-[#007AFF]" />
             <input
               autoFocus
@@ -143,12 +143,12 @@ export function SaraCommandPalette({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="Navigate Dr Sara — try “risks” or “what matters now”"
-              className="h-11 w-full bg-transparent text-[13px] outline-none placeholder:text-neutral-400"
+              className="h-11 w-full bg-transparent text-[13px] text-white outline-none placeholder:text-white/35"
             />
           </div>
           <div className="max-h-[360px] overflow-y-auto p-1.5">
             {items.length === 0 ? (
-              <p className="px-3 py-6 text-center text-[12px] text-neutral-400">
+              <p className="px-3 py-6 text-center text-[12px] text-white/40">
                 No matches
               </p>
             ) : (
@@ -159,23 +159,23 @@ export function SaraCommandPalette({
                   onMouseEnter={() => setActive(index)}
                   onClick={() => activate(item.section)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[12px] transition-colors",
+                    "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12px] transition-colors",
                     index === active
-                      ? "bg-[#007AFF]/10 text-neutral-900 dark:text-white"
-                      : "text-neutral-600 dark:text-neutral-300"
+                      ? "bg-[#007AFF]/15 text-white"
+                      : "text-white/60 hover:bg-white/[0.04]"
                   )}
                 >
                   <span className="min-w-0 flex-1 truncate font-medium">
                     {item.label}
                   </span>
-                  <span className="truncate text-[11px] text-neutral-400">
+                  <span className="truncate text-[11px] text-white/35">
                     {item.hint}
                   </span>
                 </button>
               ))
             )}
           </div>
-          <div className="flex items-center justify-between border-t border-black/[0.06] px-3 py-2 text-[10px] text-neutral-400 dark:border-white/10">
+          <div className="flex items-center justify-between border-t border-white/10 px-3 py-2 text-[10px] text-white/35">
             <span>Deterministic navigation · no LLM</span>
             <button
               type="button"
